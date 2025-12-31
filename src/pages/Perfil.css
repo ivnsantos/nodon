@@ -1,0 +1,639 @@
+.perfil-page {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Header Section com Avatar */
+.perfil-header-section {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 1.5rem;
+}
+
+.perfil-avatar-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.perfil-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(14, 165, 233, 0.15);
+  color: #7dd3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 500;
+  border: 1.5px solid rgba(14, 165, 233, 0.25);
+}
+
+.avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  border: 2px solid rgba(10, 14, 39, 0.95);
+  font-size: 0.75rem;
+}
+
+.perfil-header-info {
+  flex: 1;
+}
+
+.perfil-header-info h1 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0 0 0.375rem 0;
+}
+
+.perfil-email {
+  color: #9ca3af;
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+}
+
+.user-type-badge-large {
+  display: inline-block;
+  padding: 0.375rem 0.875rem;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 0.5rem;
+  color: #7dd3fc;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.btn-edit-perfil {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.btn-edit-perfil:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.perfil-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.perfil-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.card-header h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-header h2 svg {
+  color: #7dd3fc;
+  font-size: 0.9375rem;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.info-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.info-value {
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.user-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 0.375rem;
+  color: #7dd3fc;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Token Stats */
+.token-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.token-main-stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(14, 165, 233, 0.06);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(14, 165, 233, 0.12);
+}
+
+.token-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 165, 233, 0.15);
+  border-radius: 0.5rem;
+  color: #7dd3fc;
+  font-size: 1.125rem;
+}
+
+.token-info {
+  flex: 1;
+}
+
+.token-value {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.token-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.token-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.token-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: #9ca3af;
+  font-size: 0.8125rem;
+}
+
+.token-detail-item svg {
+  color: #7dd3fc;
+  font-size: 0.875rem;
+}
+
+.token-progress-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.token-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+
+.progress-label {
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.progress-value {
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.token-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.token-progress-fill {
+  height: 100%;
+  background: #0ea5e9;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.token-progress-percent {
+  color: #7dd3fc;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: right;
+}
+
+.token-card {
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .token-card {
+    grid-column: span 1;
+  }
+}
+
+/* Assinatura */
+.assinatura-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.assinatura-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.plan-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.plan-badge svg {
+  color: #fbbf24;
+  font-size: 1rem;
+}
+
+.plan-status {
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.plan-status.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.assinatura-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #9ca3af;
+  font-size: 0.8125rem;
+}
+
+.detail-value {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.no-assinatura,
+.no-cartao {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+}
+
+.no-cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Cartão */
+.cartao-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cartao-display {
+  margin-bottom: 0.5rem;
+}
+
+.cartao-front {
+  background: rgba(30, 58, 138, 0.3);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  color: #ffffff;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.cartao-bandeira {
+  text-align: right;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #93c5fd;
+}
+
+.cartao-numero {
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.125rem;
+  margin-bottom: 1.25rem;
+  font-family: 'Courier New', monospace;
+}
+
+.cartao-hidden {
+  opacity: 0.6;
+}
+
+.cartao-digits {
+  margin-left: 0.5rem;
+}
+
+.cartao-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.cartao-nome {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+  opacity: 0.9;
+}
+
+.cartao-vencimento {
+  font-size: 0.8125rem;
+  opacity: 0.9;
+}
+
+.cartao-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+}
+
+.btn-primary {
+  background: rgba(14, 165, 233, 0.2);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.btn-primary:hover {
+  background: rgba(14, 165, 233, 0.25);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Clientes */
+.clientes-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.clientes-stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(14, 165, 233, 0.06);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(14, 165, 233, 0.12);
+}
+
+.clientes-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 165, 233, 0.15);
+  border-radius: 0.5rem;
+  color: #7dd3fc;
+  font-size: 1.125rem;
+}
+
+.clientes-data {
+  flex: 1;
+}
+
+.clientes-value {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.clientes-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.clientes-limit {
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.clientes-limit-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+
+.clientes-limit-label {
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.clientes-limit-value {
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.clientes-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.clientes-progress-fill {
+  height: 100%;
+  background: #0ea5e9;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.clientes-progress-text {
+  color: #7dd3fc;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .perfil-page {
+    padding: 1rem;
+  }
+
+  .perfil-content {
+    grid-template-columns: 1fr;
+  }
+
+  .perfil-header-section {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.25rem;
+    padding: 1.5rem;
+  }
+
+  .perfil-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 1.75rem;
+  }
+
+  .perfil-header-info h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn-edit-perfil {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .token-main-stat {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .token-card {
+    grid-column: span 1;
+  }
+
+  .assinatura-plan {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+
+  .clientes-stat {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
