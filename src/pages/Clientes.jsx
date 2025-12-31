@@ -28,7 +28,14 @@ const Clientes = () => {
       // Buscar clientes do localStorage ou usar dados mockados
       const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
       if (savedClientes.length > 0) {
-        setClientes(savedClientes)
+        // Normalizar necessidades para garantir consistência
+        const clientesNormalizados = savedClientes.map(cliente => ({
+          ...cliente,
+          necessidades: Array.isArray(cliente.necessidades) 
+            ? cliente.necessidades 
+            : (cliente.necessidades ? [cliente.necessidades] : [])
+        }))
+        setClientes(clientesNormalizados)
       } else {
         // Dados mockados iniciais
         const mockData = [
@@ -212,10 +219,14 @@ const Clientes = () => {
                     </span>
                   </div>
                 )}
-                {cliente.necessidades && (
+                {cliente.necessidades && cliente.necessidades.length > 0 && (
                   <div className="detail-item necessidades">
                     <strong>Necessidades:</strong>
-                    <span>{cliente.necessidades}</span>
+                    <span>
+                      {Array.isArray(cliente.necessidades) 
+                        ? cliente.necessidades.join(', ') 
+                        : cliente.necessidades}
+                    </span>
                   </div>
                 )}
               </div>

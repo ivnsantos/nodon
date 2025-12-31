@@ -36,7 +36,14 @@ const ClienteDetalhes = () => {
       const cliente = savedClientes.find(c => c.id === parseInt(id))
       
       if (cliente) {
-        setCliente(cliente)
+        // Garantir que necessidades seja sempre um array
+        const clienteComNecessidades = {
+          ...cliente,
+          necessidades: Array.isArray(cliente.necessidades) 
+            ? cliente.necessidades 
+            : (cliente.necessidades ? [cliente.necessidades] : [])
+        }
+        setCliente(clienteComNecessidades)
       } else {
         // Dados mockados padrão
         setCliente({
@@ -378,7 +385,7 @@ const ClienteDetalhes = () => {
                   Adicionar
                 </button>
               </div>
-              {cliente.necessidades && cliente.necessidades.length > 0 ? (
+              {Array.isArray(cliente.necessidades) && cliente.necessidades.length > 0 ? (
                 <ul className="necessidades-list">
                   {cliente.necessidades.map((necessidade, index) => (
                     <li key={index}>
