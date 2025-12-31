@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faUser, faEnvelope, faIdCard, faCreditCard, faCrown,
   faCoins, faChartLine, faCalendar, faShieldAlt, faEdit,
-  faCheckCircle, faTrendingUp, faUsers
+  faCheckCircle, faUsers
 } from '@fortawesome/free-solid-svg-icons'
 import './Perfil.css'
 
@@ -155,7 +155,7 @@ const Perfil = () => {
               </div>
               <div className="token-details">
                 <div className="token-detail-item">
-                  <FontAwesomeIcon icon={faTrendingUp} />
+                  <FontAwesomeIcon icon={faChartLine} />
                   <span>Este mês: {Math.floor(tokenUsage * 0.3).toLocaleString('pt-BR')} tokens</span>
                 </div>
                 <div className="token-detail-item">
