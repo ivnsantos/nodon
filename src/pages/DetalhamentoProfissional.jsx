@@ -5,7 +5,7 @@ import {
   faArrowLeft, faFileMedical, faCheck, faFileAlt, faTooth,
   faDownload
 } from '@fortawesome/free-solid-svg-icons'
-import jsPDF from 'jspdf'
+// jsPDF será importado dinamicamente
 import exameImage from '../img/exame.jpg'
 import './DetalhamentoProfissional.css'
 
@@ -148,6 +148,7 @@ const DetalhamentoProfissional = () => {
 
     try {
       // Criar novo documento PDF
+      const { jsPDF } = await import('jspdf')
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()

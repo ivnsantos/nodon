@@ -19,7 +19,7 @@ import limaImage from '../img/lima.png'
 import pinoImage from '../img/pino.png'
 import xImage from '../img/x.png'
 import dentesOKImage from '../img/dentesOK.PNG'
-import jsPDF from 'jspdf'
+// jsPDF será importado dinamicamente
 import './DiagnosticoDesenho.css'
 
 // Importar todos os SVGs dos dentes
@@ -1352,6 +1352,7 @@ const DiagnosticoDesenho = () => {
   const handleExportPDF = async () => {
     try {
       // Criar novo documento PDF
+      const { jsPDF } = await import('jspdf')
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
