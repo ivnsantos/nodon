@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { initDatabase } from './database.js'
 import authRoutes from './routes/auth.js'
 import dentistasRoutes from './routes/dentistas.js'
+import clientesRoutes from './routes/clientes.js'
 import diagnosticosRoutes from './routes/diagnosticos.js'
 import chatRoutes from './routes/chat.js'
 
