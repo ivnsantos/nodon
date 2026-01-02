@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faXRay, faPlus, faImage, faFileMedical, faCalendar, faUser,
   faSearch, faCheck, faTimes, faEnvelope, faIdCard,
-  faExclamationTriangle, faEye
+  faExclamationTriangle, faEye, faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import exameImage from '../img/exame.jpg'
 import './Diagnosticos.css'
@@ -298,6 +298,36 @@ const Diagnosticos = () => {
 
   const handleViewDetails = (diagnostico) => {
     navigate(`/app/diagnosticos/${diagnostico.id}`)
+  }
+
+  const handleDelete = async (diagnosticoId, e) => {
+    e.stopPropagation() // Prevenir navegação ao clicar no botão
+    
+    if (!window.confirm('Tem certeza que deseja excluir esta radiografia?')) {
+      return
+    }
+
+    try {
+      // Buscar diagnósticos do localStorage
+      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
+      
+      // Remover o diagnóstico
+      const updatedDiagnosticos = savedDiagnosticos.filter(d => d.id !== diagnosticoId)
+      
+      // Salvar no localStorage
+      localStorage.setItem('mockDiagnosticos', JSON.stringify(updatedDiagnosticos))
+      
+      // Atualizar estado
+      setDiagnosticos(updatedDiagnosticos)
+      
+      // Também remover dados de desenho associados se existirem
+      localStorage.removeItem(`drawing_${diagnosticoId}`)
+      
+      showAlert('Radiografia excluída com sucesso!', 'success')
+    } catch (error) {
+      console.error('Erro ao excluir diagnóstico:', error)
+      showAlert('Erro ao excluir radiografia')
+    }
   }
 
   if (loading) {
@@ -631,7 +661,14 @@ const Diagnosticos = () => {
         ) : (
           diagnosticos.map((diagnostico) => (
             <div key={diagnostico.id} className="diagnostico-card">
-              <div className="diagnostico-image">
+              <button 
+                className="diagnostico-delete-btn"
+                onClick={(e) => handleDelete(diagnostico.id, e)}
+                title="Excluir radiografia"
+              >
+                <FontAwesomeIcon icon={faTrash} />
+              </button>
+              <div className="diagnostico-image" onClick={() => handleViewDetails(diagnostico)}>
                 <img 
                   src={exameImage}
                   alt={diagnostico.paciente}
@@ -647,21 +684,8 @@ const Diagnosticos = () => {
               </div>
               <div className="diagnostico-info">
                 <h4>
-                  <FontAwesomeIcon icon={faUser} /> {diagnostico.paciente}
+                  {diagnostico.paciente}
                 </h4>
-                {diagnostico.cliente_nome && (
-                  <p className="cliente-link">
-                    Cliente: {diagnostico.cliente_nome}
-                  </p>
-                )}
-                <p className="diagnostico-date">
-                  <FontAwesomeIcon icon={faCalendar} /> {new Date(diagnostico.data).toLocaleDateString('pt-BR')}
-                </p>
-                <p className="diagnostico-desc">{diagnostico.descricao}</p>
-                <div className="diagnostico-tags">
-                  <span className="tag">Análise IA</span>
-                  <span className="tag">Relatório</span>
-                </div>
               </div>
             </div>
           ))

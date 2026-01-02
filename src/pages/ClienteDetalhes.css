@@ -489,18 +489,227 @@
     padding: 1rem;
   }
 
+  .cliente-detalhes-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .btn-back,
+  .btn-edit-header {
+    width: 100%;
+    justify-content: center;
+  }
+
   .ficha-header {
     flex-direction: column;
+    align-items: center;
     text-align: center;
+    gap: 1rem;
+  }
+
+  .cliente-avatar-large {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .cliente-info-main {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cliente-info-main h1 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  .status-badge-large {
+    margin-top: 0.5rem;
   }
 
   .ficha-grid {
     grid-template-columns: 1fr;
   }
 
+  .ficha-section {
+    padding-bottom: 1.5rem;
+  }
+
+  .ficha-section h2 {
+    font-size: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .section-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .section-header-actions h2 {
+    margin-bottom: 0;
+  }
+
+  .btn-add,
+  .btn-change-status {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cliente-ficha {
+    padding: 1.5rem;
+  }
+
+  .cliente-historico {
+    padding: 1.5rem;
+  }
+
+  .historico-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .historico-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
   .modal-content {
     width: 95%;
     padding: 1.5rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    width: 100%;
+  }
+
+  .radiografias-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Radiografias Grid */
+.radiografias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.radiografia-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.radiografia-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
+.radiografia-card-image {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.radiografia-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.radiografia-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.radiografia-card:hover .radiografia-card-overlay {
+  opacity: 1;
+}
+
+.btn-view-radiografia {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+}
+
+.btn-view-radiografia:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+}
+
+.radiografia-card-info {
+  padding: 1rem;
+}
+
+.radiografia-card-info h3 {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radiografia-card-date {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.radiografia-card-type {
+  color: rgba(14, 165, 233, 0.9);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+  .radiografias-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .radiografia-card-image {
+    height: 120px;
   }
 }
 

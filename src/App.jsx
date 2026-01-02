@@ -11,6 +11,7 @@ import Dentistas from './pages/Dentistas'
 import Diagnosticos from './pages/Diagnosticos'
 import DiagnosticoDetalhes from './pages/DiagnosticoDetalhes'
 import DiagnosticoDesenho from './pages/DiagnosticoDesenho'
+import DetalhamentoProfissional from './pages/DetalhamentoProfissional'
 import Chat from './pages/Chat'
 import Clientes from './pages/Clientes'
 import ClienteDetalhes from './pages/ClienteDetalhes'
@@ -48,6 +49,7 @@ function AppRoutes() {
           <Route path="diagnosticos" element={<Diagnosticos />} />
           <Route path="diagnosticos/:id" element={<DiagnosticoDetalhes />} />
           <Route path="diagnosticos/:id/desenho" element={<DiagnosticoDesenho />} />
+          <Route path="diagnosticos/:id/detalhamento-profissional" element={<DetalhamentoProfissional />} />
           <Route path="chat" element={<Chat />} />
           <Route path="perfil" element={<Perfil />} />
           <Route path="clientes" element={<Clientes />} />

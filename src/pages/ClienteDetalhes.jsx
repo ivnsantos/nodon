@@ -5,7 +5,8 @@ import {
   faArrowLeft, faEdit, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faIdCard,
   faStethoscope, faHistory, faPlus, faFileMedical,
-  faCheckCircle, faClock, faTimesCircle, faExclamationTriangle
+  faCheckCircle, faClock, faTimesCircle, faExclamationTriangle,
+  faXRay, faEye
 } from '@fortawesome/free-solid-svg-icons'
 // Removido import de axios - usando dados mockados
 import './ClienteDetalhes.css'
@@ -15,6 +16,7 @@ const ClienteDetalhes = () => {
   const navigate = useNavigate()
   const [cliente, setCliente] = useState(null)
   const [historico, setHistorico] = useState([])
+  const [radiografias, setRadiografias] = useState([])
   const [loading, setLoading] = useState(true)
   const [showNecessidadesModal, setShowNecessidadesModal] = useState(false)
   const [showStatusModal, setShowStatusModal] = useState(false)
@@ -25,6 +27,16 @@ const ClienteDetalhes = () => {
     loadCliente()
     loadHistorico()
   }, [id])
+
+  // Carregar radiografias quando o cliente for carregado
+  useEffect(() => {
+    if (cliente) {
+      loadRadiografias(cliente)
+    } else {
+      // Tentar carregar mesmo sem cliente (pode ter radiografias por ID)
+      loadRadiografias({ id: parseInt(id) })
+    }
+  }, [cliente, id])
 
   const loadCliente = async () => {
     try {
@@ -116,6 +128,42 @@ const ClienteDetalhes = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
+    }
+  }
+
+  const loadRadiografias = async (clienteData = null) => {
+    try {
+      // Simular delay de API
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // Buscar radiografias do localStorage filtradas por cliente_id
+      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
+      const clienteId = parseInt(id)
+      const clienteInfo = clienteData || cliente
+      
+      // Filtrar radiografias do cliente
+      let radiografiasCliente = []
+      
+      if (clienteInfo) {
+        radiografiasCliente = savedDiagnosticos.filter(d => 
+          d.cliente_id === clienteId || 
+          (d.cliente_nome && d.cliente_nome === clienteInfo.nome)
+        )
+      } else {
+        // Se não tiver cliente, buscar por ID apenas
+        radiografiasCliente = savedDiagnosticos.filter(d => d.cliente_id === clienteId)
+      }
+      
+      // Ordenar por data mais recente primeiro
+      radiografiasCliente.sort((a, b) => {
+        const dateA = new Date(a.data || a.created_at || 0)
+        const dateB = new Date(b.data || b.created_at || 0)
+        return dateB - dateA
+      })
+      
+      setRadiografias(radiografiasCliente)
+    } catch (error) {
+      console.error('Erro ao carregar radiografias:', error)
     }
   }
 
@@ -433,6 +481,52 @@ const ClienteDetalhes = () => {
                 <p className="observacoes-text">{cliente.observacoes}</p>
               </div>
             )}
+
+            <div className="ficha-section">
+              <h2>
+                <FontAwesomeIcon icon={faXRay} />
+                Radiografias
+              </h2>
+              {radiografias.length > 0 ? (
+                <div className="radiografias-grid">
+                  {radiografias.map((radiografia) => (
+                    <div 
+                      key={radiografia.id} 
+                      className="radiografia-card"
+                      onClick={() => navigate(`/app/diagnosticos/${radiografia.id}`)}
+                    >
+                      <div className="radiografia-card-image">
+                        <img 
+                          src={radiografia.imagem && radiografia.imagem.startsWith('data:image') 
+                            ? radiografia.imagem 
+                            : exameImage} 
+                          alt={radiografia.paciente}
+                          onError={(e) => {
+                            e.target.src = exameImage
+                          }}
+                        />
+                        <div className="radiografia-card-overlay">
+                          <button className="btn-view-radiografia">
+                            <FontAwesomeIcon icon={faEye} /> Ver Detalhes
+                          </button>
+                        </div>
+                      </div>
+                      <div className="radiografia-card-info">
+                        <h3>{radiografia.paciente || 'Radiografia'}</h3>
+                        <p className="radiografia-card-date">
+                          {new Date(radiografia.data || radiografia.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                        {radiografia.tipoExame && (
+                          <p className="radiografia-card-type">{radiografia.tipoExame}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-text">Nenhuma radiografia registrada</p>
+              )}
+            </div>
           </div>
         </div>
 

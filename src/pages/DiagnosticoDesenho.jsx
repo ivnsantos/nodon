@@ -11,7 +11,7 @@ import {
   faSearchMinus, faExpand, faFont, faTimes,
   faFileAlt, faCheck, faCircle, faSquare, faMinus,
   faArrowRight, faCrosshairs, faChevronLeft, faChevronRight,
-  faDownload
+  faDownload, faEdit
 } from '@fortawesome/free-solid-svg-icons'
 import exameImage from '../img/exame.jpg'
 import denteparafusoImage from '../img/denteparafuso.png'
@@ -19,6 +19,7 @@ import limaImage from '../img/lima.png'
 import pinoImage from '../img/pino.png'
 import xImage from '../img/x.png'
 import dentesOKImage from '../img/dentesOK.PNG'
+import jsPDF from 'jspdf'
 import './DiagnosticoDesenho.css'
 
 // Importar todos os SVGs dos dentes
@@ -88,6 +89,7 @@ const DiagnosticoDesenho = () => {
   const [radiografia, setRadiografia] = useState(null)
   const [loading, setLoading] = useState(true)
   const [observacoes, setObservacoes] = useState('')
+  const [editedTitulo, setEditedTitulo] = useState('')
   
   // Estado dos elementos arrastáveis
   const [elements, setElements] = useState([])
@@ -158,10 +160,40 @@ const DiagnosticoDesenho = () => {
     // Simular carregamento
     setTimeout(() => {
       const mockData = getMockRadiografia(id)
-        setRadiografia(mockData)
+      setRadiografia(mockData)
+      // Título começa vazio para ser preenchido pelo usuário
+      setEditedTitulo('')
       setLoading(false)
       // A imagem será carregada pelo useEffect quando radiografia mudar
     }, 500)
+  }
+
+  const handleSaveTitulo = () => {
+    if (!editedTitulo.trim()) return
+    
+    const updatedRadiografia = {
+      ...radiografia,
+      paciente: editedTitulo
+    }
+    setRadiografia(updatedRadiografia)
+    
+    // Salvar no localStorage
+    const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
+    const index = savedDiagnosticos.findIndex(d => d.id === parseInt(id))
+    
+    if (index !== -1) {
+      savedDiagnosticos[index] = {
+        ...savedDiagnosticos[index],
+        paciente: editedTitulo
+      }
+    } else {
+      savedDiagnosticos.push({
+        id: parseInt(id),
+        paciente: editedTitulo
+      })
+    }
+    
+    localStorage.setItem('mockDiagnosticos', JSON.stringify(savedDiagnosticos))
   }
 
   /**
@@ -1315,6 +1347,252 @@ const DiagnosticoDesenho = () => {
   }
 
   /**
+   * Exportar para PDF
+   */
+  const handleExportPDF = async () => {
+    try {
+      // Criar novo documento PDF
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 15
+      const contentWidth = pageWidth - (margin * 2)
+      
+      // Função auxiliar para carregar imagem
+      const loadImage = (src) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => resolve(img)
+          img.onerror = reject
+          img.src = src
+        })
+      }
+      
+      // Função para converter SVG para PNG usando canvas
+      const svgToPng = async (svgUrl) => {
+        return new Promise((resolve, reject) => {
+          try {
+            // Criar canvas com tamanho adequado
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            // Tamanho maior para melhor qualidade
+            canvas.width = 300
+            canvas.height = 450
+            
+            // Criar imagem do SVG
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            
+            img.onload = () => {
+              try {
+                // Limpar canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+                // Desenhar SVG no canvas mantendo proporção
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height)
+                const x = (canvas.width - img.width * scale) / 2
+                const y = (canvas.height - img.height * scale) / 2
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+                
+                // Converter para PNG
+                const pngDataUrl = canvas.toDataURL('image/png', 1.0)
+                resolve(pngDataUrl)
+              } catch (error) {
+                console.error('Erro ao desenhar SVG no canvas:', error)
+                reject(error)
+              }
+            }
+            
+            img.onerror = (error) => {
+              console.error('Erro ao carregar SVG:', error)
+              reject(error)
+            }
+            
+            // Carregar o SVG
+            img.src = svgUrl
+          } catch (error) {
+            console.error('Erro na função svgToPng:', error)
+            reject(error)
+          }
+        })
+      }
+      
+      // Cabeçalho com fundo colorido
+      pdf.setFillColor(14, 165, 233) // Azul
+      pdf.rect(0, 0, pageWidth, 30, 'F')
+      
+      // Título no cabeçalho
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(20)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Detalhamento Profissional', pageWidth / 2, 20, { align: 'center' })
+      
+      pdf.setTextColor(0, 0, 0)
+      let yPosition = 40
+      
+      // Carregar e adicionar a imagem da radiografia com borda
+      const radiografiaImg = await loadImage(radiografia?.imagem || exameImage)
+      
+      // Calcular dimensões da imagem
+      const maxWidth = contentWidth
+      const maxHeight = 90
+      let imgWidth = radiografiaImg.width
+      let imgHeight = radiografiaImg.height
+      const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight)
+      imgWidth = imgWidth * ratio
+      imgHeight = imgHeight * ratio
+      
+      // Borda ao redor da imagem
+      pdf.setDrawColor(200, 200, 200)
+      pdf.setLineWidth(0.5)
+      pdf.rect(margin - 2, yPosition - 2, imgWidth + 4, imgHeight + 4)
+      
+      // Adicionar imagem ao PDF
+      pdf.addImage(radiografiaImg, 'JPEG', margin, yPosition, imgWidth, imgHeight)
+      yPosition += imgHeight + 15
+      
+      // Linha decorativa
+      pdf.setDrawColor(14, 165, 233)
+      pdf.setLineWidth(1)
+      pdf.line(margin, yPosition, pageWidth - margin, yPosition)
+      yPosition += 10
+      
+      // Dentes Selecionados
+      if (selectedDentes && selectedDentes.length > 0) {
+        // Título da seção com fundo
+        pdf.setFillColor(240, 248, 255)
+        pdf.rect(margin, yPosition - 5, contentWidth, 8, 'F')
+        
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(14, 165, 233)
+        pdf.text('Dentes Selecionados', margin + 5, yPosition + 2)
+        yPosition += 12
+        
+        pdf.setTextColor(0, 0, 0)
+        pdf.setFontSize(10)
+        pdf.setFont('helvetica', 'normal')
+        
+        // Usar for...of para permitir await
+        for (const dente of selectedDentes) {
+          // Verificar se precisa de nova página
+          if (yPosition > pageHeight - 40) {
+            pdf.addPage()
+            yPosition = margin + 10
+          }
+          
+          // Card para cada dente
+          const cardHeight = 25
+          pdf.setFillColor(250, 250, 250)
+          pdf.setDrawColor(220, 220, 220)
+          pdf.setLineWidth(0.3)
+          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 2, 2, 'FD')
+          
+          // Tentar carregar e adicionar imagem do dente
+          const denteSvg = dentesSVGs[dente.numero]
+          let hasDenteImage = false
+          if (denteSvg) {
+            try {
+              // Converter SVG para PNG primeiro
+              const pngDataUrl = await svgToPng(denteSvg)
+              const denteImg = await loadImage(pngDataUrl)
+              const denteImgSize = 6 // Tamanho reduzido da imagem do dente em mm
+              const denteImgHeight = denteImgSize * 2 // Altura proporcional
+              pdf.addImage(denteImg, 'PNG', margin + 3, yPosition + 2, denteImgSize, denteImgHeight)
+              hasDenteImage = true
+            } catch (e) {
+              console.log('Erro ao carregar imagem do dente:', e)
+              // Tentar método alternativo: carregar SVG diretamente como imagem
+              try {
+                const denteImg = await loadImage(denteSvg)
+                const denteImgSize = 6
+                const denteImgHeight = denteImgSize * 2
+                // Criar canvas para converter
+                const canvas = document.createElement('canvas')
+                const ctx = canvas.getContext('2d')
+                canvas.width = 100
+                canvas.height = 200
+                ctx.drawImage(denteImg, 0, 0, canvas.width, canvas.height)
+                const pngData = canvas.toDataURL('image/png')
+                const imgFromCanvas = await loadImage(pngData)
+                pdf.addImage(imgFromCanvas, 'PNG', margin + 3, yPosition + 2, denteImgSize, denteImgHeight)
+                hasDenteImage = true
+              } catch (e2) {
+                console.log('Erro no método alternativo:', e2)
+              }
+            }
+          }
+          
+          // Número do dente em negrito
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(11)
+          pdf.text(`Dente ${dente.numero}:`, margin + (hasDenteImage ? 12 : 3), yPosition + 5)
+          
+          // Descrição do dente
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(9)
+          const descricaoLines = pdf.splitTextToSize(dente.descricao || `Dente ${dente.numero} selecionado`, contentWidth - (hasDenteImage ? 15 : 6))
+          pdf.text(descricaoLines, margin + (hasDenteImage ? 12 : 3), yPosition + 12)
+          yPosition += cardHeight + 5
+        }
+        
+        yPosition += 5
+      }
+      
+      // Observações Gerais
+      if (observacoes) {
+        // Verificar se precisa de nova página
+        if (yPosition > pageHeight - 50) {
+          pdf.addPage()
+          yPosition = margin + 10
+        }
+        
+        // Título da seção com fundo
+        pdf.setFillColor(240, 248, 255)
+        pdf.rect(margin, yPosition - 5, contentWidth, 8, 'F')
+        
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(14, 165, 233)
+        pdf.text('Observações Gerais', margin + 5, yPosition + 2)
+        yPosition += 12
+        
+        // Card para observações
+        pdf.setFillColor(250, 250, 250)
+        pdf.setDrawColor(220, 220, 220)
+        pdf.setLineWidth(0.3)
+        const observacoesHeight = Math.min((observacoes.split('\n').length * 5) + 10, 50)
+        pdf.roundedRect(margin, yPosition - 3, contentWidth, observacoesHeight, 2, 2, 'FD')
+        
+        pdf.setTextColor(0, 0, 0)
+        pdf.setFontSize(10)
+        pdf.setFont('helvetica', 'normal')
+        const observacoesLines = pdf.splitTextToSize(observacoes, contentWidth - 6)
+        pdf.text(observacoesLines, margin + 3, yPosition + 5)
+        yPosition += observacoesHeight + 10
+      }
+      
+      // Rodapé com fundo
+      const footerY = pageHeight - 15
+      pdf.setFillColor(240, 240, 240)
+      pdf.rect(0, footerY, pageWidth, 15, 'F')
+      
+      const dataAtual = new Date().toLocaleDateString('pt-BR')
+      const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'italic')
+      pdf.setTextColor(100, 100, 100)
+      pdf.text(`Gerado em: ${dataAtual} às ${horaAtual}`, pageWidth / 2, footerY + 8, { align: 'center' })
+      
+      // Salvar PDF
+      pdf.save(`detalhamento_profissional_${id}_${Date.now()}.pdf`)
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      alert('Erro ao gerar PDF. Tente novamente.')
+    }
+  }
+
+  /**
    * Salva o desenho
    */
   const saveDrawing = () => {
@@ -1349,8 +1627,18 @@ const DiagnosticoDesenho = () => {
           <button className="btn-back-desenho" onClick={() => navigate(`/app/diagnosticos/${id}`)}>
             <FontAwesomeIcon icon={faArrowLeft} /> Voltar
           </button>
-          <div className="paciente-name">
-            {radiografia?.cliente_nome || 'Paciente'}
+          <h1 className="desenho-title">
+            <FontAwesomeIcon icon={faPencil} /> Desenho Profissional
+          </h1>
+          <div className="paciente-name-edit">
+            <input
+              type="text"
+              className="paciente-name-input"
+              value={editedTitulo}
+              onChange={(e) => setEditedTitulo(e.target.value)}
+              onBlur={handleSaveTitulo}
+              placeholder="Digite o título da radiografia..."
+            />
           </div>
         </div>
         <div className="header-right">
@@ -1932,9 +2220,12 @@ const DiagnosticoDesenho = () => {
           placeholder="Digite suas observações sobre este diagnóstico..."
         />
         <div className="observacoes-section-footer">
+          <button className="btn-exportar-pdf" onClick={handleExportPDF}>
+            <FontAwesomeIcon icon={faFileAlt} /> Exportar PDF
+          </button>
           <button className="btn-salvar-observacoes" onClick={saveDrawing}>
             <FontAwesomeIcon icon={faSave} /> SALVAR
-            </button>
+          </button>
         </div>
       </div>
     </div>
