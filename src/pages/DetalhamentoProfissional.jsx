@@ -7,6 +7,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 // jsPDF será importado dinamicamente
 import exameImage from '../img/exame.jpg'
+import nodoLogo from '../img/nodo.png'
 import './DetalhamentoProfissional.css'
 
 // Importar todos os SVGs dos dentes
@@ -155,72 +156,257 @@ const DetalhamentoProfissional = () => {
       const margin = 15
       const contentWidth = pageWidth - (margin * 2)
       
-      // Título
-      pdf.setFontSize(18)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('Detalhamento Profissional', margin, margin + 10)
+      // Função auxiliar para carregar imagem
+      const loadImage = (src) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => resolve(img)
+          img.onerror = reject
+          img.src = src
+        })
+      }
       
-      let yPosition = margin + 20
+      // Cabeçalho profissional com azul escuro
+      pdf.setFillColor(15, 23, 42) // Azul escuro profissional (#0f172a)
+      pdf.rect(0, 0, pageWidth, 40, 'F')
+      
+      // Barra decorativa inferior no cabeçalho
+      pdf.setFillColor(30, 58, 138) // Azul médio (#1e3a8a)
+      pdf.rect(0, 38, pageWidth, 2, 'F')
+      
+      // Carregar e adicionar logo da NODON
+      try {
+        const logoImg = await loadImage(nodoLogo)
+        const logoSize = 14 // Tamanho do logo em mm
+        const logoHeight = logoSize
+        pdf.addImage(logoImg, 'PNG', margin, 8, logoSize, logoHeight)
+      } catch (e) {
+        console.log('Erro ao carregar logo:', e)
+      }
+      
+      // Título no cabeçalho
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(20)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('NODON', margin + 18, 18)
+      
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(200, 200, 200)
+      pdf.text('Detalhamento Profissional', margin + 18, 25)
+      
+      // Data no cabeçalho (lado direito)
+      const dataCabecalho = new Date().toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      })
+      pdf.setFontSize(10)
+      pdf.setTextColor(180, 180, 180)
+      pdf.text(dataCabecalho, pageWidth - margin, 20, { align: 'right' })
+      
+      pdf.setTextColor(0, 0, 0)
+      let yPosition = 50
       
       // Carregar e adicionar a imagem da radiografia
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
+      const radiografiaImg = await loadImage(detalhamento.radiografia)
       
-      await new Promise((resolve, reject) => {
-        img.onload = () => {
-          try {
-            // Calcular dimensões da imagem para caber na página
-            const maxWidth = contentWidth
-            const maxHeight = 100 // Altura máxima para a imagem
-            let imgWidth = img.width
-            let imgHeight = img.height
-            const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight)
-            imgWidth = imgWidth * ratio
-            imgHeight = imgHeight * ratio
-            
-            // Adicionar imagem ao PDF
-            pdf.addImage(img, 'JPEG', margin, yPosition, imgWidth, imgHeight)
-            yPosition += imgHeight + 10
-            resolve()
-          } catch (error) {
-            reject(error)
-          }
-        }
-        img.onerror = reject
-        img.src = detalhamento.radiografia
-      })
+      // Calcular dimensões da imagem para caber na página
+      const maxWidth = contentWidth
+      const maxHeight = 90 // Altura máxima para a imagem
+      let imgWidth = radiografiaImg.width
+      let imgHeight = radiografiaImg.height
+      const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight)
+      imgWidth = imgWidth * ratio
+      imgHeight = imgHeight * ratio
+      
+      // Borda ao redor da imagem
+      pdf.setDrawColor(200, 200, 200)
+      pdf.setLineWidth(0.5)
+      pdf.rect(margin - 2, yPosition - 2, imgWidth + 4, imgHeight + 4)
+      
+      // Adicionar imagem ao PDF
+      pdf.addImage(radiografiaImg, 'JPEG', margin, yPosition, imgWidth, imgHeight)
+      yPosition += imgHeight + 15
+      
+      // Linha decorativa com azul escuro
+      pdf.setDrawColor(15, 23, 42)
+      pdf.setLineWidth(1.5)
+      pdf.line(margin, yPosition, pageWidth - margin, yPosition)
+      yPosition += 12
       
       // Adicionar linha separadora
       pdf.setDrawColor(200, 200, 200)
       pdf.line(margin, yPosition, pageWidth - margin, yPosition)
       yPosition += 10
       
+      // Função para converter SVG para PNG
+      const svgToPng = async (svgUrl) => {
+        return new Promise((resolve, reject) => {
+          try {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            canvas.width = 300
+            canvas.height = 450
+            
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            
+            img.onload = () => {
+              try {
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height)
+                const x = (canvas.width - img.width * scale) / 2
+                const y = (canvas.height - img.height * scale) / 2
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+                const pngDataUrl = canvas.toDataURL('image/png', 1.0)
+                resolve(pngDataUrl)
+              } catch (error) {
+                reject(error)
+              }
+            }
+            
+            img.onerror = reject
+            img.src = svgUrl
+          } catch (error) {
+            reject(error)
+          }
+        })
+      }
+      
       // Dentes Marcados
       if (detalhamento.dentes && detalhamento.dentes.length > 0) {
-        pdf.setFontSize(14)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Dentes Marcados:', margin, yPosition)
-        yPosition += 8
+        // Título da seção com fundo azul escuro
+        pdf.setFillColor(15, 23, 42)
+        pdf.rect(margin, yPosition - 5, contentWidth, 10, 'F')
         
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(255, 255, 255)
+        pdf.text('Dentes Selecionados', margin + 5, yPosition + 3)
+        yPosition += 15
+        
+        pdf.setTextColor(0, 0, 0)
         pdf.setFontSize(10)
         pdf.setFont('helvetica', 'normal')
         
-        detalhamento.dentes.forEach((dente, index) => {
+        // Importar SVGs dos dentes
+        const dentesSVGs = {
+          11: dente11, 12: dente12, 13: dente13, 14: dente14, 15: dente15,
+          16: dente16, 17: dente17, 18: dente18, 21: dente21, 22: dente22,
+          23: dente23, 24: dente24, 25: dente25, 26: dente26, 27: dente27,
+          28: dente28, 31: dente31, 32: dente32, 33: dente33, 34: dente34,
+          35: dente35, 36: dente36, 37: dente37, 38: dente38, 41: dente41,
+          42: dente42, 43: dente43, 44: dente44, 45: dente45, 46: dente46,
+          47: dente47, 48: dente48
+        }
+        
+        for (const dente of detalhamento.dentes) {
           // Verificar se precisa de nova página
-          if (yPosition > pageHeight - 30) {
+          if (yPosition > pageHeight - 40) {
             pdf.addPage()
-            yPosition = margin
+            yPosition = margin + 10
+          }
+          
+          // Card para cada dente com borda azul escura
+          const cardHeight = 25
+          pdf.setFillColor(255, 255, 255)
+          pdf.setDrawColor(15, 23, 42)
+          pdf.setLineWidth(0.5)
+          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 3, 3, 'FD')
+          
+          // Barra lateral azul no card
+          pdf.setFillColor(30, 58, 138)
+          pdf.rect(margin, yPosition - 3, 2, cardHeight, 'F')
+          
+          // Tentar carregar e adicionar imagem do dente
+          const denteSvg = dentesSVGs[dente.numero]
+          let hasDenteImage = false
+          if (denteSvg) {
+            try {
+              const pngDataUrl = await svgToPng(denteSvg)
+              const denteImg = await loadImage(pngDataUrl)
+              const denteImgSize = 6
+              const denteImgHeight = denteImgSize * 2
+              pdf.addImage(denteImg, 'PNG', margin + 3, yPosition + 2, denteImgSize, denteImgHeight)
+              hasDenteImage = true
+            } catch (e) {
+              console.log('Erro ao carregar imagem do dente:', e)
+            }
           }
           
           // Número do dente em negrito
           pdf.setFont('helvetica', 'bold')
-          pdf.text(`Dente ${dente.numero}:`, margin, yPosition)
+          pdf.setFontSize(11)
+          pdf.text(`Dente ${dente.numero}:`, margin + (hasDenteImage ? 12 : 3), yPosition + 5)
           
           // Descrição do dente
           pdf.setFont('helvetica', 'normal')
-          const descricaoLines = pdf.splitTextToSize(dente.descricao || `Dente ${dente.numero} selecionado`, contentWidth)
-          pdf.text(descricaoLines, margin + 5, yPosition + 5)
-          yPosition += (descricaoLines.length * 5) + 5
+          pdf.setFontSize(9)
+          const descricaoLines = pdf.splitTextToSize(dente.descricao || `Dente ${dente.numero} selecionado`, contentWidth - (hasDenteImage ? 15 : 6))
+          pdf.text(descricaoLines, margin + (hasDenteImage ? 12 : 3), yPosition + 12)
+          yPosition += cardHeight + 5
+        }
+        
+        yPosition += 5
+      }
+      
+      // Necessidades/Tratamento
+      const necessidades = detalhamento.necessidades || detalhamento.recomendacoes || []
+      if (Array.isArray(necessidades) && necessidades.length > 0) {
+        // Verificar se precisa de nova página
+        if (yPosition > pageHeight - 50) {
+          pdf.addPage()
+          yPosition = margin + 10
+        }
+        
+        // Título da seção com fundo azul escuro
+        pdf.setFillColor(15, 23, 42)
+        pdf.rect(margin, yPosition - 5, contentWidth, 10, 'F')
+        
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(255, 255, 255)
+        pdf.text('Necessidades / Tratamento', margin + 5, yPosition + 3)
+        yPosition += 15
+        
+        pdf.setTextColor(0, 0, 0)
+        pdf.setFontSize(10)
+        pdf.setFont('helvetica', 'normal')
+        
+        // Lista de necessidades
+        necessidades.forEach((necessidade, index) => {
+          // Verificar se precisa de nova página
+          if (yPosition > pageHeight - 30) {
+            pdf.addPage()
+            yPosition = margin + 10
+          }
+          
+          // Card para cada necessidade
+          const cardHeight = 20
+          pdf.setFillColor(255, 255, 255)
+          pdf.setDrawColor(15, 23, 42)
+          pdf.setLineWidth(0.5)
+          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 3, 3, 'FD')
+          
+          // Barra lateral azul no card
+          pdf.setFillColor(30, 58, 138)
+          pdf.rect(margin, yPosition - 3, 2, cardHeight, 'F')
+          
+          // Ícone de check
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(12)
+          pdf.setTextColor(30, 58, 138)
+          pdf.text('✓', margin + 5, yPosition + 6)
+          
+          // Texto da necessidade
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(10)
+          pdf.setTextColor(0, 0, 0)
+          const necessidadeLines = pdf.splitTextToSize(necessidade, contentWidth - 12)
+          pdf.text(necessidadeLines, margin + 10, yPosition + 6)
+          yPosition += Math.max(cardHeight, (necessidadeLines.length * 5) + 5) + 3
         })
         
         yPosition += 5
@@ -229,29 +415,69 @@ const DetalhamentoProfissional = () => {
       // Observações Gerais
       if (detalhamento.observacoes) {
         // Verificar se precisa de nova página
-        if (yPosition > pageHeight - 40) {
+        if (yPosition > pageHeight - 50) {
           pdf.addPage()
-          yPosition = margin
+          yPosition = margin + 10
         }
         
-        pdf.setFontSize(14)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Observações Gerais:', margin, yPosition)
-        yPosition += 8
+        // Título da seção com fundo azul escuro
+        pdf.setFillColor(15, 23, 42)
+        pdf.rect(margin, yPosition - 5, contentWidth, 10, 'F')
         
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(255, 255, 255)
+        pdf.text('Observações Gerais', margin + 5, yPosition + 3)
+        yPosition += 15
+        
+        // Card para observações com borda azul escura
+        pdf.setFillColor(255, 255, 255)
+        pdf.setDrawColor(15, 23, 42)
+        pdf.setLineWidth(0.5)
+        const observacoesHeight = Math.min((detalhamento.observacoes.split('\n').length * 5) + 10, 50)
+        pdf.roundedRect(margin, yPosition - 3, contentWidth, observacoesHeight, 3, 3, 'FD')
+        
+        // Barra lateral azul no card
+        pdf.setFillColor(30, 58, 138)
+        pdf.rect(margin, yPosition - 3, 2, observacoesHeight, 'F')
+        
+        pdf.setTextColor(0, 0, 0)
         pdf.setFontSize(10)
         pdf.setFont('helvetica', 'normal')
-        const observacoesLines = pdf.splitTextToSize(detalhamento.observacoes, contentWidth)
-        pdf.text(observacoesLines, margin, yPosition)
-        yPosition += (observacoesLines.length * 5) + 10
+        const observacoesLines = pdf.splitTextToSize(detalhamento.observacoes, contentWidth - 6)
+        pdf.text(observacoesLines, margin + 3, yPosition + 5)
+        yPosition += observacoesHeight + 10
       }
       
-      // Rodapé com data
+      // Rodapé profissional com azul escuro
+      const footerY = pageHeight - 18
+      pdf.setFillColor(15, 23, 42)
+      pdf.rect(0, footerY, pageWidth, 18, 'F')
+      
+      // Barra decorativa superior no rodapé
+      pdf.setFillColor(30, 58, 138)
+      pdf.rect(0, footerY, pageWidth, 2, 'F')
+      
+      // Logo pequeno no rodapé
+      try {
+        const logoFooterImg = await loadImage(nodoLogo)
+        const logoFooterSize = 6
+        pdf.addImage(logoFooterImg, 'PNG', margin, footerY + 5, logoFooterSize, logoFooterSize)
+      } catch (e) {
+        console.log('Erro ao carregar logo no rodapé:', e)
+      }
+      
       const dataAtual = new Date().toLocaleDateString('pt-BR')
-      pdf.setFontSize(8)
-      pdf.setFont('helvetica', 'italic')
-      pdf.setTextColor(128, 128, 128)
-      pdf.text(`Gerado em: ${dataAtual}`, margin, pageHeight - 10)
+      const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(200, 200, 200)
+      pdf.text(`NODON - Gerado em ${dataAtual} às ${horaAtual}`, pageWidth / 2, footerY + 10, { align: 'center' })
+      
+      // Texto adicional no rodapé
+      pdf.setFontSize(7)
+      pdf.setTextColor(150, 150, 150)
+      pdf.text('Plataforma inteligente para análise de radiografias odontológicas', pageWidth / 2, footerY + 15, { align: 'center' })
       
       // Salvar PDF
       pdf.save(`detalhamento_profissional_${id}_${Date.now()}.pdf`)

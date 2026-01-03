@@ -11,7 +11,7 @@ import {
   faSearchMinus, faExpand, faFont, faTimes,
   faFileAlt, faCheck, faCircle, faSquare, faMinus,
   faArrowRight, faCrosshairs, faChevronLeft, faChevronRight,
-  faDownload, faEdit
+  faDownload, faEdit, faStethoscope, faPlus, faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import exameImage from '../img/exame.jpg'
 import denteparafusoImage from '../img/denteparafuso.png'
@@ -19,6 +19,7 @@ import limaImage from '../img/lima.png'
 import pinoImage from '../img/pino.png'
 import xImage from '../img/x.png'
 import dentesOKImage from '../img/dentesOK.PNG'
+import nodoLogo from '../img/nodo.png'
 // jsPDF será importado dinamicamente
 import './DiagnosticoDesenho.css'
 
@@ -90,6 +91,9 @@ const DiagnosticoDesenho = () => {
   const [loading, setLoading] = useState(true)
   const [observacoes, setObservacoes] = useState('')
   const [editedTitulo, setEditedTitulo] = useState('')
+  const [necessidades, setNecessidades] = useState([])
+  const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
+  const [editedNecessidades, setEditedNecessidades] = useState([])
   
   // Estado dos elementos arrastáveis
   const [elements, setElements] = useState([])
@@ -163,6 +167,16 @@ const DiagnosticoDesenho = () => {
       setRadiografia(mockData)
       // Título começa vazio para ser preenchido pelo usuário
       setEditedTitulo('')
+      
+      // Carregar necessidades do diagnóstico
+      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
+      const diagnostico = savedDiagnosticos.find(d => d.id === parseInt(id))
+      if (diagnostico) {
+        const necessidadesData = diagnostico.necessidades || diagnostico.recomendacoes || []
+        setNecessidades(necessidadesData)
+        setEditedNecessidades(Array.isArray(necessidadesData) ? necessidadesData : [])
+      }
+      
       setLoading(false)
       // A imagem será carregada pelo useEffect quando radiografia mudar
     }, 500)
@@ -1418,18 +1432,47 @@ const DiagnosticoDesenho = () => {
         })
       }
       
-      // Cabeçalho com fundo colorido
-      pdf.setFillColor(14, 165, 233) // Azul
-      pdf.rect(0, 0, pageWidth, 30, 'F')
+      // Cabeçalho profissional com azul escuro
+      pdf.setFillColor(15, 23, 42) // Azul escuro profissional (#0f172a)
+      pdf.rect(0, 0, pageWidth, 40, 'F')
+      
+      // Barra decorativa inferior no cabeçalho
+      pdf.setFillColor(30, 58, 138) // Azul médio (#1e3a8a)
+      pdf.rect(0, 38, pageWidth, 2, 'F')
+      
+      // Carregar e adicionar logo da NODON
+      try {
+        const logoImg = await loadImage(nodoLogo)
+        const logoSize = 14 // Tamanho do logo em mm
+        const logoHeight = logoSize
+        pdf.addImage(logoImg, 'PNG', margin, 8, logoSize, logoHeight)
+      } catch (e) {
+        console.log('Erro ao carregar logo:', e)
+      }
       
       // Título no cabeçalho
       pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(20)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Detalhamento Profissional', pageWidth / 2, 20, { align: 'center' })
+      pdf.text('NODON', margin + 18, 18)
+      
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(200, 200, 200)
+      pdf.text('Detalhamento Profissional', margin + 18, 25)
+      
+      // Data no cabeçalho (lado direito)
+      const dataCabecalho = new Date().toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      })
+      pdf.setFontSize(10)
+      pdf.setTextColor(180, 180, 180)
+      pdf.text(dataCabecalho, pageWidth - margin, 20, { align: 'right' })
       
       pdf.setTextColor(0, 0, 0)
-      let yPosition = 40
+      let yPosition = 50
       
       // Carregar e adicionar a imagem da radiografia com borda
       const radiografiaImg = await loadImage(radiografia?.imagem || exameImage)
@@ -1452,23 +1495,23 @@ const DiagnosticoDesenho = () => {
       pdf.addImage(radiografiaImg, 'JPEG', margin, yPosition, imgWidth, imgHeight)
       yPosition += imgHeight + 15
       
-      // Linha decorativa
-      pdf.setDrawColor(14, 165, 233)
-      pdf.setLineWidth(1)
+      // Linha decorativa com azul escuro
+      pdf.setDrawColor(15, 23, 42)
+      pdf.setLineWidth(1.5)
       pdf.line(margin, yPosition, pageWidth - margin, yPosition)
-      yPosition += 10
+      yPosition += 12
       
       // Dentes Selecionados
       if (selectedDentes && selectedDentes.length > 0) {
-        // Título da seção com fundo
-        pdf.setFillColor(240, 248, 255)
-        pdf.rect(margin, yPosition - 5, contentWidth, 8, 'F')
+        // Título da seção com fundo azul escuro
+        pdf.setFillColor(15, 23, 42)
+        pdf.rect(margin, yPosition - 5, contentWidth, 10, 'F')
         
         pdf.setFontSize(16)
         pdf.setFont('helvetica', 'bold')
-        pdf.setTextColor(14, 165, 233)
-        pdf.text('Dentes Selecionados', margin + 5, yPosition + 2)
-        yPosition += 12
+        pdf.setTextColor(255, 255, 255)
+        pdf.text('Dentes Selecionados', margin + 5, yPosition + 3)
+        yPosition += 15
         
         pdf.setTextColor(0, 0, 0)
         pdf.setFontSize(10)
@@ -1482,12 +1525,16 @@ const DiagnosticoDesenho = () => {
             yPosition = margin + 10
           }
           
-          // Card para cada dente
+          // Card para cada dente com borda azul escura
           const cardHeight = 25
-          pdf.setFillColor(250, 250, 250)
-          pdf.setDrawColor(220, 220, 220)
-          pdf.setLineWidth(0.3)
-          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 2, 2, 'FD')
+          pdf.setFillColor(255, 255, 255)
+          pdf.setDrawColor(15, 23, 42)
+          pdf.setLineWidth(0.5)
+          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 3, 3, 'FD')
+          
+          // Barra lateral azul no card
+          pdf.setFillColor(30, 58, 138)
+          pdf.rect(margin, yPosition - 3, 2, cardHeight, 'F')
           
           // Tentar carregar e adicionar imagem do dente
           const denteSvg = dentesSVGs[dente.numero]
@@ -1540,6 +1587,65 @@ const DiagnosticoDesenho = () => {
         yPosition += 5
       }
       
+      // Necessidades/Tratamento
+      if (Array.isArray(necessidades) && necessidades.length > 0) {
+        // Verificar se precisa de nova página
+        if (yPosition > pageHeight - 50) {
+          pdf.addPage()
+          yPosition = margin + 10
+        }
+        
+        // Título da seção com fundo azul escuro
+        pdf.setFillColor(15, 23, 42)
+        pdf.rect(margin, yPosition - 5, contentWidth, 10, 'F')
+        
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(255, 255, 255)
+        pdf.text('Necessidades / Tratamento', margin + 5, yPosition + 3)
+        yPosition += 15
+        
+        pdf.setTextColor(0, 0, 0)
+        pdf.setFontSize(10)
+        pdf.setFont('helvetica', 'normal')
+        
+        // Lista de necessidades
+        for (const necessidade of necessidades) {
+          // Verificar se precisa de nova página
+          if (yPosition > pageHeight - 30) {
+            pdf.addPage()
+            yPosition = margin + 10
+          }
+          
+          // Card para cada necessidade
+          const cardHeight = 20
+          pdf.setFillColor(255, 255, 255)
+          pdf.setDrawColor(15, 23, 42)
+          pdf.setLineWidth(0.5)
+          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 3, 3, 'FD')
+          
+          // Barra lateral azul no card
+          pdf.setFillColor(30, 58, 138)
+          pdf.rect(margin, yPosition - 3, 2, cardHeight, 'F')
+          
+          // Ícone de check
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(12)
+          pdf.setTextColor(30, 58, 138)
+          pdf.text('✓', margin + 5, yPosition + 6)
+          
+          // Texto da necessidade
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(10)
+          pdf.setTextColor(0, 0, 0)
+          const necessidadeLines = pdf.splitTextToSize(necessidade, contentWidth - 12)
+          pdf.text(necessidadeLines, margin + 10, yPosition + 6)
+          yPosition += Math.max(cardHeight, (necessidadeLines.length * 5) + 5) + 3
+        }
+        
+        yPosition += 5
+      }
+      
       // Observações Gerais
       if (observacoes) {
         // Verificar se precisa de nova página
@@ -1548,22 +1654,26 @@ const DiagnosticoDesenho = () => {
           yPosition = margin + 10
         }
         
-        // Título da seção com fundo
-        pdf.setFillColor(240, 248, 255)
-        pdf.rect(margin, yPosition - 5, contentWidth, 8, 'F')
+        // Título da seção com fundo azul escuro
+        pdf.setFillColor(15, 23, 42)
+        pdf.rect(margin, yPosition - 5, contentWidth, 10, 'F')
         
         pdf.setFontSize(16)
         pdf.setFont('helvetica', 'bold')
-        pdf.setTextColor(14, 165, 233)
-        pdf.text('Observações Gerais', margin + 5, yPosition + 2)
-        yPosition += 12
+        pdf.setTextColor(255, 255, 255)
+        pdf.text('Observações Gerais', margin + 5, yPosition + 3)
+        yPosition += 15
         
-        // Card para observações
-        pdf.setFillColor(250, 250, 250)
-        pdf.setDrawColor(220, 220, 220)
-        pdf.setLineWidth(0.3)
+        // Card para observações com borda azul escura
+        pdf.setFillColor(255, 255, 255)
+        pdf.setDrawColor(15, 23, 42)
+        pdf.setLineWidth(0.5)
         const observacoesHeight = Math.min((observacoes.split('\n').length * 5) + 10, 50)
-        pdf.roundedRect(margin, yPosition - 3, contentWidth, observacoesHeight, 2, 2, 'FD')
+        pdf.roundedRect(margin, yPosition - 3, contentWidth, observacoesHeight, 3, 3, 'FD')
+        
+        // Barra lateral azul no card
+        pdf.setFillColor(30, 58, 138)
+        pdf.rect(margin, yPosition - 3, 2, observacoesHeight, 'F')
         
         pdf.setTextColor(0, 0, 0)
         pdf.setFontSize(10)
@@ -1573,17 +1683,35 @@ const DiagnosticoDesenho = () => {
         yPosition += observacoesHeight + 10
       }
       
-      // Rodapé com fundo
-      const footerY = pageHeight - 15
-      pdf.setFillColor(240, 240, 240)
-      pdf.rect(0, footerY, pageWidth, 15, 'F')
+      // Rodapé profissional com azul escuro
+      const footerY = pageHeight - 18
+      pdf.setFillColor(15, 23, 42)
+      pdf.rect(0, footerY, pageWidth, 18, 'F')
+      
+      // Barra decorativa superior no rodapé
+      pdf.setFillColor(30, 58, 138)
+      pdf.rect(0, footerY, pageWidth, 2, 'F')
+      
+      // Logo pequeno no rodapé
+      try {
+        const logoFooterImg = await loadImage(nodoLogo)
+        const logoFooterSize = 6
+        pdf.addImage(logoFooterImg, 'PNG', margin, footerY + 5, logoFooterSize, logoFooterSize)
+      } catch (e) {
+        console.log('Erro ao carregar logo no rodapé:', e)
+      }
       
       const dataAtual = new Date().toLocaleDateString('pt-BR')
       const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      pdf.setFontSize(8)
-      pdf.setFont('helvetica', 'italic')
-      pdf.setTextColor(100, 100, 100)
-      pdf.text(`Gerado em: ${dataAtual} às ${horaAtual}`, pageWidth / 2, footerY + 8, { align: 'center' })
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(200, 200, 200)
+      pdf.text(`NODON - Gerado em ${dataAtual} às ${horaAtual}`, pageWidth / 2, footerY + 10, { align: 'center' })
+      
+      // Texto adicional no rodapé
+      pdf.setFontSize(7)
+      pdf.setTextColor(150, 150, 150)
+      pdf.text('Plataforma inteligente para análise de radiografias odontológicas', pageWidth / 2, footerY + 15, { align: 'center' })
       
       // Salvar PDF
       pdf.save(`detalhamento_profissional_${id}_${Date.now()}.pdf`)
@@ -2207,6 +2335,106 @@ const DiagnosticoDesenho = () => {
           </div>
         </div>
       )}
+
+      {/* Seção de Necessidades */}
+      <div className="necessidades-section">
+        <div className="necessidades-section-header">
+          <FontAwesomeIcon icon={faStethoscope} />
+          <span>Necessidades</span>
+          <div className="section-header-actions">
+            {isEditingNecessidades ? (
+              <>
+                <button 
+                  className="btn-add-necessidade"
+                  onClick={() => setEditedNecessidades([...editedNecessidades, ''])}
+                  title="Adicionar necessidade"
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Adicionar
+                </button>
+                <button 
+                  className="btn-save-necessidades"
+                  onClick={() => {
+                    setNecessidades(editedNecessidades)
+                    setIsEditingNecessidades(false)
+                    // Salvar no localStorage
+                    const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
+                    const index = savedDiagnosticos.findIndex(d => d.id === parseInt(id))
+                    if (index !== -1) {
+                      savedDiagnosticos[index] = {
+                        ...savedDiagnosticos[index],
+                        necessidades: editedNecessidades,
+                        recomendacoes: editedNecessidades
+                      }
+                    } else {
+                      savedDiagnosticos.push({
+                        id: parseInt(id),
+                        necessidades: editedNecessidades,
+                        recomendacoes: editedNecessidades
+                      })
+                    }
+                    localStorage.setItem('mockDiagnosticos', JSON.stringify(savedDiagnosticos))
+                  }}
+                >
+                  <FontAwesomeIcon icon={faSave} /> Salvar
+                </button>
+              </>
+            ) : (
+              <button 
+                className="btn-edit-necessidades"
+                onClick={() => {
+                  setEditedNecessidades([...necessidades])
+                  setIsEditingNecessidades(true)
+                }}
+              >
+                <FontAwesomeIcon icon={faEdit} /> Editar
+              </button>
+            )}
+          </div>
+        </div>
+        {isEditingNecessidades ? (
+          <div className="necessidades-edit">
+            {editedNecessidades.length > 0 ? (
+              editedNecessidades.map((necessidade, index) => (
+                <div key={index} className="necessidade-item-edit">
+                  <input
+                    type="text"
+                    className="necessidade-input"
+                    value={necessidade}
+                    onChange={(e) => {
+                      const updated = [...editedNecessidades]
+                      updated[index] = e.target.value
+                      setEditedNecessidades(updated)
+                    }}
+                    placeholder="Digite a necessidade..."
+                  />
+                  <button
+                    className="btn-remove-necessidade"
+                    onClick={() => setEditedNecessidades(editedNecessidades.filter((_, i) => i !== index))}
+                    title="Remover necessidade"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="necessidades-empty-message">Nenhuma necessidade adicionada. Clique em "Adicionar" para incluir.</p>
+            )}
+          </div>
+        ) : (
+          necessidades && necessidades.length > 0 ? (
+            <ul className="necessidades-list">
+              {necessidades.map((necessidade, index) => (
+                <li key={index}>
+                  <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                  {necessidade}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="necessidades-empty-message">Nenhuma necessidade registrada.</p>
+          )
+        )}
+      </div>
 
       {/* Seção de Observações */}
       <div className="observacoes-section">
