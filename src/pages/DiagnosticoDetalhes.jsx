@@ -807,24 +807,30 @@ const DiagnosticoDetalhes = () => {
           {isEditingNecessidades ? (
             <div className="detalhes-achados-edit">
               {editedNecessidades.length > 0 ? (
-                editedNecessidades.map((necessidade, index) => (
-                  <div key={index} className="achado-item-edit">
-                    <input
-                      type="text"
-                      className="achado-input"
-                      value={necessidade}
-                      onChange={(e) => handleUpdateNecessidade(index, e.target.value)}
-                      placeholder="Digite a necessidade..."
-                    />
-                    <button
-                      className="btn-remove-achado"
-                      onClick={() => handleRemoveNecessidade(index)}
-                      title="Remover necessidade"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </div>
-                ))
+                editedNecessidades.map((necessidade, index) => {
+                  const necessidadeValue = typeof necessidade === 'object' && necessidade !== null
+                    ? (necessidade.procedimento || necessidade.anotacoes || '')
+                    : (typeof necessidade === 'string' ? necessidade : '')
+                  
+                  return (
+                    <div key={index} className="achado-item-edit">
+                      <input
+                        type="text"
+                        className="achado-input"
+                        value={necessidadeValue}
+                        onChange={(e) => handleUpdateNecessidade(index, e.target.value)}
+                        placeholder="Digite a necessidade..."
+                      />
+                      <button
+                        className="btn-remove-achado"
+                        onClick={() => handleRemoveNecessidade(index)}
+                        title="Remover necessidade"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                  )
+                })
               ) : (
                 <p className="detalhes-empty-message">Nenhuma necessidade adicionada. Clique em "Adicionar" para incluir.</p>
               )}
@@ -832,12 +838,18 @@ const DiagnosticoDetalhes = () => {
           ) : (
             editedNecessidades && editedNecessidades.length > 0 ? (
               <ul className="detalhes-list">
-                {editedNecessidades.map((necessidade, index) => (
-                  <li key={index}>
-                    <FontAwesomeIcon icon={faCheck} className="list-icon" />
-                    {necessidade}
-                  </li>
-                ))}
+                {editedNecessidades.map((necessidade, index) => {
+                  const necessidadeValue = typeof necessidade === 'object' && necessidade !== null
+                    ? (necessidade.procedimento || necessidade.anotacoes || 'Nenhuma informação')
+                    : (typeof necessidade === 'string' ? necessidade : 'Nenhuma informação')
+                  
+                  return (
+                    <li key={index}>
+                      <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                      {necessidadeValue}
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               <p className="detalhes-empty-message">Nenhuma necessidade registrada.</p>

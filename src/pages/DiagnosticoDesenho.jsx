@@ -95,6 +95,8 @@ const DiagnosticoDesenho = () => {
   const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
   const [editedNecessidades, setEditedNecessidades] = useState([])
   
+  // Estrutura de necessidades: { procedimento: string, anotacoes: string }
+  
   // Estado dos elementos arrastáveis
   const [elements, setElements] = useState([])
   const [nextId, setNextId] = useState(1)
@@ -173,8 +175,25 @@ const DiagnosticoDesenho = () => {
       const diagnostico = savedDiagnosticos.find(d => d.id === parseInt(id))
       if (diagnostico) {
         const necessidadesData = diagnostico.necessidades || diagnostico.recomendacoes || []
-        setNecessidades(necessidadesData)
-        setEditedNecessidades(Array.isArray(necessidadesData) ? necessidadesData : [])
+        // Converter para formato de tabela se for array de strings
+        const necessidadesFormatadas = Array.isArray(necessidadesData) && necessidadesData.length > 0
+          ? necessidadesData.map(item => {
+              if (typeof item === 'string') {
+                return { procedimento: item, anotacoes: '' }
+              }
+              // Garantir que tem a estrutura correta
+              return {
+                procedimento: item.procedimento || '',
+                anotacoes: item.anotacoes || ''
+              }
+            })
+          : []
+        setNecessidades(necessidadesFormatadas)
+        setEditedNecessidades(necessidadesFormatadas.length > 0 ? [...necessidadesFormatadas] : [])
+      } else {
+        // Inicializar vazio se não houver diagnóstico
+        setNecessidades([])
+        setEditedNecessidades([])
       }
       
       setLoading(false)
@@ -1605,45 +1624,70 @@ const DiagnosticoDesenho = () => {
         pdf.text('Necessidades / Tratamento', margin + 5, yPosition + 3)
         yPosition += 15
         
-        pdf.setTextColor(0, 0, 0)
-        pdf.setFontSize(10)
-        pdf.setFont('helvetica', 'normal')
+        // Cabeçalho da tabela - proporção 1:5
+        const colWidth1 = contentWidth * (1/6) // Procedimentos (1 parte)
+        const colWidth2 = contentWidth * (5/6) // Anotações (5 partes)
+        const rowHeight = 15
+        const headerHeight = 12
         
-        // Lista de necessidades
-        for (const necessidade of necessidades) {
-          // Verificar se precisa de nova página
-          if (yPosition > pageHeight - 30) {
-            pdf.addPage()
-            yPosition = margin + 10
-          }
+        // Função para desenhar cabeçalho
+        const drawTableHeader = (y) => {
+          pdf.setFillColor(15, 23, 42)
+          pdf.rect(margin, y, colWidth1, headerHeight, 'F')
+          pdf.rect(margin + colWidth1, y, colWidth2, headerHeight, 'F')
           
-          // Card para cada necessidade
-          const cardHeight = 20
-          pdf.setFillColor(255, 255, 255)
-          pdf.setDrawColor(15, 23, 42)
-          pdf.setLineWidth(0.5)
-          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 3, 3, 'FD')
-          
-          // Barra lateral azul no card
-          pdf.setFillColor(30, 58, 138)
-          pdf.rect(margin, yPosition - 3, 2, cardHeight, 'F')
-          
-          // Ícone de check
-          pdf.setFont('helvetica', 'bold')
-          pdf.setFontSize(12)
-          pdf.setTextColor(30, 58, 138)
-          pdf.text('✓', margin + 5, yPosition + 6)
-          
-          // Texto da necessidade
-          pdf.setFont('helvetica', 'normal')
           pdf.setFontSize(10)
-          pdf.setTextColor(0, 0, 0)
-          const necessidadeLines = pdf.splitTextToSize(necessidade, contentWidth - 12)
-          pdf.text(necessidadeLines, margin + 10, yPosition + 6)
-          yPosition += Math.max(cardHeight, (necessidadeLines.length * 5) + 5) + 3
+          pdf.setFont('helvetica', 'bold')
+          pdf.setTextColor(255, 255, 255)
+          pdf.text('Procedimentos', margin + 3, y + 8)
+          pdf.text('Anotações', margin + colWidth1 + 3, y + 8)
         }
         
-        yPosition += 5
+        // Desenhar cabeçalho inicial
+        drawTableHeader(yPosition)
+        yPosition += headerHeight
+        
+        // Linhas da tabela
+        for (const item of necessidades) {
+          // Texto das células
+          const procedimento = typeof item === 'object' ? (item.procedimento || '-') : (item || '-')
+          const anotacoes = typeof item === 'object' ? (item.anotacoes || '-') : '-'
+          
+          const procedimentoLines = pdf.splitTextToSize(procedimento, colWidth1 - 6)
+          const anotacoesLines = pdf.splitTextToSize(anotacoes, colWidth2 - 6)
+          
+          const cellHeight = Math.max(
+            procedimentoLines.length * 5 + 4,
+            anotacoesLines.length * 5 + 4,
+            rowHeight
+          )
+          
+          // Verificar se precisa de nova página ANTES de desenhar a linha
+          if (yPosition + cellHeight > pageHeight - 20) {
+            pdf.addPage()
+            yPosition = margin + 10
+            // Redesenhar cabeçalho na nova página
+            drawTableHeader(yPosition)
+            yPosition += headerHeight
+          }
+          
+          // Borda da célula
+          pdf.setDrawColor(15, 23, 42)
+          pdf.setLineWidth(0.3)
+          pdf.rect(margin, yPosition, colWidth1, cellHeight, 'S')
+          pdf.rect(margin + colWidth1, yPosition, colWidth2, cellHeight, 'S')
+          
+          // Texto das células - PRETO
+          pdf.setTextColor(0, 0, 0)
+          pdf.setFontSize(9)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text(procedimentoLines, margin + 3, yPosition + 6)
+          pdf.text(anotacoesLines, margin + colWidth1 + 3, yPosition + 6)
+          
+          yPosition += cellHeight
+        }
+        
+        yPosition += 10 // Espaço após a tabela
       }
       
       // Observações Gerais
@@ -1652,6 +1696,9 @@ const DiagnosticoDesenho = () => {
         if (yPosition > pageHeight - 50) {
           pdf.addPage()
           yPosition = margin + 10
+        } else {
+          // Adicionar espaço antes da seção de observações
+          yPosition += 10
         }
         
         // Título da seção com fundo azul escuro
@@ -2346,15 +2393,19 @@ const DiagnosticoDesenho = () => {
               <>
                 <button 
                   className="btn-add-necessidade"
-                  onClick={() => setEditedNecessidades([...editedNecessidades, ''])}
-                  title="Adicionar necessidade"
+                  onClick={() => setEditedNecessidades([...editedNecessidades, { procedimento: '', anotacoes: '' }])}
+                  title="Adicionar linha"
                 >
                   <FontAwesomeIcon icon={faPlus} /> Adicionar
                 </button>
                 <button 
                   className="btn-save-necessidades"
                   onClick={() => {
-                    setNecessidades(editedNecessidades)
+                    // Filtrar linhas vazias antes de salvar
+                    const necessidadesFiltradas = editedNecessidades.filter(
+                      item => (item.procedimento && item.procedimento.trim()) || (item.anotacoes && item.anotacoes.trim())
+                    )
+                    setNecessidades(necessidadesFiltradas)
                     setIsEditingNecessidades(false)
                     // Salvar no localStorage
                     const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
@@ -2362,14 +2413,14 @@ const DiagnosticoDesenho = () => {
                     if (index !== -1) {
                       savedDiagnosticos[index] = {
                         ...savedDiagnosticos[index],
-                        necessidades: editedNecessidades,
-                        recomendacoes: editedNecessidades
+                        necessidades: necessidadesFiltradas,
+                        recomendacoes: necessidadesFiltradas
                       }
                     } else {
                       savedDiagnosticos.push({
                         id: parseInt(id),
-                        necessidades: editedNecessidades,
-                        recomendacoes: editedNecessidades
+                        necessidades: necessidadesFiltradas,
+                        recomendacoes: necessidadesFiltradas
                       })
                     }
                     localStorage.setItem('mockDiagnosticos', JSON.stringify(savedDiagnosticos))
@@ -2382,7 +2433,7 @@ const DiagnosticoDesenho = () => {
               <button 
                 className="btn-edit-necessidades"
                 onClick={() => {
-                  setEditedNecessidades([...necessidades])
+                  setEditedNecessidades(necessidades.length > 0 ? [...necessidades] : [{ procedimento: '', anotacoes: '' }])
                   setIsEditingNecessidades(true)
                 }}
               >
@@ -2392,44 +2443,94 @@ const DiagnosticoDesenho = () => {
           </div>
         </div>
         {isEditingNecessidades ? (
-          <div className="necessidades-edit">
-            {editedNecessidades.length > 0 ? (
-              editedNecessidades.map((necessidade, index) => (
-                <div key={index} className="necessidade-item-edit">
-                  <input
-                    type="text"
-                    className="necessidade-input"
-                    value={necessidade}
-                    onChange={(e) => {
-                      const updated = [...editedNecessidades]
-                      updated[index] = e.target.value
-                      setEditedNecessidades(updated)
-                    }}
-                    placeholder="Digite a necessidade..."
-                  />
-                  <button
-                    className="btn-remove-necessidade"
-                    onClick={() => setEditedNecessidades(editedNecessidades.filter((_, i) => i !== index))}
-                    title="Remover necessidade"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="necessidades-empty-message">Nenhuma necessidade adicionada. Clique em "Adicionar" para incluir.</p>
-            )}
+          <div className="necessidades-table-container">
+            <table className="necessidades-table">
+              <thead>
+                <tr>
+                  <th>Procedimentos</th>
+                  <th>Anotações</th>
+                  <th className="th-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {editedNecessidades.length > 0 ? (
+                  editedNecessidades.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          className="necessidade-input-table"
+                          value={item.procedimento || ''}
+                          onChange={(e) => {
+                            const updated = [...editedNecessidades]
+                            updated[index] = { ...updated[index], procedimento: e.target.value }
+                            setEditedNecessidades(updated)
+                          }}
+                          placeholder="Digite o procedimento..."
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="necessidade-input-table"
+                          value={item.anotacoes || ''}
+                          onChange={(e) => {
+                            const updated = [...editedNecessidades]
+                            updated[index] = { ...updated[index], anotacoes: e.target.value }
+                            setEditedNecessidades(updated)
+                          }}
+                          placeholder="Digite as anotações..."
+                        />
+                      </td>
+                      <td className="td-actions">
+                        <button
+                          className="btn-remove-necessidade"
+                          onClick={() => setEditedNecessidades(editedNecessidades.filter((_, i) => i !== index))}
+                          title="Remover linha"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="empty-message-cell">
+                      Nenhuma linha adicionada. Clique em "Adicionar" para incluir.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           necessidades && necessidades.length > 0 ? (
-            <ul className="necessidades-list">
-              {necessidades.map((necessidade, index) => (
-                <li key={index}>
-                  <FontAwesomeIcon icon={faCheck} className="list-icon" />
-                  {necessidade}
-                </li>
-              ))}
-            </ul>
+            <div className="necessidades-table-container">
+              <table className="necessidades-table">
+                <thead>
+                  <tr>
+                    <th>Procedimentos</th>
+                    <th>Anotações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {necessidades.map((item, index) => {
+                    const procedimento = typeof item === 'object' && item !== null 
+                      ? (item.procedimento || '-') 
+                      : (typeof item === 'string' ? item : '-')
+                    const anotacoes = typeof item === 'object' && item !== null 
+                      ? (item.anotacoes || '-') 
+                      : '-'
+                    return (
+                      <tr key={index}>
+                        <td>{procedimento}</td>
+                        <td>{anotacoes}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p className="necessidades-empty-message">Nenhuma necessidade registrada.</p>
           )

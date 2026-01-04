@@ -17,6 +17,7 @@ import Clientes from './pages/Clientes'
 import ClienteDetalhes from './pages/ClienteDetalhes'
 import ClienteNovo from './pages/ClienteNovo'
 import Perfil from './pages/Perfil'
+import AssinaturaPendente from './pages/AssinaturaPendente'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -38,6 +39,11 @@ function AppRoutes() {
           <PublicRoute>
             <Checkout />
           </PublicRoute>
+        } />
+        <Route path="/assinatura-pendente" element={
+          <ProtectedRoute>
+            <AssinaturaPendente />
+          </ProtectedRoute>
         } />
         <Route path="/app" element={
           <ProtectedRoute>

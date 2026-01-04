@@ -57,7 +57,7 @@ const Register = () => {
       name: 'Plano Inicial',
       price: 98,
       oldPrice: 159,
-      patients: 'Até 12 pacientes analisados por mês',
+      patients: 'Até 12 análises por mês',
       features: [
         'Análise de radiografias',
         'Relatórios detalhados',
@@ -71,7 +71,7 @@ const Register = () => {
       name: 'Plano Básico',
       price: 179,
       oldPrice: 299,
-      patients: 'Até 30 pacientes analisados por mês',
+      patients: 'Até 30 análises por mês',
       featured: true,
       features: [
         'Tudo do Plano Inicial',
@@ -86,7 +86,7 @@ const Register = () => {
       id: 'premium',
       name: 'Plano Premium',
       price: 299,
-      patients: 'Até 50 pacientes analisados por mês',
+      patients: 'Até 50 análises por mês',
       badge: 'Novo',
       features: [
         'Tudo do Plano Básico',
@@ -100,7 +100,7 @@ const Register = () => {
       id: 'essencial',
       name: 'Plano Essencial',
       price: 399,
-      patients: 'Até 120 pacientes analisados por mês',
+      patients: 'Até 120 análises por mês',
       badge: 'Mais Vendido',
       features: [
         'Tudo do Plano Premium',
@@ -114,7 +114,7 @@ const Register = () => {
       id: 'enterprise',
       name: 'Plano Enterprise',
       price: 499,
-      patients: 'Até 200 pacientes analisados por mês',
+      patients: 'Até 200 análises por mês',
       features: [
         'Tudo do Plano Essencial',
         'Suporte 24/7',

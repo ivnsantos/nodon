@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react'
+import api from '../utils/api'
 
 const AuthContext = createContext()
 
@@ -10,102 +11,128 @@ export const useAuth = () => {
   return context
 }
 
-// Dados mockados de usuários
-const mockUsers = [
-  {
-    id: 1,
-    nome: 'Dr. João Silva',
-    email: 'admin@nodon.com',
-    password: 'admin123',
-    tipo: 'admin'
-  },
-  {
-    id: 2,
-    nome: 'Dra. Maria Santos',
-    email: 'dentista@nodon.com',
-    password: 'dentista123',
-    tipo: 'dentista'
-  }
-]
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const savedUser = localStorage.getItem('user')
+    const token = sessionStorage.getItem('token')
+    const savedUser = sessionStorage.getItem('user')
     if (token && savedUser) {
-      // Restaurar usuário do localStorage
-      setUser(JSON.parse(savedUser))
+      // Restaurar usuário do sessionStorage
+      try {
+        setUser(JSON.parse(savedUser))
+      } catch (error) {
+        console.error('Erro ao restaurar usuário:', error)
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
+      }
     }
     setLoading(false)
   }, [])
 
   const login = async (email, password) => {
-    // Simular delay de API
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    // Buscar usuário mockado
-    const foundUser = mockUsers.find(u => u.email === email && u.password === password)
-    
-    if (foundUser) {
-      const userData = {
-        id: foundUser.id,
-        nome: foundUser.nome,
-        email: foundUser.email,
-        tipo: foundUser.tipo
-      }
-      const token = `mock_token_${Date.now()}`
-      localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(userData))
+    try {
+      const response = await api.post('/auth/login', {
+        email,
+        password
+      })
+
+      const { access_token, user: userData } = response.data
+
+      // Salvar token e usuário no sessionStorage (mais seguro que localStorage)
+      sessionStorage.setItem('token', access_token)
+      sessionStorage.setItem('user', JSON.stringify(userData))
       setUser(userData)
-      return { success: true }
-    } else {
+
+      return { 
+        success: true,
+        user: userData
+      }
+    } catch (error) {
+      console.error('Erro ao fazer login:', error)
+      const errorMessage = error.response?.data?.message || 'Credenciais inválidas'
       return { 
         success: false, 
-        message: 'Email ou senha incorretos' 
+        message: errorMessage
       }
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
+  const logout = async () => {
+    try {
+      // Chamar API de logout antes de limpar o sessionStorage
+      await api.post('/auth/logout')
+    } catch (error) {
+      // Mesmo se a API falhar, continuar com o logout local
+      console.error('Erro ao fazer logout na API:', error)
+    } finally {
+      // Sempre limpar dados locais
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('user')
+      setUser(null)
+    }
   }
 
   const register = async (userData) => {
-    // Simular delay de API
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    // Criar novo usuário mockado
-    const newUser = {
-      id: mockUsers.length + 1,
-      nome: userData.nome,
-      email: userData.email,
-      password: userData.password,
-      tipo: 'dentista'
+    try {
+      // Determinar qual endpoint usar baseado no tipo
+      const endpoint = userData.tipo === 'master' 
+        ? '/auth/register-master' 
+        : '/auth/register-user'
+      
+      const response = await api.post(endpoint, userData)
+
+      const { access_token, user: newUser } = response.data
+
+      // Salvar token e usuário no sessionStorage (mais seguro que localStorage)
+      sessionStorage.setItem('token', access_token)
+      sessionStorage.setItem('user', JSON.stringify(newUser))
+      setUser(newUser)
+
+      return { 
+        success: true,
+        user: newUser
+      }
+    } catch (error) {
+      console.error('Erro ao registrar:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao criar conta'
+      return { 
+        success: false, 
+        message: errorMessage
+      }
     }
-    
-    mockUsers.push(newUser)
-    
-    const userResponse = {
-      id: newUser.id,
-      nome: newUser.nome,
-      email: newUser.email,
-      tipo: newUser.tipo
+  }
+
+  const refreshUser = async () => {
+    try {
+      // Buscar assinatura atualizada
+      const response = await api.get('/assinaturas/minha')
+      const assinatura = response.data
+      
+      // Atualizar usuário com nova assinatura
+      const savedUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+      if (savedUser && assinatura) {
+        savedUser.assinatura = assinatura
+        sessionStorage.setItem('user', JSON.stringify(savedUser))
+        setUser({ ...savedUser })
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error)
     }
-    
-    const token = `mock_token_${Date.now()}`
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(userResponse))
-    setUser(userResponse)
-    return { success: true }
+  }
+
+  const value = {
+    user,
+    login,
+    logout,
+    register,
+    refreshUser,
+    loading
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

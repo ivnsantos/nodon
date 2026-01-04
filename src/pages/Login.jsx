@@ -20,15 +20,21 @@ const Login = () => {
     setError('')
     setLoading(true)
 
-    const result = await login(email, password)
-    
-    if (result.success) {
-      navigate('/app')
-    } else {
-      setError(result.message)
+    try {
+      const result = await login(email, password)
+      
+      if (result.success) {
+        // Login bem-sucedido, redirecionar para o app
+        navigate('/app')
+      } else {
+        setError(result.message || 'Erro ao fazer login. Verifique suas credenciais.')
+      }
+    } catch (error) {
+      console.error('Erro no login:', error)
+      setError('Erro ao conectar com o servidor. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
-    
-    setLoading(false)
   }
 
   return (

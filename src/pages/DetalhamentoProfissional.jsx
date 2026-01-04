@@ -371,45 +371,70 @@ const DetalhamentoProfissional = () => {
         pdf.text('Necessidades / Tratamento', margin + 5, yPosition + 3)
         yPosition += 15
         
-        pdf.setTextColor(0, 0, 0)
-        pdf.setFontSize(10)
-        pdf.setFont('helvetica', 'normal')
+        // Cabeçalho da tabela - proporção 1:5
+        const colWidth1 = contentWidth * (1/6) // Procedimentos (1 parte)
+        const colWidth2 = contentWidth * (5/6) // Anotações (5 partes)
+        const rowHeight = 15
+        const headerHeight = 12
         
-        // Lista de necessidades
-        necessidades.forEach((necessidade, index) => {
-          // Verificar se precisa de nova página
-          if (yPosition > pageHeight - 30) {
+        // Função para desenhar cabeçalho
+        const drawTableHeader = (y) => {
+          pdf.setFillColor(15, 23, 42)
+          pdf.rect(margin, y, colWidth1, headerHeight, 'F')
+          pdf.rect(margin + colWidth1, y, colWidth2, headerHeight, 'F')
+          
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setTextColor(255, 255, 255)
+          pdf.text('Procedimentos', margin + 3, y + 8)
+          pdf.text('Anotações', margin + colWidth1 + 3, y + 8)
+        }
+        
+        // Desenhar cabeçalho inicial
+        drawTableHeader(yPosition)
+        yPosition += headerHeight
+        
+        // Linhas da tabela
+        necessidades.forEach((item, index) => {
+          // Texto das células
+          const procedimento = typeof item === 'object' ? (item.procedimento || '-') : (item || '-')
+          const anotacoes = typeof item === 'object' ? (item.anotacoes || '-') : '-'
+          
+          const procedimentoLines = pdf.splitTextToSize(procedimento, colWidth1 - 6)
+          const anotacoesLines = pdf.splitTextToSize(anotacoes, colWidth2 - 6)
+          
+          const cellHeight = Math.max(
+            procedimentoLines.length * 5 + 4,
+            anotacoesLines.length * 5 + 4,
+            rowHeight
+          )
+          
+          // Verificar se precisa de nova página ANTES de desenhar a linha
+          if (yPosition + cellHeight > pageHeight - 20) {
             pdf.addPage()
             yPosition = margin + 10
+            // Redesenhar cabeçalho na nova página
+            drawTableHeader(yPosition)
+            yPosition += headerHeight
           }
           
-          // Card para cada necessidade
-          const cardHeight = 20
-          pdf.setFillColor(255, 255, 255)
+          // Borda da célula
           pdf.setDrawColor(15, 23, 42)
-          pdf.setLineWidth(0.5)
-          pdf.roundedRect(margin, yPosition - 3, contentWidth, cardHeight, 3, 3, 'FD')
+          pdf.setLineWidth(0.3)
+          pdf.rect(margin, yPosition, colWidth1, cellHeight, 'S')
+          pdf.rect(margin + colWidth1, yPosition, colWidth2, cellHeight, 'S')
           
-          // Barra lateral azul no card
-          pdf.setFillColor(30, 58, 138)
-          pdf.rect(margin, yPosition - 3, 2, cardHeight, 'F')
-          
-          // Ícone de check
-          pdf.setFont('helvetica', 'bold')
-          pdf.setFontSize(12)
-          pdf.setTextColor(30, 58, 138)
-          pdf.text('✓', margin + 5, yPosition + 6)
-          
-          // Texto da necessidade
-          pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(10)
+          // Texto das células - PRETO
           pdf.setTextColor(0, 0, 0)
-          const necessidadeLines = pdf.splitTextToSize(necessidade, contentWidth - 12)
-          pdf.text(necessidadeLines, margin + 10, yPosition + 6)
-          yPosition += Math.max(cardHeight, (necessidadeLines.length * 5) + 5) + 3
+          pdf.setFontSize(9)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text(procedimentoLines, margin + 3, yPosition + 6)
+          pdf.text(anotacoesLines, margin + colWidth1 + 3, yPosition + 6)
+          
+          yPosition += cellHeight
         })
         
-        yPosition += 5
+        yPosition += 10 // Espaço após a tabela
       }
       
       // Observações Gerais
@@ -418,6 +443,9 @@ const DetalhamentoProfissional = () => {
         if (yPosition > pageHeight - 50) {
           pdf.addPage()
           yPosition = margin + 10
+        } else {
+          // Adicionar espaço antes da seção de observações
+          yPosition += 10
         }
         
         // Título da seção com fundo azul escuro

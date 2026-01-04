@@ -1,8 +1,9 @@
 import axios from 'axios'
 
-// Configurar base URL para desenvolvimento
+// Configurar base URL usando variável de ambiente
+// Vite requer que variáveis de ambiente comecem com VITE_
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -11,7 +12,7 @@ const api = axios.create({
 // Interceptor para adicionar token automaticamente
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -27,8 +28,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Não redirecionar se já estiver na página de login
+      const currentPath = window.location.pathname
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

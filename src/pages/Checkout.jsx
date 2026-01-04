@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCreditCard, faMapMarkerAlt, faCheckCircle,
   faChevronRight, faChevronLeft, faTag, faLock, faChevronDown,
-  faExclamationTriangle, faTimes, faCheck
+  faExclamationTriangle, faTimes, faCheck, faPhone
 } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
+import api from '../utils/api'
 import './Checkout.css'
 
 const Checkout = () => {
@@ -17,16 +19,23 @@ const Checkout = () => {
   const [selectedPlan, setSelectedPlan] = useState(null)
   const [couponCode, setCouponCode] = useState('')
   const [discount, setDiscount] = useState(0)
+  const [discountValue, setDiscountValue] = useState(0) // Valor em reais
   const [couponApplied, setCouponApplied] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState(null) // Armazena o cupom aplicado
   const [expandedPlan, setExpandedPlan] = useState(null)
   const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
   const [showAddressFields, setShowAddressFields] = useState(false)
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
+  const [plans, setPlans] = useState([])
+  const [loadingPlans, setLoadingPlans] = useState(true)
   
   // Form data
   const [formData, setFormData] = useState({
     // Dados pessoais
     nome: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     telefone: '',
     cpf: '',
     
@@ -47,139 +56,274 @@ const Checkout = () => {
     parcelas: 1
   })
 
-  const plans = [
-    {
-      id: 'inicial',
-      name: 'Plano Inicial',
-      price: 98,
-      oldPrice: 159,
-      patients: 'Até 12 pacientes analisados por mês',
-      features: [
-        'Análise de radiografias',
-        'Relatórios detalhados',
-        'Suporte por email',
-        'Armazenamento na nuvem',
-        '1 milhão de tokens no chat da NODON'
-      ]
-    },
-    {
-      id: 'basico',
-      name: 'Plano Básico',
-      price: 179,
-      oldPrice: 299,
-      patients: 'Até 30 pacientes analisados por mês',
-      featured: true,
-      features: [
-        'Tudo do Plano Inicial',
-        'Análise avançada com IA',
-        'Suporte prioritário',
-        'Múltiplos profissionais',
-        'Relatórios personalizados',
-        '1 milhão de tokens no chat da NODON'
-      ]
-    },
-    {
-      id: 'premium',
-      name: 'Plano Premium',
-      price: 299,
-      patients: 'Até 50 pacientes analisados por mês',
-      badge: 'Novo',
-      features: [
-        'Tudo do Plano Básico',
-        'Suporte 24/7',
-        'Treinamento dedicado',
-        '1.5 milhão de tokens no chat da NODON',
-        'Gerente de Conta especializado'
-      ]
-    },
-    {
-      id: 'essencial',
-      name: 'Plano Essencial',
-      price: 399,
-      patients: 'Até 120 pacientes analisados por mês',
-      badge: 'Mais Vendido',
-      features: [
-        'Tudo do Plano Premium',
-        'Suporte 24/7',
-        'Treinamento dedicado',
-        '1.5 milhão de tokens no chat da NODON',
-        'Gerente de Conta especializado'
-      ]
-    },
-    {
-      id: 'enterprise',
-      name: 'Plano Enterprise',
-      price: 499,
-      patients: 'Até 200 pacientes analisados por mês',
-      features: [
-        'Tudo do Plano Essencial',
-        'Suporte 24/7',
-        'Treinamento dedicado',
-        '1.5 milhão de tokens no chat da NODON',
-        'Gerente de Conta especializado'
-      ]
-    }
-  ]
-
-  const applyCoupon = (code) => {
-    // Simulação de validação de cupom
-    const validCoupons = {
-      'DESCONTO10': 10,
-      'DESCONTO20': 20,
-      'BEMVINDO': 15,
-      'NODON2024': 25
-    }
-
-    if (validCoupons[code.toUpperCase()]) {
-      setDiscount(validCoupons[code.toUpperCase()])
-      setCouponApplied(true)
-      return true
-    }
-    return false
-  }
-
-  useEffect(() => {
-    // Verificar se há plano na query
-    const planId = searchParams.get('plano')
-    if (planId) {
-      const plan = plans.find(p => p.id === planId)
-      if (plan) {
-        setSelectedPlan(plan)
-        // Não pular o passo 1, deixar o usuário confirmar
-      }
-    }
-
-    // Verificar se há cupom na query
-    const coupon = searchParams.get('cupom')
-    if (coupon) {
-      setCouponCode(coupon)
-      applyCoupon(coupon)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-
-  const handleCouponSubmit = (e) => {
-    e.preventDefault()
-    if (applyCoupon(couponCode)) {
-      showAlert('Cupom aplicado com sucesso!', 'success')
-    } else {
-      showAlert('Cupom inválido')
-    }
-  }
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
   const showAlert = (message, type = 'error') => {
     setCustomAlert({ show: true, message, type })
     setTimeout(() => {
       setCustomAlert({ show: false, message: '', type: 'error' })
     }, 5000)
+  }
+
+  // Carregar planos do backend
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        setLoadingPlans(true)
+        const response = await api.get('/planos')
+        const planosBackend = response.data
+
+        // Mapear planos do backend para o formato esperado no frontend
+        const planosMapeados = planosBackend.map((plano) => {
+          // Determinar features baseado no nome do plano
+          let features = []
+          let featured = false
+          let badge = null
+
+          switch (plano.nome) {
+            case 'Plano Inicial':
+              features = [
+                'Análise de radiografias',
+                'Relatórios detalhados',
+                'Suporte por email',
+                'Armazenamento na nuvem',
+                '1 milhão de tokens no chat da NODON'
+              ]
+              break
+            case 'Plano Básico':
+              featured = true
+              features = [
+                'Tudo do Plano Inicial',
+                'Análise avançada com IA',
+                'Suporte prioritário',
+                'Múltiplos profissionais',
+                'Relatórios personalizados',
+                '1 milhão de tokens no chat da NODON'
+              ]
+              break
+            case 'Plano Premium':
+              badge = 'Novo'
+              features = [
+                'Tudo do Plano Básico',
+                'Suporte 24/7',
+                'Treinamento dedicado',
+                '1.5 milhão de tokens no chat da NODON',
+                'Gerente de Conta especializado'
+              ]
+              break
+            case 'Plano Essencial':
+              badge = 'Mais Vendido'
+              features = [
+                'Tudo do Plano Premium',
+                'Suporte 24/7',
+                'Treinamento dedicado',
+                '1.5 milhão de tokens no chat da NODON',
+                'Gerente de Conta especializado'
+              ]
+              break
+            case 'Plano Enterprise':
+              features = [
+                'Tudo do Plano Essencial',
+                'Suporte 24/7',
+                'Treinamento dedicado',
+                '1.5 milhão de tokens no chat da NODON',
+                'Gerente de Conta especializado'
+              ]
+              break
+            default:
+              features = [
+                'Análise de radiografias',
+                'Relatórios detalhados',
+                'Suporte por email'
+              ]
+          }
+
+          return {
+            id: plano.id,
+            name: plano.nome,
+            price: Number(plano.valorPromocional || plano.valorOriginal),
+            oldPrice: plano.valorPromocional ? Number(plano.valorOriginal) : null,
+            patients: plano.descricao || `Até ${plano.limiteAnalises} análises por mês`,
+            features,
+            featured,
+            badge
+          }
+        })
+
+        setPlans(planosMapeados)
+      } catch (error) {
+        console.error('Erro ao carregar planos:', error)
+        showAlert('Erro ao carregar planos. Tente novamente.', 'error')
+      } finally {
+        setLoadingPlans(false)
+      }
+    }
+
+    loadPlans()
+  }, [])
+
+  const applyCoupon = async (code) => {
+    if (!code || !code.trim()) {
+      return false
+    }
+
+    setIsApplyingCoupon(true)
+    try {
+      const response = await api.get(`/cupons/name/${code.toUpperCase().trim()}`)
+      const cupom = response.data
+
+      if (!cupom || !cupom.active) {
+        showAlert('Cupom inválido ou inativo', 'error')
+        setIsApplyingCoupon(false)
+        return false
+      }
+
+      // O cupom retorna discountValue em porcentagem
+      setAppliedCoupon(cupom)
+      const discountPercent = Number(cupom.discountValue) || 0
+      setDiscount(discountPercent)
+      
+      // Calcular valor em reais do desconto (baseado no plano selecionado)
+      if (selectedPlan) {
+        const planPrice = Number(selectedPlan.price) || 0
+        if (planPrice > 0) {
+          const discountInReais = (planPrice * discountPercent) / 100
+          setDiscountValue(discountInReais)
+        }
+      }
+      
+      setCouponApplied(true)
+      setIsApplyingCoupon(false)
+      return true
+    } catch (error) {
+      console.error('Erro ao validar cupom:', error)
+      if (error.response?.status === 404) {
+        showAlert('Cupom não encontrado', 'error')
+      } else {
+        showAlert('Erro ao validar cupom. Tente novamente.', 'error')
+      }
+      setIsApplyingCoupon(false)
+      return false
+    }
+  }
+
+  useEffect(() => {
+    // Verificar se há plano na query (usando o nome do plano)
+    if (plans.length > 0) {
+      const planName = searchParams.get('plano')
+      if (planName) {
+        const plan = plans.find(p => p.name === planName)
+        if (plan) {
+          setSelectedPlan(plan)
+          // Não pular o passo 1, deixar o usuário confirmar
+        }
+      }
+
+      // Verificar se há cupom na query
+      const coupon = searchParams.get('cupom')
+      if (coupon) {
+        setCouponCode(coupon)
+        applyCoupon(coupon)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, plans])
+
+  // Recalcular desconto quando o plano mudar
+  useEffect(() => {
+    if (appliedCoupon && selectedPlan) {
+      const discountPercent = Number(appliedCoupon.discountValue) || 0
+      const planPrice = Number(selectedPlan.price) || 0
+      setDiscount(discountPercent)
+      if (planPrice > 0) {
+        const discountInReais = (planPrice * discountPercent) / 100
+        setDiscountValue(discountInReais)
+      }
+    }
+  }, [selectedPlan, appliedCoupon])
+
+  const handleCouponSubmit = async (e) => {
+    e.preventDefault()
+    if (!couponCode.trim()) {
+      showAlert('Por favor, digite um código de cupom', 'error')
+      return
+    }
+
+    const success = await applyCoupon(couponCode)
+    if (success) {
+      showAlert('Cupom aplicado com sucesso!', 'success')
+    }
+  }
+
+  const formatPhone = (value) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '')
+    
+    // Formata conforme o tamanho
+    if (numbers.length <= 10) {
+      // Telefone fixo: (00) 0000-0000
+      return numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, (match, ddd, part1, part2) => {
+        if (part2) return `(${ddd}) ${part1}-${part2}`
+        if (part1) return `(${ddd}) ${part1}`
+        if (ddd) return `(${ddd})`
+        return numbers
+      })
+    } else {
+      // Celular: (00) 00000-0000
+      return numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, (match, ddd, part1, part2) => {
+        if (part2) return `(${ddd}) ${part1}-${part2}`
+        if (part1) return `(${ddd}) ${part1}`
+        if (ddd) return `(${ddd})`
+        return numbers
+      })
+    }
+  }
+
+  const formatCpfCnpj = (value) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '')
+    
+    // Se tiver 11 dígitos ou menos, formata como CPF
+    if (numbers.length <= 11) {
+      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (match, p1, p2, p3, p4) => {
+        if (p4) return `${p1}.${p2}.${p3}-${p4}`
+        if (p3) return `${p1}.${p2}.${p3}`
+        if (p2) return `${p1}.${p2}`
+        return p1
+      })
+    } else {
+      // Se tiver mais de 11 dígitos, formata como CNPJ
+      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (match, p1, p2, p3, p4, p5) => {
+        if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`
+        if (p4) return `${p1}.${p2}.${p3}/${p4}`
+        if (p3) return `${p1}.${p2}.${p3}`
+        if (p2) return `${p1}.${p2}`
+        return p1
+      })
+    }
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    
+    // Formatar telefone automaticamente
+    if (name === 'telefone') {
+      const formatted = formatPhone(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else if (name === 'cpf') {
+      // Formatar CPF ou CNPJ automaticamente
+      const formatted = formatCpfCnpj(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleCepChange = async (e) => {
@@ -188,12 +332,16 @@ const Checkout = () => {
     setFormData(prev => ({ ...prev, cep: formattedCep }))
 
     if (cep.length === 8) {
+      // Mostrar campos quando CEP tiver 8 dígitos
+      setShowAddressFields(true)
       try {
         const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
         const data = await response.json()
         
         if (data.erro) {
-          showAlert('CEP não encontrado. Por favor, verifique o CEP digitado.')
+          showAlert('CEP não encontrado. Por favor, verifique o CEP digitado ou preencha manualmente.')
+          // Manter campos visíveis para preenchimento manual
+          setShowAddressFields(true)
           return
         }
 
@@ -205,9 +353,14 @@ const Checkout = () => {
           estado: data.uf || '',
           complemento: data.complemento || prev.complemento
         }))
+        
+        // Mostrar campos de endereço após preencher
+        setShowAddressFields(true)
       } catch (error) {
         console.error('Erro ao buscar CEP:', error)
-        showAlert('Erro ao buscar CEP. Tente novamente.')
+        showAlert('Erro ao buscar CEP. Você pode preencher manualmente.')
+        // Manter campos visíveis para preenchimento manual
+        setShowAddressFields(true)
       }
     } else if (cep.length < 8) {
       // Limpar campos se CEP incompleto
@@ -218,6 +371,7 @@ const Checkout = () => {
         cidade: '',
         estado: ''
       }))
+      setShowAddressFields(false)
     }
   }
 
@@ -231,18 +385,23 @@ const Checkout = () => {
 
   const calculateTotal = () => {
     if (!selectedPlan) return 0
-    const subtotal = selectedPlan.price
-    const discountAmount = (subtotal * discount) / 100
-    return subtotal - discountAmount
+    const subtotal = Number(selectedPlan.price) || 0
+    // discountValue agora é calculado em reais baseado na porcentagem
+    const discountAmount = Number(discountValue) || 0
+    const total = subtotal - discountAmount
+    return total > 0 ? total : 0 // Garantir que não seja negativo
   }
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan)
-    // Atualizar a query string com o plano selecionado
+    // Atualizar a query string com o nome do plano selecionado
     const newSearchParams = new URLSearchParams(searchParams)
-    newSearchParams.set('plano', plan.id)
+    newSearchParams.set('plano', plan.name)
     setSearchParams(newSearchParams, { replace: true })
-    // Não avança automaticamente, deixa o usuário confirmar
+    // Avançar automaticamente para o próximo step
+    if (currentStep === 1) {
+      setCurrentStep(2)
+    }
   }
 
   const handlePlanToggle = (planId, e) => {
@@ -266,6 +425,20 @@ const Checkout = () => {
         showAlert('Por favor, preencha todos os campos obrigatórios')
         return
       }
+      // Validar telefone com DDD (mínimo 10 dígitos para fixo, 11 para celular)
+      const phoneNumbers = formData.telefone.replace(/\D/g, '')
+      if (phoneNumbers.length < 10 || phoneNumbers.length > 11) {
+        showAlert('Por favor, informe um telefone válido com DDD (ex: (11) 98765-4321)')
+        return
+      }
+      if (!formData.password || formData.password.length < 6) {
+        showAlert('A senha deve ter no mínimo 6 caracteres')
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        showAlert('As senhas não coincidem')
+        return
+      }
       if (!formData.cep || !formData.rua || !formData.numero || !formData.cidade || !formData.estado) {
         showAlert('Por favor, preencha todos os campos de endereço')
         return
@@ -281,19 +454,165 @@ const Checkout = () => {
     setCurrentStep(prev => prev + 1)
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
+  const [showPollingModal, setShowPollingModal] = useState(false)
+  const [showLoadingModal, setShowLoadingModal] = useState(false)
+  const [pollingAttempt, setPollingAttempt] = useState(0)
+  const [pollingStatus, setPollingStatus] = useState('Verificando pagamento...')
+  const [loadingMessage, setLoadingMessage] = useState('Criando assinatura...')
+
+  // Bloquear scroll do body quando modal estiver aberto
+  useEffect(() => {
+    if (showLoadingModal || showPollingModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showLoadingModal, showPollingModal])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Aqui você faria a chamada para a API de pagamento
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
     try {
-      // Simulação de processamento
-      showAlert('Assinatura realizada com sucesso! Redirecionando...', 'success')
-      setTimeout(() => {
-        navigate('/login')
-      }, 2000)
+      // Validar telefone antes de enviar
+      const phoneNumbers = formData.telefone.replace(/\D/g, '')
+      if (!phoneNumbers || phoneNumbers.length < 10) {
+        showAlert('Por favor, informe um telefone válido com DDD')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Mostrar modal de loading ao criar assinatura
+      setShowLoadingModal(true)
+      setLoadingMessage('Criando assinatura...')
+
+      // Preparar dados do cartão
+      const [expiryMonth, expiryYear] = formData.validade.split('/')
+      const fullYear = `20${expiryYear}`
+
+      // Preparar payload
+      const payload = {
+        name: formData.nome,
+        email: formData.email,
+        password: formData.password,
+        cpf: formData.cpf.replace(/\D/g, ''),
+        phone: phoneNumbers, // Telefone apenas com números (DDD + número)
+        postalCode: formData.cep.replace(/\D/g, ''),
+        address: formData.rua,
+        addressNumber: formData.numero,
+        complement: formData.complemento || '',
+        province: formData.bairro,
+        city: formData.cidade,
+        state: formData.estado,
+        planoId: selectedPlan.id,
+        billingType: 'CREDIT_CARD',
+        creditCardHolderName: formData.nomeCartao,
+        creditCardNumber: formData.numeroCartao.replace(/\D/g, ''),
+        creditCardExpiryMonth: expiryMonth,
+        creditCardExpiryYear: fullYear,
+        creditCardCcv: formData.cvv,
+        ...(appliedCoupon ? { couponName: appliedCoupon.name } : {}),
+      }
+
+      // Criar assinatura
+      const response = await api.post('/assinaturas', payload)
+      
+      if (!response.data || !response.data.userId) {
+        throw new Error('Resposta inválida do servidor')
+      }
+      
+      // Mudar para modal de polling
+      setShowLoadingModal(false)
+      setIsPolling(true)
+      setShowPollingModal(true)
+      setPollingAttempt(0)
+      setPollingStatus('Verificando pagamento...')
+      await pollPaymentStatus(response.data.userId)
+      
     } catch (error) {
-      showAlert('Erro ao processar pagamento. Tente novamente.')
+      console.error('Erro ao criar assinatura:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao processar pagamento. Tente novamente.'
+      showAlert(errorMessage, 'error')
+      setIsSubmitting(false)
+      setShowLoadingModal(false)
+      setShowPollingModal(false)
     }
+  }
+
+  const pollPaymentStatus = async (userId) => {
+    const maxAttempts = 3 // Máximo de 3 tentativas
+    const interval = 5000 // 5 segundos entre tentativas
+    let attempts = 0
+
+    const poll = async () => {
+      attempts++
+      setPollingAttempt(attempts)
+      setPollingStatus(`Verificando pagamento... (Tentativa ${attempts}/${maxAttempts})`)
+
+      try {
+        const response = await api.get(`/assinaturas/check-payment-status/${userId}`)
+        const status = response.data.status
+
+        if (status === 'CONFIRMED') {
+          setPollingStatus('Pagamento confirmado!')
+          setIsPolling(false)
+          setIsSubmitting(false)
+          showAlert('Pagamento confirmado! Redirecionando para login...', 'success')
+          
+          setTimeout(() => {
+            setShowPollingModal(false)
+            navigate('/login')
+          }, 2000)
+          return
+        }
+
+        if (attempts >= maxAttempts) {
+          setPollingStatus('Não foi possível confirmar o pagamento automaticamente.')
+          setIsPolling(false)
+          setIsSubmitting(false)
+          showAlert('Tempo de espera esgotado. Verifique o status do pagamento mais tarde.', 'error')
+          
+          setTimeout(() => {
+            setShowPollingModal(false)
+            // Mantém o usuário na mesma página
+          }, 2000)
+          return
+        }
+
+        // Continuar polling após intervalo
+        setTimeout(poll, interval)
+      } catch (error) {
+        console.error('Erro ao verificar status do pagamento:', error)
+        
+        if (attempts >= maxAttempts) {
+          setPollingStatus('Erro ao verificar pagamento. Tente novamente mais tarde.')
+          setIsPolling(false)
+          setIsSubmitting(false)
+          showAlert('Erro ao verificar status do pagamento. Verifique mais tarde.', 'error')
+          
+          setTimeout(() => {
+            setShowPollingModal(false)
+            // Mantém o usuário na mesma página
+          }, 2000)
+          return
+        }
+
+        // Continuar polling mesmo com erro
+        setTimeout(poll, interval)
+      }
+    }
+
+    // Iniciar polling após 5 segundos (primeira tentativa)
+    setTimeout(poll, interval)
   }
 
   const steps = [
@@ -342,26 +661,50 @@ const Checkout = () => {
                       placeholder="Código do cupom"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
-                      disabled={couponApplied}
+                      disabled={couponApplied || isApplyingCoupon}
                     />
                   </div>
-                  <button type="submit" disabled={couponApplied || !couponCode}>
-                    {couponApplied ? 'Aplicado' : 'Aplicar'}
+                  <button type="submit" disabled={couponApplied || !couponCode || isApplyingCoupon}>
+                    {isApplyingCoupon ? 'Aplicando...' : couponApplied ? 'Aplicado' : 'Aplicar'}
                   </button>
                 </form>
-                {couponApplied && (
+                {couponApplied && appliedCoupon && (
                   <div className="coupon-success">
                     <FontAwesomeIcon icon={faCheckCircle} />
-                    <span>Desconto de {discount}% aplicado!</span>
+                    <span>
+                      Cupom {appliedCoupon.name} aplicado! 
+                      Desconto de {Number(discount || 0).toFixed(1)}% (R$ {Number(discountValue || 0).toFixed(2)})
+                    </span>
+                    <button 
+                      className="coupon-remove"
+                      onClick={() => {
+                        setCouponApplied(false)
+                        setAppliedCoupon(null)
+                        setDiscount(0)
+                        setDiscountValue(0)
+                        setCouponCode('')
+                        showAlert('Cupom removido', 'success')
+                      }}
+                      title="Remover cupom"
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
                   </div>
                 )}
               </div>
 
-              <div className="plans-grid-checkout">
-                {plans.map(plan => {
-                  const finalPrice = couponApplied 
-                    ? Math.round(plan.price - (plan.price * discount / 100))
-                    : plan.price
+              {loadingPlans ? (
+                <div className="loading-plans">
+                  <p>Carregando planos...</p>
+                </div>
+              ) : (
+                <div className="plans-grid-checkout">
+                  {plans.map(plan => {
+                  const planPrice = Number(plan.price) || 0
+                  const discountPercent = Number(discount) || 0
+                  const finalPrice = couponApplied && discountPercent > 0
+                    ? Math.max(0, Math.round(planPrice - (planPrice * discountPercent / 100)))
+                    : planPrice
                   
                   return (
                     <div
@@ -418,7 +761,8 @@ const Checkout = () => {
                     </div>
                   )
                 })}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -441,14 +785,14 @@ const Checkout = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>CPF *</label>
+                      <label>CPF/CNPJ *</label>
                       <input
                         type="text"
                         name="cpf"
                         value={formData.cpf}
                         onChange={handleInputChange}
-                        maxLength="14"
-                        placeholder="000.000.000-00"
+                        maxLength="18"
+                        placeholder="000.000.000-00 ou 00.000.000/0000-00"
                         required
                       />
                     </div>
@@ -465,13 +809,41 @@ const Checkout = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Telefone *</label>
+                      <label>
+                        <FontAwesomeIcon icon={faPhone} /> Telefone *
+                      </label>
                       <input
                         type="tel"
                         name="telefone"
                         value={formData.telefone}
                         onChange={handleInputChange}
                         placeholder="(00) 00000-0000"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Senha *</label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="Mínimo 6 caracteres"
+                        minLength="6"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Confirmar Senha *</label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        placeholder="Digite a senha novamente"
+                        minLength="6"
                         required
                       />
                     </div>
@@ -497,7 +869,7 @@ const Checkout = () => {
                     </div>
                   </div>
                   
-                  {showAddressFields && (
+                  {(showAddressFields || formData.cep.replace(/\D/g, '').length === 8) && (
                     <>
                       <div className="form-row">
                         <div className="form-group">
@@ -609,12 +981,12 @@ const Checkout = () => {
                   <h3>Resumo do Pedido</h3>
                   <div className="summary-item">
                     <span>Plano: {selectedPlan.name}</span>
-                    <span>R$ {selectedPlan.price.toFixed(2)}</span>
+                    <span>R$ {Number(selectedPlan.price || 0).toFixed(2)}</span>
                   </div>
-                  {couponApplied && (
+                  {couponApplied && appliedCoupon && (
                     <div className="summary-item discount">
-                      <span>Desconto ({discount}%)</span>
-                      <span>- R$ {((selectedPlan.price * discount) / 100).toFixed(2)}</span>
+                      <span>Desconto ({appliedCoupon.name})</span>
+                      <span>- R$ {Number(discountValue || 0).toFixed(2)}</span>
                     </div>
                   )}
                   <div className="summary-total">
@@ -631,12 +1003,35 @@ const Checkout = () => {
                     placeholder="Código do cupom"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    disabled={couponApplied}
+                    disabled={couponApplied || isApplyingCoupon}
                   />
-                  <button type="submit" disabled={couponApplied || !couponCode}>
-                    {couponApplied ? 'Aplicado' : 'Aplicar'}
+                  <button type="submit" disabled={couponApplied || !couponCode || isApplyingCoupon}>
+                    {isApplyingCoupon ? 'Aplicando...' : couponApplied ? 'Aplicado' : 'Aplicar'}
                   </button>
                 </form>
+                {couponApplied && appliedCoupon && (
+                  <div className="coupon-success">
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    <span>
+                      Cupom {appliedCoupon.name} aplicado! 
+                      Desconto de {Number(discount || 0).toFixed(1)}% (R$ {Number(discountValue || 0).toFixed(2)})
+                    </span>
+                    <button 
+                      className="coupon-remove"
+                      onClick={() => {
+                        setCouponApplied(false)
+                        setAppliedCoupon(null)
+                        setDiscount(0)
+                        setDiscountValue(0)
+                        setCouponCode('')
+                        showAlert('Cupom removido', 'success')
+                      }}
+                      title="Remover cupom"
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <form className="checkout-form" onSubmit={handleSubmit}>
@@ -720,9 +1115,13 @@ const Checkout = () => {
                 <FontAwesomeIcon icon={faChevronRight} />
               </button>
             ) : (
-              <button className="btn-submit" onClick={handleSubmit}>
+              <button 
+                className="btn-submit" 
+                onClick={handleSubmit}
+                disabled={isSubmitting || isPolling}
+              >
                 <FontAwesomeIcon icon={faLock} />
-                Finalizar Assinatura
+                {isPolling ? 'Verificando pagamento...' : isSubmitting ? 'Processando...' : 'Finalizar Assinatura'}
               </button>
             )}
           </div>
@@ -749,6 +1148,128 @@ const Checkout = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Loading Modal - Criando Assinatura */}
+      {showLoadingModal && typeof document !== 'undefined' && document.body && createPortal(
+        <div 
+          className="polling-modal-overlay" 
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(10, 14, 39, 0.95)',
+            backdropFilter: 'blur(20px)'
+          }}
+        >
+          <div className="polling-modal" style={{ position: 'relative', zIndex: 1000000 }}>
+            <div className="polling-modal-content">
+              {/* Loading Animation */}
+              <div className="polling-loader-container">
+                <div className="spinner">
+                  <div className="spinner-ring"></div>
+                  <div className="spinner-ring"></div>
+                  <div className="spinner-ring"></div>
+                </div>
+                <div className="spinner-center">
+                  <FontAwesomeIcon icon={faLock} />
+                </div>
+              </div>
+
+              {/* Title */}
+              <h2 className="polling-title">
+                <FontAwesomeIcon icon={faCheckCircle} />
+                Processando Pagamento
+              </h2>
+
+              {/* Status Text */}
+              <p className="polling-status">{loadingMessage}</p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Polling Modal - Verificando Pagamento */}
+      {showPollingModal && typeof document !== 'undefined' && document.body && createPortal(
+        <div 
+          className="polling-modal-overlay" 
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(10, 14, 39, 0.95)',
+            backdropFilter: 'blur(20px)'
+          }}
+        >
+          <div className="polling-modal" style={{ position: 'relative', zIndex: 1000000 }}>
+            <div className="polling-modal-content">
+              {/* Loading Animation */}
+              <div className="polling-loader-container">
+                <div className="spinner">
+                  <div className="spinner-ring"></div>
+                  <div className="spinner-ring"></div>
+                  <div className="spinner-ring"></div>
+                </div>
+                <div className="spinner-center">
+                  <FontAwesomeIcon icon={faLock} />
+                </div>
+              </div>
+
+              {/* Title */}
+              <h2 className="polling-title">
+                <FontAwesomeIcon icon={faCheckCircle} />
+                Verificando Pagamento
+              </h2>
+
+              {/* Status Text */}
+              <p className="polling-status">{pollingStatus}</p>
+
+              {/* Progress Section */}
+              <div className="polling-progress-container">
+                <div className="polling-progress-bar-wrapper">
+                  <div 
+                    className="polling-progress-bar-fill" 
+                    style={{ width: `${(pollingAttempt / 3) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="polling-progress-info">
+                  <span className="polling-attempt-text">Tentativa {pollingAttempt} de 3</span>
+                </div>
+              </div>
+
+              {/* Attempt Indicators */}
+              <div className="polling-indicators">
+                <div className={`indicator ${pollingAttempt >= 1 ? 'active' : ''}`}>
+                  <span className="indicator-number">1</span>
+                </div>
+                <div className="indicator-line"></div>
+                <div className={`indicator ${pollingAttempt >= 2 ? 'active' : ''}`}>
+                  <span className="indicator-number">2</span>
+                </div>
+                <div className="indicator-line"></div>
+                <div className={`indicator ${pollingAttempt >= 3 ? 'active' : ''}`}>
+                  <span className="indicator-number">3</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )

@@ -5,9 +5,12 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
-    "dev:server": "node server/index.js",
+    "dev:server": "cd server-nestjs && nest start --watch",
+    "dev:server:express": "node server/index.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:server": "cd server-nestjs && nest build",
+    "preview": "vite preview",
+    "start:prod": "cd server-nestjs && node dist/main.js"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -25,14 +28,39 @@
     "@fortawesome/free-solid-svg-icons": "^6.5.1",
     "@fortawesome/free-brands-svg-icons": "^6.5.1",
     "jspdf": "^2.5.1",
-    "html2canvas": "^1.4.1"
+    "html2canvas": "^1.4.1",
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/core": "^10.3.0",
+    "@nestjs/platform-express": "^10.3.0",
+    "@nestjs/typeorm": "^10.0.1",
+    "@nestjs/config": "^3.1.1",
+    "@nestjs/jwt": "^10.2.0",
+    "@nestjs/passport": "^10.0.3",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "typeorm": "^0.3.17",
+    "pg": "^8.11.3",
+    "reflect-metadata": "^0.2.1",
+    "rxjs": "^7.8.1",
+    "class-validator": "^0.14.1",
+    "class-transformer": "^0.5.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.0.8",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "@nestjs/cli": "^10.3.0",
+    "@nestjs/schematics": "^10.1.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/passport-jwt": "^4.0.1",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "ts-loader": "^9.5.1",
+    "tsconfig-paths": "^4.2.0"
   }
 }
 

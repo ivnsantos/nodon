@@ -25,8 +25,8 @@ const Layout = () => {
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
   ]
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 

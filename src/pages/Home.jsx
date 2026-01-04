@@ -593,7 +593,7 @@ const Home = () => {
                   <span className="price-old">De: R$ 159/mês*</span>
                   <span className="price-new">Por: R$ 98/mês*</span>
                 </div>
-                <div className="plan-feature-count">Até 12 pacientes analisados por mês</div>
+                <div className="plan-feature-count">Até 12 análises por mês</div>
               </div>
               <button 
                 type="button"
@@ -618,7 +618,7 @@ const Home = () => {
                   <li><FontAwesomeIcon icon={faCheckCircle} /> 1 milhão de tokens no chat da NODON</li>
                 </ul>
               </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=inicial')}>
+              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Inicial')}>
                 Assine Agora
               </button>
               <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
@@ -631,7 +631,7 @@ const Home = () => {
                   <span className="price-old">De: R$ 299/mês*</span>
                   <span className="price-new">Por: R$ 179/mês*</span>
                 </div>
-                <div className="plan-feature-count">Até 30 pacientes analisados por mês</div>
+                <div className="plan-feature-count">Até 30 análises por mês</div>
               </div>
               <button 
                 type="button"
@@ -657,7 +657,7 @@ const Home = () => {
                   <li><FontAwesomeIcon icon={faCheckCircle} /> 1 milhão de tokens no chat da NODON</li>
                 </ul>
               </div>
-              <button className="btn-plan featured" onClick={() => navigate('/checkout?plano=basico')}>
+              <button className="btn-plan featured" onClick={() => navigate('/checkout?plano=Plano Básico')}>
                 Assine Agora
               </button>
               <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
@@ -670,7 +670,7 @@ const Home = () => {
                 <div className="plan-price">
                   <span className="price-single">R$ 299/mês*</span>
                 </div>
-                <div className="plan-feature-count">Até 50 pacientes analisados por mês</div>
+                <div className="plan-feature-count">Até 50 análises por mês</div>
               </div>
               <button 
                 type="button"
@@ -695,7 +695,7 @@ const Home = () => {
                   <li><FontAwesomeIcon icon={faCheckCircle} /> Gerente de Conta especializado</li>
                 </ul>
               </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=inicial')}>
+              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Premium')}>
                 Assine Agora
               </button>
               <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
@@ -707,7 +707,7 @@ const Home = () => {
                 <div className="plan-price">
                   <span className="price-single">R$ 399/mês*</span>
                 </div>
-                <div className="plan-feature-count">Até 120 pacientes analisados por mês</div>
+                <div className="plan-feature-count">Até 120 análises por mês</div>
               </div>
               <button 
                 type="button"
@@ -732,7 +732,7 @@ const Home = () => {
                   <li><FontAwesomeIcon icon={faCheckCircle} /> Gerente de Conta especializado</li>
                 </ul>
               </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=essencial')}>
+              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Essencial')}>
                 Assine Agora
               </button>
               <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
@@ -743,7 +743,7 @@ const Home = () => {
                 <div className="plan-price">
                   <span className="price-single">R$ 499/mês*</span>
                 </div>
-                <div className="plan-feature-count">Até 200 pacientes analisados por mês</div>
+                <div className="plan-feature-count">Até 200 análises por mês</div>
               </div>
               <button 
                 type="button"
@@ -768,7 +768,7 @@ const Home = () => {
                   <li><FontAwesomeIcon icon={faCheckCircle} /> Gerente de Conta especializado</li>
                 </ul>
               </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=enterprise')}>
+              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Enterprise')}>
                 Assine Agora
               </button>
               <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
