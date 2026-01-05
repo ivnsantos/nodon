@@ -2582,9 +2582,30 @@
   }
 }
 
+/* Esconder elementos do menu mobile no desktop */
+.mobile-menu-overlay,
+.mobile-menu-sidebar {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .mobile-menu-toggle {
     display: block;
+  }
+
+  /* Esconder menu desktop no mobile */
+  .nav-links,
+  .nav-actions {
+    display: none;
+  }
+
+  /* Mostrar elementos do menu mobile apenas no mobile */
+  .mobile-menu-overlay {
+    display: block;
+  }
+
+  .mobile-menu-sidebar {
+    display: flex;
   }
 
   .nav-container {

@@ -215,6 +215,22 @@ const Home = () => {
           >
             <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} size="lg" />
           </button>
+          <div className="nav-links">
+            <a href="#solucao">Solução</a>
+            <a href="#diagnosticos">Diagnósticos</a>
+            <a href="#chat">Chat</a>
+            <a href="#depoimentos">Depoimentos</a>
+            <a href="#planos">Planos</a>
+            <a href="#contato">Contato</a>
+          </div>
+          <div className="nav-actions">
+            <button className="nav-btn-secondary" onClick={() => navigate('/login')}>
+              Área do Assinante
+            </button>
+            <button className="nav-btn-primary" onClick={() => setShowContactForm(true)}>
+              Fale com um especialista
+            </button>
+          </div>
           <div 
             className={`mobile-menu-overlay ${mobileMenuOpen ? 'mobile-open' : ''}`}
             onClick={() => setMobileMenuOpen(false)}
