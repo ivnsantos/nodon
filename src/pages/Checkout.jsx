@@ -319,10 +319,10 @@ const Checkout = () => {
         [name]: formatted
       }))
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
     }
   }
 

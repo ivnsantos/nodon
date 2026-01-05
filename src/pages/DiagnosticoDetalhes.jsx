@@ -813,22 +813,22 @@ const DiagnosticoDetalhes = () => {
                     : (typeof necessidade === 'string' ? necessidade : '')
                   
                   return (
-                    <div key={index} className="achado-item-edit">
-                      <input
-                        type="text"
-                        className="achado-input"
+                  <div key={index} className="achado-item-edit">
+                    <input
+                      type="text"
+                      className="achado-input"
                         value={necessidadeValue}
-                        onChange={(e) => handleUpdateNecessidade(index, e.target.value)}
-                        placeholder="Digite a necessidade..."
-                      />
-                      <button
-                        className="btn-remove-achado"
-                        onClick={() => handleRemoveNecessidade(index)}
-                        title="Remover necessidade"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
+                      onChange={(e) => handleUpdateNecessidade(index, e.target.value)}
+                      placeholder="Digite a necessidade..."
+                    />
+                    <button
+                      className="btn-remove-achado"
+                      onClick={() => handleRemoveNecessidade(index)}
+                      title="Remover necessidade"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </div>
                   )
                 })
               ) : (
@@ -844,10 +844,10 @@ const DiagnosticoDetalhes = () => {
                     : (typeof necessidade === 'string' ? necessidade : 'Nenhuma informação')
                   
                   return (
-                    <li key={index}>
-                      <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                  <li key={index}>
+                    <FontAwesomeIcon icon={faCheck} className="list-icon" />
                       {necessidadeValue}
-                    </li>
+                  </li>
                   )
                 })}
               </ul>

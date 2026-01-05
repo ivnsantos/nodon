@@ -215,33 +215,55 @@ const Home = () => {
           >
             <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} size="lg" />
           </button>
-          <div className={`nav-links ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-            <a href="#solucao" onClick={() => setMobileMenuOpen(false)}>Solução</a>
-            <a href="#diagnosticos" onClick={() => setMobileMenuOpen(false)}>Diagnósticos</a>
-            <a href="#chat" onClick={() => setMobileMenuOpen(false)}>Chat</a>
-            <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)}>Depoimentos</a>
-            <a href="#planos" onClick={() => setMobileMenuOpen(false)}>Planos</a>
-            <a href="#contato" onClick={() => setMobileMenuOpen(false)}>Contato</a>
-          </div>
-          <div className={`nav-actions ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-            <button className="nav-btn-secondary" onClick={() => {
-              navigate('/login')
-              setMobileMenuOpen(false)
-            }}>
-              Área do Assinante
-            </button>
-            <button className="nav-btn-primary" onClick={() => {
-              setShowContactForm(true)
-              setMobileMenuOpen(false)
-            }}>
-              Fale com um especialista
-            </button>
+          <div 
+            className={`mobile-menu-overlay ${mobileMenuOpen ? 'mobile-open' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className={`mobile-menu-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+            <div className="mobile-menu-header">
+              <h2 className="mobile-menu-title">Menu</h2>
+              <button 
+                className="mobile-menu-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Fechar menu"
+              >
+                <FontAwesomeIcon icon={faTimes} size="lg" />
+              </button>
+            </div>
+            <div className="mobile-menu-content">
+              <nav className="mobile-nav-links">
+                <a href="#solucao" onClick={() => setMobileMenuOpen(false)}>Solução</a>
+                <a href="#diagnosticos" onClick={() => setMobileMenuOpen(false)}>Diagnósticos</a>
+                <a href="#chat" onClick={() => setMobileMenuOpen(false)}>Chat</a>
+                <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)}>Depoimentos</a>
+                <a href="#planos" onClick={() => setMobileMenuOpen(false)}>Planos</a>
+                <a href="#contato" onClick={() => setMobileMenuOpen(false)}>Contato</a>
+              </nav>
+              <div className="mobile-menu-actions">
+                <button className="nav-btn-secondary" onClick={() => {
+                  navigate('/login')
+                  setMobileMenuOpen(false)
+                }}>
+                  Área do Assinante
+                </button>
+                <button className="nav-btn-primary" onClick={() => {
+                  setShowContactForm(true)
+                  setMobileMenuOpen(false)
+                }}>
+                  Fale com um especialista
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="hero-section" id="inicio">
+      <section 
+        className="hero-section" 
+        id="inicio"
+      >
+        {/* Spotlight overlays - circular lanterns moving across the image */}
         <div className="hero-container">
           <div className="hero-content">
             <div className="hero-badge">
@@ -249,7 +271,7 @@ const Home = () => {
               <span>Online</span>
             </div>
             <h1 className="hero-title">
-              Aumente a precisão do diagnóstico e a <span className="highlight">confiança do seu paciente </span>e tenha uma IA inteligente ao seu lado.
+              Consiga mais tratamentos, deixando a comunicação com os clientes mais <span className="highlight">SIMPLES e INTUITIVA.</span>
             </h1>
             <p className="hero-subtitle">
               Não fique para trás, conquiste a confiança dos seus pacientes e aumente a sua produtividade com a IA NODON.
@@ -317,7 +339,7 @@ const Home = () => {
               <div className="image-overlay">
                 <div className="overlay-content">
                   <FontAwesomeIcon icon={faRobot} className="overlay-icon" />
-                  <p className="overlay-text">Análise inteligente em segundos</p>
+                  <p className="overlay-text">Análise e demonstrativo com desenhos</p>
                 </div>
               </div>
             </div>
