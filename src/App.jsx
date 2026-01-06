@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Checkout from './pages/Checkout'
+import AddClinic from './pages/AddClinic'
 import Dentistas from './pages/Dentistas'
 import Diagnosticos from './pages/Diagnosticos'
 import DiagnosticoDetalhes from './pages/DiagnosticoDetalhes'
@@ -18,6 +19,9 @@ import ClienteDetalhes from './pages/ClienteDetalhes'
 import ClienteNovo from './pages/ClienteNovo'
 import Perfil from './pages/Perfil'
 import AssinaturaPendente from './pages/AssinaturaPendente'
+import VerifyEmail from './pages/VerifyEmail'
+import SelectClinic from './pages/SelectClinic'
+import CompleteMasterData from './pages/CompleteMasterData'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -39,6 +43,26 @@ function AppRoutes() {
           <PublicRoute>
             <Checkout />
           </PublicRoute>
+        } />
+        <Route path="/add-clinic" element={
+          <ProtectedRoute>
+            <AddClinic />
+          </ProtectedRoute>
+        } />
+        <Route path="/verify-email" element={
+          <PublicRoute>
+            <VerifyEmail />
+          </PublicRoute>
+        } />
+        <Route path="/complete-master-data" element={
+          <ProtectedRoute>
+            <CompleteMasterData />
+          </ProtectedRoute>
+        } />
+        <Route path="/select-clinic" element={
+          <ProtectedRoute>
+            <SelectClinic />
+          </ProtectedRoute>
         } />
         <Route path="/assinatura-pendente" element={
           <ProtectedRoute>

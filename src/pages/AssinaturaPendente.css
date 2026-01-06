@@ -187,6 +187,10 @@
 
 .assinatura-pendente-actions {
   margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
 }
 
 .btn-check-again {
@@ -203,6 +207,8 @@
   gap: 0.75rem;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+  width: 100%;
+  justify-content: center;
 }
 
 .btn-check-again:hover {
@@ -212,6 +218,11 @@
 
 .btn-check-again:active {
   transform: translateY(0);
+}
+
+.btn-back-clinics {
+  width: 100%;
+  justify-content: center;
 }
 
 .assinatura-pendente-info {

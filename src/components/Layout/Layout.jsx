@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
-  faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle
+  faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -12,9 +12,32 @@ import './Layout.css'
 const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
+  
+  // Carregar dados do cliente master se não estiverem carregados
+  useEffect(() => {
+    const loadClinicData = async () => {
+      if (selectedClinicId && !selectedClinicData) {
+        try {
+          // Buscar dados completos usando a rota /complete
+          await setSelectedClinicId(selectedClinicId)
+        } catch (error) {
+          console.error('Erro ao carregar dados do cliente master:', error)
+        }
+      }
+    }
+    
+    loadClinicData()
+  }, [selectedClinicId, selectedClinicData, setSelectedClinicId])
+  
+  // Usar APENAS os atributos: nomeEmpresa, logo, cor, documento
+  const clinicLogo = (selectedClinicData?.logo && selectedClinicData.logo !== null) ? selectedClinicData.logo : nodoLogo
+  const clinicName = (selectedClinicData?.nomeEmpresa && selectedClinicData.nomeEmpresa !== null) ? selectedClinicData.nomeEmpresa : 'NODON'
+  const clinicColor = (selectedClinicData?.cor && selectedClinicData.cor !== null) ? selectedClinicData.cor : '#0ea5e9'
+  const clinicDocumento = (selectedClinicData?.documento && selectedClinicData.documento !== null) ? selectedClinicData.documento : null
+  
 
   const menuItems = [
     { path: '/app', label: 'Dashboard', icon: faChartBar },
@@ -42,10 +65,33 @@ const Layout = () => {
     setSidebarMinimized(!sidebarMinimized)
   }
 
+  // Carregar dados do cliente master quando o Layout carregar
+  useEffect(() => {
+    const loadClinicData = async () => {
+      if (selectedClinicId && !selectedClinicData) {
+        try {
+          // Buscar dados completos usando a rota /complete
+          await setSelectedClinicId(selectedClinicId)
+        } catch (error) {
+          console.error('Erro ao carregar dados do cliente master:', error)
+        }
+      }
+    }
+    
+    loadClinicData()
+  }, [selectedClinicId, selectedClinicData, setSelectedClinicId])
+
   // Fechar sidebar ao mudar de rota em mobile
   useEffect(() => {
     setSidebarOpen(false)
   }, [location.pathname])
+
+  // Aplicar cor do cliente master como variável CSS
+  useEffect(() => {
+    if (clinicColor) {
+      document.documentElement.style.setProperty('--clinic-primary-color', clinicColor)
+    }
+  }, [clinicColor])
 
   return (
     <div className="layout">
@@ -64,14 +110,23 @@ const Layout = () => {
           {!sidebarMinimized && (
             <>
               <div className="logo">
-                <img src={nodoLogo} alt="NODON" className="logo-image" />
-                <h1 className="logo-text">NODON</h1>
+                <img src={clinicLogo} alt={clinicName} className="logo-image" />
+                <h1 className="logo-text" style={{ color: clinicColor }}>{clinicName}</h1>
+                {clinicDocumento && (
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#9ca3af',
+                    marginTop: '0.25rem'
+                  }}>
+                    {clinicDocumento}
+                  </p>
+                )}
               </div>
             </>
           )}
           {sidebarMinimized && (
             <div className="logo-minimized">
-              <img src={nodoLogo} alt="NODON" className="logo-image-minimized" />
+              <img src={clinicLogo} alt={clinicName} className="logo-image-minimized" />
             </div>
           )}
           <button className="minimize-btn" onClick={toggleMinimize} title={sidebarMinimized ? 'Expandir menu' : 'Minimizar menu'}>
@@ -106,19 +161,32 @@ const Layout = () => {
           {!sidebarMinimized && (
             <div className="user-info">
               <div className="user-avatar">
-                {user?.nome?.charAt(0).toUpperCase() || 'U'}
+                {clinicName.charAt(0).toUpperCase()}
               </div>
               <div className="user-details">
-                <p className="user-name">{user?.nome || 'Usuário'}</p>
-                <p className="user-role">{user?.tipo || 'Usuário'}</p>
+                <p className="user-name">{clinicName}</p>
+                {clinicDocumento && (
+                  <p className="user-role">{clinicDocumento}</p>
+                )}
               </div>
             </div>
           )}
           {sidebarMinimized && (
             <div className="user-avatar-minimized">
-              {user?.nome?.charAt(0).toUpperCase() || 'U'}
+              {clinicName.charAt(0).toUpperCase()}
             </div>
           )}
+          <button 
+            className="clinic-btn" 
+            onClick={() => {
+              navigate('/select-clinic')
+              closeSidebar()
+            }}
+            title={sidebarMinimized ? 'Voltar para Clínicas' : ''}
+          >
+            <FontAwesomeIcon icon={faBuilding} style={{ marginRight: sidebarMinimized ? '0' : '0.5rem' }} />
+            {!sidebarMinimized && 'Voltar para Clínicas'}
+          </button>
           <button 
             className="logout-btn" 
             onClick={handleLogout}

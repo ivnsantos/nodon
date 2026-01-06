@@ -24,8 +24,22 @@ const Login = () => {
       const result = await login(email, password)
       
       if (result.success) {
-        // Login bem-sucedido, redirecionar para o app
-        navigate('/app')
+        // Verificar se o email está validado
+        // A API retorna isEmailVerified, mas normalizamos para emailVerified no AuthContext
+        const emailVerified = result.user?.emailVerified || false
+        
+        if (!emailVerified) {
+          // Email não verificado, redirecionar para verificação
+          navigate(`/verify-email?email=${encodeURIComponent(email)}`)
+        } else {
+          // Email verificado, verificar se é master e precisa completar dados
+          if (result.user?.tipo === 'master') {
+            navigate('/complete-master-data')
+          } else {
+            // Se não for master, ir para seleção de consultório
+            navigate('/select-clinic')
+          }
+        }
       } else {
         setError(result.message || 'Erro ao fazer login. Verifique suas credenciais.')
       }

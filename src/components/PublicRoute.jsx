@@ -1,8 +1,9 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <div style={{ 
@@ -13,8 +14,21 @@ const PublicRoute = ({ children }) => {
     }}>Carregando...</div>
   }
 
+  // Se o usuário estiver logado, redirecionar apenas de login/register para /app
+  // Mas permitir acesso a verify-email mesmo logado (pode estar verificando email)
   if (user) {
-    return <Navigate to="/app" replace />
+    // Rotas que podem ser acessadas mesmo logado
+    const allowedPathsWhenLoggedIn = ['/verify-email', '/complete-master-data', '/select-clinic', '/assinatura-pendente', '/checkout']
+    
+    // Se estiver em uma rota que precisa ser acessível mesmo logado, permitir acesso
+    if (allowedPathsWhenLoggedIn.includes(location.pathname)) {
+      return children
+    }
+    
+    // Apenas redirecionar de login/register se já estiver logado
+    if (location.pathname === '/login' || location.pathname === '/register') {
+      return <Navigate to="/app" replace />
+    }
   }
 
   return children

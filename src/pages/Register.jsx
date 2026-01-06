@@ -31,6 +31,7 @@ const Register = () => {
     nome: '',
     email: '',
     password: '',
+    confirmPassword: '',
     telefone: '',
     cpf: '',
     
@@ -167,9 +168,75 @@ const Register = () => {
     }, 5000)
   }
 
+  const formatPhone = (value) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '')
+    
+    // Formata como (00) 00000-0000
+    if (numbers.length <= 10) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, (match, p1, p2, p3) => {
+        if (p3) return `(${p1}) ${p2}-${p3}`
+        if (p2) return `(${p1}) ${p2}`
+        if (p1) return `(${p1}`
+        return ''
+      })
+    } else {
+      return numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, (match, p1, p2, p3) => {
+        if (p3) return `(${p1}) ${p2}-${p3}`
+        if (p2) return `(${p1}) ${p2}`
+        if (p1) return `(${p1}`
+        return ''
+      })
+    }
+  }
+
+  const formatCpfCnpj = (value) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '')
+    
+    // Se tiver 11 dígitos ou menos, formata como CPF
+    if (numbers.length <= 11) {
+      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (match, p1, p2, p3, p4) => {
+        if (p4) return `${p1}.${p2}.${p3}-${p4}`
+        if (p3) return `${p1}.${p2}.${p3}`
+        if (p2) return `${p1}.${p2}`
+        return p1
+      })
+    } else {
+      // Se tiver mais de 11 dígitos, formata como CNPJ
+      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (match, p1, p2, p3, p4, p5) => {
+        if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`
+        if (p4) return `${p1}.${p2}.${p3}/${p4}`
+        if (p3) return `${p1}.${p2}.${p3}`
+        if (p2) return `${p1}.${p2}`
+        return p1
+      })
+    }
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // Formatar telefone automaticamente
+    if (name === 'telefone') {
+      const formatted = formatPhone(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else if (name === 'cpf') {
+      // Formatar CPF ou CNPJ automaticamente
+      const formatted = formatCpfCnpj(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleCepChange = async (e) => {
@@ -178,12 +245,16 @@ const Register = () => {
     setFormData(prev => ({ ...prev, cep: formattedCep }))
 
     if (cep.length === 8) {
+      // Mostrar campos quando CEP tiver 8 dígitos
+      setShowAddressFields(true)
       try {
         const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
         const data = await response.json()
         
         if (data.erro) {
-          showAlert('CEP não encontrado. Por favor, verifique o CEP digitado.')
+          showAlert('CEP não encontrado. Por favor, verifique o CEP digitado ou preencha manualmente.')
+          // Manter campos visíveis para preenchimento manual
+          setShowAddressFields(true)
           return
         }
 
@@ -195,11 +266,17 @@ const Register = () => {
           estado: data.uf || '',
           complemento: data.complemento || prev.complemento
         }))
+        
+        // Mostrar campos de endereço após preencher
+        setShowAddressFields(true)
       } catch (error) {
         console.error('Erro ao buscar CEP:', error)
-        showAlert('Erro ao buscar CEP. Tente novamente.')
+        showAlert('Erro ao buscar CEP. Você pode preencher manualmente.')
+        // Manter campos visíveis para preenchimento manual
+        setShowAddressFields(true)
       }
     } else if (cep.length < 8) {
+      // Limpar campos se CEP incompleto
       setFormData(prev => ({
         ...prev,
         rua: '',
@@ -207,6 +284,7 @@ const Register = () => {
         cidade: '',
         estado: ''
       }))
+      setShowAddressFields(false)
     }
   }
 
@@ -261,6 +339,16 @@ const Register = () => {
         showAlert('Por favor, preencha todos os campos obrigatórios')
         return
       }
+      // Validar se as senhas coincidem
+      if (formData.password !== formData.confirmPassword) {
+        showAlert('As senhas não coincidem. Por favor, verifique.')
+        return
+      }
+      // Validar tamanho mínimo da senha
+      if (formData.password.length < 6) {
+        showAlert('A senha deve ter no mínimo 6 caracteres')
+        return
+      }
       if (!formData.cep || !formData.rua || !formData.numero || !formData.cidade || !formData.estado) {
         showAlert('Por favor, preencha todos os campos de endereço')
         return
@@ -278,6 +366,20 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    
+    // Validar se as senhas coincidem antes de enviar
+    if (formData.password !== formData.confirmPassword) {
+      showAlert('As senhas não coincidem. Por favor, verifique.')
+      setLoading(false)
+      return
+    }
+    
+    // Validar tamanho mínimo da senha
+    if (formData.password.length < 6) {
+      showAlert('A senha deve ter no mínimo 6 caracteres')
+      setLoading(false)
+      return
+    }
     
     try {
       const result = await register({
@@ -457,14 +559,14 @@ const Register = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>CPF *</label>
+                      <label>CPF/CNPJ *</label>
                       <input
                         type="text"
                         name="cpf"
                         value={formData.cpf}
                         onChange={handleInputChange}
-                        maxLength="14"
-                        placeholder="000.000.000-00"
+                        maxLength="18"
+                        placeholder="000.000.000-00 ou 00.000.000/0000-00"
                         required
                       />
                     </div>
@@ -481,7 +583,9 @@ const Register = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Telefone *</label>
+                      <label>
+                        <FontAwesomeIcon icon={faPhone} /> Telefone *
+                      </label>
                       <input
                         type="tel"
                         name="telefone"
@@ -500,10 +604,32 @@ const Register = () => {
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        placeholder="••••••••"
+                        placeholder="Mínimo 6 caracteres"
                         minLength="6"
                         required
                       />
+                    </div>
+                    <div className="form-group">
+                      <label>Confirmar Senha *</label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        placeholder="Digite a senha novamente"
+                        minLength="6"
+                        required
+                        style={{
+                          borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword 
+                            ? '#ef4444' 
+                            : undefined
+                        }}
+                      />
+                      {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                        <small style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                          As senhas não coincidem
+                        </small>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -527,7 +653,7 @@ const Register = () => {
                     </div>
                   </div>
                   
-                  {showAddressFields && (
+                  {(showAddressFields || formData.cep.replace(/\D/g, '').length === 8) && (
                     <>
                       <div className="form-row">
                         <div className="form-group">

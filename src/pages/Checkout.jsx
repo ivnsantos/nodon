@@ -69,10 +69,30 @@ const Checkout = () => {
       try {
         setLoadingPlans(true)
         const response = await api.get('/planos')
-        const planosBackend = response.data
+        
+        // Debug: verificar estrutura da resposta
+        console.log('Resposta completa da API:', response)
+        console.log('response.data:', response.data)
+        
+        // A API pode retornar { statusCode, message, data } ou diretamente o array
+        const planosBackend = response.data?.data || response.data || []
+        
+        console.log('Planos extraídos:', planosBackend)
+
+        // Verificar se é um array
+        if (!Array.isArray(planosBackend)) {
+          console.error('Resposta da API não é um array:', planosBackend)
+          showAlert('Erro ao carregar planos. Formato inválido.', 'error')
+          return
+        }
 
         // Mapear planos do backend para o formato esperado no frontend
         const planosMapeados = planosBackend.map((plano) => {
+          // Validar campos obrigatórios
+          if (!plano.id || !plano.nome) {
+            console.warn('Plano com dados incompletos:', plano)
+          }
+
           // Determinar features baseado no nome do plano
           let features = []
           let featured = false
@@ -136,19 +156,34 @@ const Checkout = () => {
               ]
           }
 
+          // Calcular preços com segurança
+          const valorPromocional = plano.valorPromocional || plano.valor_promocional || null
+          const valorOriginal = plano.valorOriginal || plano.valor_original || plano.valor || 0
+          const price = valorPromocional ? Number(valorPromocional) : Number(valorOriginal)
+          const oldPrice = valorPromocional ? Number(valorOriginal) : null
+
           return {
             id: plano.id,
             name: plano.nome,
-            price: Number(plano.valorPromocional || plano.valorOriginal),
-            oldPrice: plano.valorPromocional ? Number(plano.valorOriginal) : null,
-            patients: plano.descricao || `Até ${plano.limiteAnalises} análises por mês`,
+            price: isNaN(price) ? 0 : price,
+            oldPrice: oldPrice && !isNaN(oldPrice) ? oldPrice : null,
+            patients: plano.descricao || `Até ${plano.limiteAnalises || plano.limite_analises || 0} análises por mês`,
             features,
             featured,
             badge
           }
         })
 
-        setPlans(planosMapeados)
+        // Filtrar planos inválidos
+        const planosValidos = planosMapeados.filter(plano => plano.id && plano.name)
+        
+        if (planosValidos.length === 0) {
+          console.error('Nenhum plano válido encontrado')
+          showAlert('Nenhum plano disponível no momento.', 'error')
+          return
+        }
+
+        setPlans(planosValidos)
       } catch (error) {
         console.error('Erro ao carregar planos:', error)
         showAlert('Erro ao carregar planos. Tente novamente.', 'error')
@@ -319,10 +354,10 @@ const Checkout = () => {
         [name]: formatted
       }))
     } else {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
     }
   }
 
@@ -483,6 +518,20 @@ const Checkout = () => {
     setIsSubmitting(true)
 
     try {
+      // Validar se as senhas coincidem antes de enviar
+      if (formData.password !== formData.confirmPassword) {
+        showAlert('As senhas não coincidem. Por favor, verifique.')
+        setIsSubmitting(false)
+        return
+      }
+      
+      // Validar tamanho mínimo da senha
+      if (formData.password.length < 6) {
+        showAlert('A senha deve ter no mínimo 6 caracteres')
+        setIsSubmitting(false)
+        return
+      }
+      
       // Validar telefone antes de enviar
       const phoneNumbers = formData.telefone.replace(/\D/g, '')
       if (!phoneNumbers || phoneNumbers.length < 10) {
@@ -526,7 +575,11 @@ const Checkout = () => {
       // Criar assinatura
       const response = await api.post('/assinaturas', payload)
       
-      if (!response.data || !response.data.userId) {
+      // A API pode retornar { statusCode, message, data } ou diretamente os dados
+      const responseData = response.data?.data || response.data
+      
+      if (!responseData || !responseData.userId) {
+        console.error('Resposta inválida do servidor:', response.data)
         throw new Error('Resposta inválida do servidor')
       }
       
@@ -536,7 +589,7 @@ const Checkout = () => {
       setShowPollingModal(true)
       setPollingAttempt(0)
       setPollingStatus('Verificando pagamento...')
-      await pollPaymentStatus(response.data.userId)
+      await pollPaymentStatus(responseData.userId)
       
     } catch (error) {
       console.error('Erro ao criar assinatura:', error)
@@ -785,14 +838,14 @@ const Checkout = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>CPF/CNPJ *</label>
+                      <label>CPF *</label>
                       <input
                         type="text"
                         name="cpf"
                         value={formData.cpf}
                         onChange={handleInputChange}
-                        maxLength="18"
-                        placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                        maxLength="14"
+                        placeholder="000.000.000-00"
                         required
                       />
                     </div>
@@ -809,9 +862,7 @@ const Checkout = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>
-                        <FontAwesomeIcon icon={faPhone} /> Telefone *
-                      </label>
+                      <label>Telefone *</label>
                       <input
                         type="tel"
                         name="telefone"
@@ -845,7 +896,17 @@ const Checkout = () => {
                         placeholder="Digite a senha novamente"
                         minLength="6"
                         required
+                        style={{
+                          borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword 
+                            ? '#ef4444' 
+                            : undefined
+                        }}
                       />
+                      {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                        <small style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                          As senhas não coincidem
+                        </small>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -869,7 +930,7 @@ const Checkout = () => {
                     </div>
                   </div>
                   
-                  {(showAddressFields || formData.cep.replace(/\D/g, '').length === 8) && (
+                  {showAddressFields && (
                     <>
                       <div className="form-row">
                         <div className="form-group">
