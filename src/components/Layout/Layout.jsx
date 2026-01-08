@@ -12,25 +12,36 @@ import './Layout.css'
 const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId } = useAuth()
+  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   
-  // Carregar dados do cliente master se não estiverem carregados
+  // Sempre recarregar dados do cliente master ao entrar no app para garantir dados atualizados
   useEffect(() => {
+    let isMounted = true
+    
     const loadClinicData = async () => {
-      if (selectedClinicId && !selectedClinicData) {
+      if (selectedClinicId && location.pathname.startsWith('/app')) {
         try {
-          // Buscar dados completos usando a rota /complete
-          await setSelectedClinicId(selectedClinicId)
+          // Sempre buscar dados completos usando a rota /complete para garantir dados atualizados
+          // Isso remove dados antigos e adiciona os novos
+          if (isMounted) {
+            await setSelectedClinicId(selectedClinicId)
+          }
         } catch (error) {
           console.error('Erro ao carregar dados do cliente master:', error)
         }
       }
     }
     
+    // Executar apenas quando entrar na rota /app
     loadClinicData()
-  }, [selectedClinicId, selectedClinicData, setSelectedClinicId])
+    
+    return () => {
+      isMounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClinicId, location.pathname])
   
   // Usar APENAS os atributos: nomeEmpresa, logo, cor, documento
   const clinicLogo = (selectedClinicData?.logo && selectedClinicData.logo !== null) ? selectedClinicData.logo : nodoLogo
@@ -39,7 +50,7 @@ const Layout = () => {
   const clinicDocumento = (selectedClinicData?.documento && selectedClinicData.documento !== null) ? selectedClinicData.documento : null
   
 
-  const menuItems = [
+  const allMenuItems = [
     { path: '/app', label: 'Dashboard', icon: faChartBar },
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
@@ -47,6 +58,12 @@ const Layout = () => {
     { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
   ]
+
+  // Filtrar menu items baseado no tipo de relacionamento
+  // Se for tipo "usuario", não mostrar a aba "Usuário"
+  const menuItems = isUsuario() 
+    ? allMenuItems.filter(item => item.path !== '/app/dentistas')
+    : allMenuItems
 
   const handleLogout = async () => {
     await logout()

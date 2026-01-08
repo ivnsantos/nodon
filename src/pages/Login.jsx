@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faLock, faArrowRight, faXRay, faFileMedical, faSearch } from '@fortawesome/free-solid-svg-icons'
+import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
 import nodoImage from '../img/nodo.png'
 import './Auth.css'
@@ -34,7 +35,19 @@ const Login = () => {
         } else {
           // Email verificado, verificar se é master e precisa completar dados
           if (result.user?.tipo === 'master') {
-            navigate('/complete-master-data')
+            // Verificar se já existe pelo menos um cliente master com dados completos
+            try {
+              // Buscar dados do cliente master (userBaseId vem do token JWT)
+              const clinicsResult = await api.get(`/auth/get-client-token`)
+              const clinics = clinicsResult.data?.data?.clientesMaster || []
+              
+              // Sempre redirecionar para seleção de consultório
+              navigate('/select-clinic')
+            } catch (error) {
+              console.error('Erro ao verificar dados do cliente master:', error)
+              // Em caso de erro, ir para seleção de consultório
+              navigate('/select-clinic')
+            }
           } else {
             // Se não for master, ir para seleção de consultório
             navigate('/select-clinic')

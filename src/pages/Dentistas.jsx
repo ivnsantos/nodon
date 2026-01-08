@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUsers, faPlus, faUserMd, faEnvelope, faIdCard, faGraduationCap, faPhone, faImage } from '@fortawesome/free-solid-svg-icons'
-// Removido import de API - usando dados mockados
+import { faUsers, faPlus, faUserMd, faEnvelope, faIdCard, faGraduationCap, faPhone, faImage, faLink, faCopy, faCheckCircle, faToggleOn, faToggleOff, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { useAuth } from '../context/AuthContext'
+import api from '../utils/api'
 import './Dentistas.css'
 
 const Dentistas = () => {
-  const [dentistas, setDentistas] = useState([])
+  const { selectedClinicData, selectedClinicId } = useAuth()
+  const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [updatingStatus, setUpdatingStatus] = useState({})
   const [showForm, setShowForm] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
+  const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -18,48 +23,103 @@ const Dentistas = () => {
     imagem: null
   })
 
-  useEffect(() => {
-    fetchDentistas()
-  }, [])
+  // Obter hash do cliente master
+  const clienteMaster = selectedClinicData?.clienteMaster || selectedClinicData
+  const hash = clienteMaster?.hash
+  const inviteUrl = hash ? `${window.location.origin}/profissional/${hash}` : null
 
-  const fetchDentistas = async () => {
+  const handleCopyUrl = async () => {
+    if (!inviteUrl) return
+    
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await navigator.clipboard.writeText(inviteUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Erro ao copiar URL:', error)
+      // Fallback para navegadores mais antigos
+      const textArea = document.createElement('textarea')
+      textArea.value = inviteUrl
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Erro ao copiar:', err)
+      }
+      document.body.removeChild(textArea)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedClinicId) {
+      fetchUsuarios()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClinicId])
+
+  const fetchUsuarios = async () => {
+    if (!selectedClinicId) {
+      setError('Cliente Master não selecionado')
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError('')
+      const response = await api.get(`/clientes-master/${selectedClinicId}/usuarios`)
       
-      // Buscar dentistas do localStorage ou usar dados mockados
-      const savedDentistas = JSON.parse(localStorage.getItem('mockDentistas') || '[]')
-      if (savedDentistas.length > 0) {
-        setDentistas(savedDentistas)
+      if (response.data.statusCode === 200) {
+        const usuariosData = response.data.data?.usuarios || response.data.usuarios || []
+        setUsuarios(usuariosData)
       } else {
-        // Dados mockados iniciais
-        const mockData = [
-          {
-            id: 1,
-            nome: 'Dr. João Silva',
-            email: 'joao.silva@nodon.com',
-            crm: 'CRO-SP 12345',
-            especialidade: 'Ortodontia',
-            telefone: '(11) 99999-9999',
-            imagem: null
-          },
-          {
-            id: 2,
-            nome: 'Dra. Maria Santos',
-            email: 'maria.santos@nodon.com',
-            crm: 'CRO-SP 67890',
-            especialidade: 'Implantodontia',
-            telefone: '(11) 88888-8888',
-            imagem: null
-          }
-        ]
-        setDentistas(mockData)
-        localStorage.setItem('mockDentistas', JSON.stringify(mockData))
+        setError('Erro ao buscar usuários')
       }
     } catch (error) {
-      console.error('Erro ao buscar dentistas:', error)
+      console.error('Erro ao buscar usuários:', error)
+      setError(error.response?.data?.message || 'Erro ao buscar usuários. Tente novamente.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleStatus = async (usuarioId, currentStatus) => {
+    if (!usuarioId) return
+
+    const newStatus = currentStatus === 'ativo' ? 'inativo' : 'ativo'
+
+    setUpdatingStatus(prev => ({ ...prev, [usuarioId]: true }))
+
+    try {
+      const response = await api.patch(`/clientes-master/usuarios/${usuarioId}/status`, {
+        status: newStatus
+      })
+
+      if (response.data.statusCode === 200 || response.status === 200) {
+        // Atualizar o estado local usando o status retornado
+        const updatedUsuario = response.data.usuario || response.data.data?.usuario
+        setUsuarios(prev => prev.map(usuario => 
+          usuario.id === usuarioId 
+            ? { 
+                ...usuario, 
+                status: updatedUsuario?.status || newStatus,
+                ativo: updatedUsuario?.ativo !== undefined ? updatedUsuario.ativo : (newStatus === 'ativo')
+              }
+            : usuario
+        ))
+      } else {
+        setError('Erro ao alterar status do usuário')
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error)
+      setError(error.response?.data?.message || 'Erro ao alterar status. Tente novamente.')
+    } finally {
+      setUpdatingStatus(prev => ({ ...prev, [usuarioId]: false }))
     }
   }
 
@@ -132,6 +192,45 @@ const Dentistas = () => {
           <FontAwesomeIcon icon={faPlus} /> {showForm ? 'Cancelar' : 'Novo Dentista'}
         </button>
       </div>
+
+      {inviteUrl && (
+        <div className="invite-link-card">
+          <div className="invite-link-header">
+            <FontAwesomeIcon icon={faLink} />
+            <h3>Link de Convite para Dentistas</h3>
+          </div>
+          <p className="invite-link-description">
+            Compartilhe este link com os dentistas que deseja adicionar à sua clínica. 
+            Eles poderão se cadastrar ou vincular sua conta existente através deste link.
+          </p>
+          <div className="invite-link-container">
+            <input
+              type="text"
+              value={inviteUrl}
+              readOnly
+              className="invite-link-input"
+              onClick={(e) => e.target.select()}
+            />
+            <button 
+              className="btn-copy-link"
+              onClick={handleCopyUrl}
+              title="Copiar link"
+            >
+              {copied ? (
+                <>
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  Copiado!
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faCopy} />
+                  Copiar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="form-card-modern">
@@ -245,48 +344,88 @@ const Dentistas = () => {
         </div>
       )}
 
+      {error && (
+        <div className="error-message-dentistas">
+          <FontAwesomeIcon icon={faEnvelope} />
+          <span>{error}</span>
+        </div>
+      )}
+
       <div className="dentistas-grid">
-        {dentistas.length === 0 ? (
+        {usuarios.length === 0 ? (
           <div className="empty-state-dentistas">
             <FontAwesomeIcon icon={faUsers} size="4x" />
-            <h3>Nenhum dentista cadastrado</h3>
-            <p>Comece adicionando um novo profissional</p>
+            <h3>Nenhum usuário vinculado</h3>
+            <p>Compartilhe o link de convite para adicionar profissionais à sua clínica</p>
           </div>
         ) : (
-          dentistas.map((dentista) => (
-            <div key={dentista.id} className="dentista-card">
-              <div className="dentista-image">
-                {dentista.imagem ? (
-                  <img src={dentista.imagem} alt={dentista.nome} />
-                ) : (
+          usuarios.map((usuario) => {
+            const user = usuario.user || {}
+            const isAtivo = usuario.status === 'ativo'
+            const isUpdating = updatingStatus[usuario.id]
+
+            return (
+              <div key={usuario.id} className={`dentista-card ${!isAtivo ? 'inactive' : ''}`}>
+                <div className="dentista-image">
                   <div className="dentista-image-placeholder">
-                    {dentista.nome.charAt(0).toUpperCase()}
+                    {(user.nome || 'U').charAt(0).toUpperCase()}
                   </div>
-                )}
-              </div>
-              <div className="dentista-info">
-                <h4>{dentista.nome}</h4>
-                <p className="dentista-crm">
-                  <FontAwesomeIcon icon={faIdCard} /> CRM: {dentista.crm}
-                </p>
-                <p className="dentista-especialidade">
-                  <FontAwesomeIcon icon={faGraduationCap} /> {dentista.especialidade}
-                </p>
-                <div className="dentista-contact">
-                  <p>
-                    <FontAwesomeIcon icon={faEnvelope} /> {dentista.email}
-                  </p>
-                  <p>
-                    <FontAwesomeIcon icon={faPhone} /> {dentista.telefone}
-                  </p>
+                  {!isAtivo && (
+                    <div className="status-badge-inactive">
+                      Inativo
+                    </div>
+                  )}
+                </div>
+                <div className="dentista-info">
+                  <div className="dentista-header">
+                    <h4>{user.nome || 'Nome não informado'}</h4>
+                    {isAtivo && (
+                      <span className="status-badge-active">
+                        <FontAwesomeIcon icon={faCheckCircle} /> Ativo
+                      </span>
+                    )}
+                  </div>
+                  {user.cro && (
+                    <p className="dentista-crm">
+                      <FontAwesomeIcon icon={faIdCard} /> CRO: {user.cro}
+                    </p>
+                  )}
+                  <div className="dentista-contact">
+                    <p>
+                      <FontAwesomeIcon icon={faEnvelope} /> {user.email || 'Email não informado'}
+                    </p>
+                    {user.telefone && (
+                      <p>
+                        <FontAwesomeIcon icon={faPhone} /> {user.telefone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="dentista-actions">
+                  <button 
+                    className={`status-toggle-btn ${isAtivo ? 'active' : 'inactive'}`}
+                    onClick={() => handleToggleStatus(usuario.id, usuario.status)}
+                    disabled={isUpdating}
+                    title={isAtivo ? 'Desativar usuário' : 'Ativar usuário'}
+                  >
+                    {isUpdating ? (
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                    ) : isAtivo ? (
+                      <>
+                        <FontAwesomeIcon icon={faToggleOn} />
+                        Desativar
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faToggleOff} />
+                        Ativar
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
-              <div className="dentista-actions">
-                <button className="dentista-edit-btn">Editar</button>
-                <button className="dentista-view-btn">Ver Perfil</button>
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>

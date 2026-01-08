@@ -39,7 +39,12 @@ export const AuthProvider = ({ children }) => {
       const savedClinicData = sessionStorage.getItem('selectedClinicData')
       if (savedClinicData) {
         try {
-          setSelectedClinicData(JSON.parse(savedClinicData))
+          const clinicData = JSON.parse(savedClinicData)
+          setSelectedClinicData(clinicData)
+          // Restaurar relacionamento se existir
+          if (clinicData.relacionamento) {
+            sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+          }
         } catch (error) {
           console.error('Erro ao restaurar dados do cliente master:', error)
         }
@@ -257,7 +262,8 @@ export const AuthProvider = ({ children }) => {
 
   const getClinicsByEmail = async (email) => {
     try {
-      const response = await api.get(`/auth/get-client-by-email?email=${encodeURIComponent(email)}`)
+      // userBaseId vem do token JWT, não precisa enviar na query
+      const response = await api.get(`/auth/get-client-token`)
 
       if (response.data.statusCode === 200) {
         const clinics = response.data.data?.clientesMaster || []
@@ -283,6 +289,12 @@ export const AuthProvider = ({ children }) => {
   }
 
   const setSelectedClinicId = async (clinicId) => {
+    // Limpar dados antigos antes de buscar novos
+    setSelectedClinicData(null)
+    sessionStorage.removeItem('selectedClinicData')
+    sessionStorage.removeItem('relacionamento')
+    
+    // Atualizar o ID do consultório selecionado
     setSelectedClinicIdState(clinicId)
     sessionStorage.setItem('selectedClinicId', clinicId)
     
@@ -292,8 +304,15 @@ export const AuthProvider = ({ children }) => {
       const clinicData = response.data?.data || response.data
       
       if (clinicData) {
+        // Garantir que o relacionamento seja salvo
+        // A estrutura já vem com relacionamento: { tipo: "clienteMaster", id: "..." }
         setSelectedClinicData(clinicData)
         sessionStorage.setItem('selectedClinicData', JSON.stringify(clinicData))
+        
+        // Salvar também o relacionamento separadamente para fácil acesso
+        if (clinicData.relacionamento) {
+          sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar dados completos do cliente master:', error)
@@ -316,8 +335,29 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  // Função helper para verificar se o usuário é ClienteMaster
+  const isClienteMaster = () => {
+    if (!selectedClinicData) return false
+    const relacionamento = selectedClinicData.relacionamento
+    return relacionamento?.tipo === 'clienteMaster'
+  }
+
+  // Função helper para verificar se o usuário é Usuario comum
+  const isUsuario = () => {
+    if (!selectedClinicData) return false
+    const relacionamento = selectedClinicData.relacionamento
+    return relacionamento?.tipo === 'usuario'
+  }
+
+  // Função helper para obter o relacionamento atual
+  const getRelacionamento = () => {
+    if (!selectedClinicData) return null
+    return selectedClinicData.relacionamento || null
+  }
+
   const value = {
     user,
+    setUser,
     login,
     logout,
     register,
@@ -328,6 +368,9 @@ export const AuthProvider = ({ children }) => {
     selectedClinicId,
     selectedClinicData,
     setSelectedClinicId,
+    isClienteMaster,
+    isUsuario,
+    getRelacionamento,
     loading
   }
 

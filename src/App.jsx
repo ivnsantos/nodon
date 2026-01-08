@@ -21,7 +21,8 @@ import Perfil from './pages/Perfil'
 import AssinaturaPendente from './pages/AssinaturaPendente'
 import VerifyEmail from './pages/VerifyEmail'
 import SelectClinic from './pages/SelectClinic'
-import CompleteMasterData from './pages/CompleteMasterData'
+import UsuarioInativo from './pages/UsuarioInativo'
+import RegisterByHash from './pages/RegisterByHash'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -54,11 +55,6 @@ function AppRoutes() {
             <VerifyEmail />
           </PublicRoute>
         } />
-        <Route path="/complete-master-data" element={
-          <ProtectedRoute>
-            <CompleteMasterData />
-          </ProtectedRoute>
-        } />
         <Route path="/select-clinic" element={
           <ProtectedRoute>
             <SelectClinic />
@@ -68,6 +64,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <AssinaturaPendente />
           </ProtectedRoute>
+        } />
+        <Route path="/usuario-inativo" element={
+          <ProtectedRoute>
+            <UsuarioInativo />
+          </ProtectedRoute>
+        } />
+        <Route path="/profissional/:hash" element={
+          <PublicRoute>
+            <RegisterByHash />
+          </PublicRoute>
         } />
         <Route path="/app" element={
           <ProtectedRoute>

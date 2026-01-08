@@ -1,11 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBuilding, faCheckCircle, faSpinner, faXRay, faFileMedical, faSearch, faArrowRight, faPlus, faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
-import nodoLogo from '../img/nodo.png'
+import { 
+  faBuilding, 
+  faCheckCircle, 
+  faSpinner, 
+  faPlus, 
+  faSignOutAlt,
+  faUser,
+  faEnvelope,
+  faPhone,
+  faMapMarkerAlt,
+  faEdit,
+  faArrowRight,
+  faCrown,
+  faIdCard
+} from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
-import './Auth.css'
+import './SelectClinic.css'
 
 const SelectClinic = () => {
   const [clinics, setClinics] = useState([])
@@ -13,92 +26,142 @@ const SelectClinic = () => {
   const [error, setError] = useState('')
   const [selectedClinic, setSelectedClinic] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showEditProfile, setShowEditProfile] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    nome: '',
+    telefone: '',
+    postalCode: '',
+    address: '',
+    addressNumber: '',
+    complement: '',
+    province: '',
+    city: '',
+    state: ''
+  })
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [editSuccess, setEditSuccess] = useState(false)
+
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, getClinicsByEmail, setSelectedClinicId, logout } = useAuth()
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
+  const { user, getClinicsByEmail, setSelectedClinicId, logout, setUser } = useAuth()
+  const hasFetchedRef = useRef(false)
 
   useEffect(() => {
+    // Evitar múltiplas chamadas
+    if (hasFetchedRef.current) return
+    
     const fetchClinics = async () => {
+      hasFetchedRef.current = true
       setLoading(true)
       setError('')
 
       try {
-        // Pegar email do usuário logado ou da query string
-        const email = user?.email || new URLSearchParams(location.search).get('email')
+        // Buscar dados completos incluindo o perfil do usuário (userBaseId vem do token JWT)
+        const response = await api.get(`/auth/get-client-token`)
         
-        if (!email) {
-          setError('Email não encontrado. Faça login novamente.')
-          setTimeout(() => navigate('/login'), 2000)
-          return
-        }
+        if (response.data.statusCode === 200) {
+          const data = response.data.data
+          const clinics = data?.clientesMaster || []
+          const userData = data?.user
 
-        const result = await getClinicsByEmail(email)
+          // Atualizar dados do usuário se vierem na resposta
+          if (userData) {
+            // Normalizar campo de verificação de email
+            const normalizedUser = {
+              ...userData,
+              emailVerified: userData.isVerified || userData.emailVerified || userData.email_verified || false
+            }
+            // Verificar se os dados são diferentes antes de atualizar
+            const currentUserStr = sessionStorage.getItem('user')
+            const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null
+            const userChanged = !currentUser || JSON.stringify(currentUser) !== JSON.stringify(normalizedUser)
+            
+            if (userChanged) {
+              // Atualizar no sessionStorage
+              sessionStorage.setItem('user', JSON.stringify(normalizedUser))
+              // Atualizar o estado do usuário no contexto
+              setUser(normalizedUser)
+            }
+          }
 
-        if (result.success && result.clinics && result.clinics.length > 0) {
-          setClinics(result.clinics)
+          if (clinics.length > 0) {
+            setClinics(clinics)
+          } else {
+            setError('Nenhum consultório encontrado para este email.')
+          }
         } else {
-          setError('Nenhum consultório encontrado para este email.')
+          setError('Erro ao buscar dados.')
         }
       } catch (error) {
         console.error('Erro ao buscar consultórios:', error)
         setError('Erro ao carregar consultórios. Tente novamente.')
+        hasFetchedRef.current = false // Permitir nova tentativa em caso de erro
       } finally {
         setLoading(false)
       }
     }
 
     fetchClinics()
-  }, [user, location, navigate, getClinicsByEmail])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Executar apenas uma vez ao montar
 
-  // Função para buscar assinatura do cliente master selecionado
-  const checkClinicSubscription = async (clinicId) => {
-    try {
-      // Primeiro, tentar pegar dos dados do clinic
-      const clinic = clinics.find(c => c.id === clinicId)
-      
-      // Se não tiver assinatura nos dados do clinic, buscar diretamente da API
-      if (!clinic || !clinic.assinatura) {
-        try {
-          // Buscar assinatura atualizada da API após selecionar o cliente master
-          const response = await api.get('/assinaturas/minha?sync=true')
-          const assinatura = response.data?.data || response.data
-          
-          if (assinatura) {
-            return {
-              success: true,
-              subscription: assinatura
-            }
-          }
-        } catch (apiError) {
-          console.error('Erro ao buscar assinatura da API:', apiError)
-        }
-        
-        return {
-          success: false,
-          message: 'Assinatura não encontrada para este consultório'
-        }
-      }
-      
-      return {
-        success: true,
-        subscription: clinic.assinatura
-      }
-    } catch (error) {
-      console.error('Erro ao verificar assinatura:', error)
-      return {
-        success: false,
-        message: 'Erro ao verificar assinatura'
-      }
+  useEffect(() => {
+    if (user) {
+      // Sempre manter os dados do formulário atualizados com os dados do usuário
+      setEditFormData({
+        nome: user.nome || '',
+        telefone: user.telefone || '',
+        postalCode: user.postalCode || '',
+        address: user.address || '',
+        addressNumber: user.addressNumber || '',
+        complement: user.complement || '',
+        province: user.province || '',
+        city: user.city || '',
+        state: user.state || ''
+      })
     }
+  }, [user])
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
   }
 
   const handleSelectClinic = (clinic) => {
     setSelectedClinic(clinic)
+  }
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target
+    setEditFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault()
+    setEditLoading(true)
+    setEditError('')
+    setEditSuccess(false)
+
+    try {
+      const response = await api.put('/users/me', editFormData)
+
+      if (response.data.statusCode === 200 || response.status === 200) {
+        setEditSuccess(true)
+        await refreshUser()
+        setTimeout(() => {
+          setShowEditProfile(false)
+          setEditSuccess(false)
+        }, 1500)
+      } else {
+        setEditError(response.data.message || 'Erro ao atualizar perfil')
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error)
+      setEditError(error.response?.data?.message || 'Erro ao atualizar perfil. Tente novamente.')
+    } finally {
+      setEditLoading(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -113,7 +176,6 @@ const SelectClinic = () => {
     setError('')
 
     try {
-      // Buscar dados completos do cliente master usando a rota /complete
       let clinicCompleteData = null
       try {
         const response = await api.get(`/clientes-master/${selectedClinic.id}/complete`)
@@ -131,35 +193,24 @@ const SelectClinic = () => {
         return
       }
       
-      // A estrutura da resposta é: { clienteMaster: {...}, assinatura: {...}, user: {...}, plano: {...} }
       const clienteMaster = clinicCompleteData.clienteMaster || clinicCompleteData
       const assinatura = clinicCompleteData.assinatura
       
-      // Verificar se o cliente master está ativo
-      // Pode ser: ativo (boolean) ou status (string: 'ACTIVE'/'INACTIVE')
       const clienteMasterInativo = 
         clienteMaster?.ativo === false || 
         clienteMaster?.status === 'INACTIVE'
       
-      // Verificar status da assinatura
       const assinaturaStatus = assinatura?.status
       const assinaturaInativa = assinaturaStatus !== 'ACTIVE'
       
-      // Se cliente master não estiver ativo OU assinatura não estiver ativa, redirecionar para assinatura pendente
       if (clienteMasterInativo || assinaturaInativa) {
-        // Salvar o ID do consultório selecionado antes de redirecionar
         await setSelectedClinicId(selectedClinic.id)
         navigate('/assinatura-pendente')
         return
       }
       
-      // Salvar o ID do consultório selecionado (isso também busca os dados do cliente master)
       await setSelectedClinicId(selectedClinic.id)
-      
-      // Aguardar um pouco para garantir que os dados foram salvos
       await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Se tudo estiver ativo, redirecionar para a plataforma
       navigate('/app')
     } catch (error) {
       console.error('Erro ao selecionar consultório:', error)
@@ -170,314 +221,290 @@ const SelectClinic = () => {
 
   if (loading) {
     return (
-      <div className="auth-container-modern">
-        <div className="auth-right-panel" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <FontAwesomeIcon icon={faSpinner} spin size="3x" style={{ color: '#0ea5e9', marginBottom: '1rem' }} />
-            <p style={{ color: '#e5e7eb', fontSize: '1.125rem' }}>Carregando consultórios...</p>
-          </div>
+      <div className="select-clinic-page">
+        <div className="select-clinic-loading">
+          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+          <p>Carregando consultórios...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="auth-container-modern">
-      <div className="auth-left-panel">
-        <div className="auth-branding">
-          <h1 className="auth-brand-title">NODON</h1>
-          <p className="auth-brand-subtitle">
-            Plataforma inteligente para análise de radiografias odontológicas
-          </p>
-          <div className="auth-features">
-            <div className="auth-feature-item">
-              <div className="feature-icon">
-                <FontAwesomeIcon icon={faXRay} />
-              </div>
-              <span>Análise de Radiografias</span>
+    <div className="select-clinic-page">
+      <div className="select-clinic-container">
+        {/* Sidebar com Perfil do Usuário */}
+        <div className="select-clinic-sidebar">
+          <div className="sidebar-header">
+            <h1 className="sidebar-logo">NODON</h1>
+            <button className="logout-btn" onClick={handleLogout}>
+              <FontAwesomeIcon icon={faSignOutAlt} />
+              <span>Sair</span>
+            </button>
+          </div>
+
+          <div className="user-profile-section">
+            <div className="user-avatar-large">
+              {user?.nome?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div className="auth-feature-item">
-              <div className="feature-icon">
-                <FontAwesomeIcon icon={faFileMedical} />
-              </div>
-              <span>Relatórios Detalhados</span>
+            <h2 className="user-name">{user?.nome || 'Usuário'}</h2>
+            <p className="user-email">
+              <FontAwesomeIcon icon={faEnvelope} />
+              {user?.email || 'Email não informado'}
+            </p>
+
+            <div className="user-info-grid">
+              {user?.telefone && (
+                <div className="user-info-item">
+                  <FontAwesomeIcon icon={faPhone} />
+                  <span>{user.telefone}</span>
+                </div>
+              )}
+              {user?.cpf && (
+                <div className="user-info-item">
+                  <FontAwesomeIcon icon={faIdCard} />
+                  <span>{user.cpf}</span>
+                </div>
+              )}
+              {user?.address && (
+                <div className="user-info-item full-width">
+                  <FontAwesomeIcon icon={faMapMarkerAlt} />
+                  <span>
+                    {user.address}
+                    {user.addressNumber && `, ${user.addressNumber}`}
+                    {user.complement && ` - ${user.complement}`}
+                    {user.province && `, ${user.province}`}
+                    {user.city && ` - ${user.city}`}
+                    {user.state && `/${user.state}`}
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="auth-feature-item">
-              <div className="feature-icon">
-                <FontAwesomeIcon icon={faSearch} />
-              </div>
-              <span>Detecção Inteligente</span>
-            </div>
+
+            <button 
+              className="edit-profile-btn"
+              onClick={() => setShowEditProfile(!showEditProfile)}
+            >
+              <FontAwesomeIcon icon={faEdit} />
+              <span>{showEditProfile ? 'Cancelar Edição' : 'Editar Perfil'}</span>
+            </button>
+
+            {/* Formulário de Edição */}
+            {showEditProfile && (
+              <form className="edit-profile-form" onSubmit={handleSaveProfile}>
+                {editError && <div className="form-error">{editError}</div>}
+                {editSuccess && <div className="form-success">Perfil atualizado com sucesso!</div>}
+
+                <div className="form-group">
+                  <label>Nome Completo</label>
+                  <input
+                    type="text"
+                    name="nome"
+                    value={editFormData.nome}
+                    onChange={handleEditInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="disabled-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Telefone</label>
+                  <input
+                    type="text"
+                    name="telefone"
+                    value={editFormData.telefone}
+                    onChange={handleEditInputChange}
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>CEP</label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      value={editFormData.postalCode}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Endereço</label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={editFormData.address}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Número</label>
+                    <input
+                      type="text"
+                      name="addressNumber"
+                      value={editFormData.addressNumber}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Complemento</label>
+                    <input
+                      type="text"
+                      name="complement"
+                      value={editFormData.complement}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Bairro</label>
+                    <input
+                      type="text"
+                      name="province"
+                      value={editFormData.province}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Cidade</label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={editFormData.city}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Estado</label>
+                    <input
+                      type="text"
+                      name="state"
+                      value={editFormData.state}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="save-profile-btn" disabled={editLoading}>
+                  {editLoading ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar Alterações'
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
-      </div>
 
-      <div className="auth-right-panel">
-        <div className="auth-form-container" style={{ position: 'relative' }}>
-          <button
-            onClick={handleLogout}
-            style={{
-              position: 'absolute',
-              top: '1.5rem',
-              right: '1.5rem',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '0.5rem',
-              padding: '0.75rem 1rem',
-              color: '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'all 0.2s',
-              zIndex: 10
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-            }}
-          >
-            <FontAwesomeIcon icon={faSignOutAlt} />
-            Sair
-          </button>
-          <div className="auth-logo-right">
-            <img src={nodoLogo} alt="NODON" className="auth-logo-animated" />
-          </div>
-          
-          <div className="auth-header-modern">
-            <h2>Selecione seu consultório</h2>
-            <p>Escolha o consultório que deseja acessar</p>
+        {/* Área Principal com Consultórios */}
+        <div className="select-clinic-main">
+          <div className="main-header">
+            <div>
+              <h2>Selecione seu Consultório</h2>
+              <p>Escolha o consultório que deseja acessar</p>
+            </div>
           </div>
 
           {error && !loading && (
-            <div className="error-message-modern">{error}</div>
+            <div className="error-message">{error}</div>
           )}
 
           {clinics.length === 0 && !loading && !error && (
-            <div className="error-message-modern">
+            <div className="error-message">
               Nenhum consultório encontrado. Entre em contato com o suporte.
             </div>
           )}
 
           {clinics.length > 0 && (
-            <form onSubmit={handleSubmit} className="auth-form-modern">
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '1rem',
-                marginBottom: '1.5rem'
-              }}>
+            <form onSubmit={handleSubmit} className="clinics-form">
+              <div className="clinics-grid">
                 {/* Card para adicionar novo consultório */}
                 <div
+                  className="clinic-card add-clinic-card"
                   onClick={() => navigate('/add-clinic')}
-                  style={{
-                    padding: '1.5rem',
-                    border: '2px dashed rgba(14, 165, 233, 0.5)',
-                    borderRadius: '0.75rem',
-                    background: 'rgba(14, 165, 233, 0.05)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '1rem',
-                    minHeight: '80px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(14, 165, 233, 0.8)'
-                    e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(14, 165, 233, 0.5)'
-                    e.currentTarget.style.background = 'rgba(14, 165, 233, 0.05)'
-                  }}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '0.5rem',
-                    background: 'rgba(14, 165, 233, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <FontAwesomeIcon 
-                      icon={faPlus} 
-                      size="lg" 
-                      style={{ color: '#0ea5e9' }} 
-                    />
+                  <div className="clinic-icon add-icon">
+                    <FontAwesomeIcon icon={faPlus} />
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      color: '#0ea5e9',
-                      fontSize: '1.125rem',
-                      fontWeight: '600'
-                    }}>
-                      Adicionar Novo Consultório
-                    </h3>
-                    <p style={{ 
-                      margin: '0.25rem 0 0 0', 
-                      color: '#9ca3af',
-                      fontSize: '0.875rem'
-                    }}>
-                      Criar uma nova assinatura e adicionar outro escritório
-                    </p>
-                  </div>
+                  <h3>Adicionar Novo Consultório</h3>
+                  <p>Criar uma nova assinatura e adicionar outro escritório</p>
                 </div>
 
+                {/* Cards de consultórios */}
                 {clinics.map((clinic) => (
                   <div
                     key={clinic.id}
+                    className={`clinic-card ${selectedClinic?.id === clinic.id ? 'selected' : ''}`}
                     onClick={() => handleSelectClinic(clinic)}
-                    style={{
-                      padding: '1.5rem',
-                      border: selectedClinic?.id === clinic.id 
-                        ? '2px solid #0ea5e9' 
-                        : '2px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '0.75rem',
-                      background: selectedClinic?.id === clinic.id
-                        ? 'rgba(14, 165, 233, 0.1)'
-                        : 'rgba(255, 255, 255, 0.05)',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedClinic?.id !== clinic.id) {
-                        e.currentTarget.style.borderColor = 'rgba(14, 165, 233, 0.5)'
-                        e.currentTarget.style.background = 'rgba(14, 165, 233, 0.05)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedClinic?.id !== clinic.id) {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                      }
-                    }}
                   >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '0.5rem',
-                      background: (clinic.cor && clinic.cor !== null) ? `${clinic.cor}20` : 'rgba(14, 165, 233, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      overflow: 'hidden'
-                    }}>
-                      {(clinic.logo && clinic.logo !== null) ? (
+                    <div 
+                      className="clinic-icon"
+                      style={{
+                        background: clinic.cor ? `${clinic.cor}20` : 'rgba(14, 165, 233, 0.2)',
+                        color: clinic.cor || '#0ea5e9'
+                      }}
+                    >
+                      {clinic.logo ? (
                         <img 
                           src={clinic.logo} 
-                          alt={(clinic.nomeEmpresa && clinic.nomeEmpresa !== null) ? clinic.nomeEmpresa : (clinic.nome || 'Consultório')}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
+                          alt={clinic.nomeEmpresa || clinic.nome || 'Consultório'}
                           onError={(e) => {
-                            // Se a imagem falhar ao carregar, mostrar o ícone
                             e.target.style.display = 'none'
                             e.target.parentElement.innerHTML = '<i class="fa fa-building"></i>'
                           }}
                         />
                       ) : (
-                        <FontAwesomeIcon 
-                          icon={faBuilding} 
-                          size="lg" 
-                          style={{ color: (clinic.cor && clinic.cor !== null) ? clinic.cor : '#0ea5e9' }} 
-                        />
+                        <FontAwesomeIcon icon={faBuilding} />
                       )}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ 
-                        margin: 0, 
-                        marginBottom: '0.25rem',
-                        color: (clinic.cor && clinic.cor !== null) ? clinic.cor : '#ffffff',
-                        fontSize: '1.125rem',
-                        fontWeight: '600'
-                      }}>
-                        {(clinic.nomeEmpresa && clinic.nomeEmpresa !== null) 
-                          ? clinic.nomeEmpresa 
-                          : (clinic.nome || 'Consultório')
-                        }
+                    <div className="clinic-info">
+                      <h3 style={{ color: clinic.cor || '#ffffff' }}>
+                        {clinic.nomeEmpresa || clinic.nome || 'Consultório'}
                       </h3>
-                      <p style={{ 
-                        margin: 0, 
-                        color: '#9ca3af',
-                        fontSize: '0.875rem'
-                      }}>
-                        {clinic.email || 'Email não informado'}
-                      </p>
+                      <p className="clinic-email">{clinic.email || 'Email não informado'}</p>
+                      
                       {clinic.assinatura && (
-                        <div style={{ 
-                          marginTop: '0.5rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.375rem'
-                        }}>
+                        <div className="clinic-subscription">
                           {clinic.assinatura.plano?.nome && (
-                            <p style={{
-                              margin: 0,
-                              color: '#ffffff',
-                              fontSize: '0.8125rem',
-                              fontWeight: '500'
-                            }}>
+                            <div className="plan-name">
+                              <FontAwesomeIcon icon={faCrown} />
                               {clinic.assinatura.plano.nome}
-                            </p>
+                            </div>
                           )}
-                          <span style={{
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            display: 'inline-block',
-                            width: 'fit-content',
-                            background: clinic.assinatura.status === 'ACTIVE' 
-                              ? 'rgba(34, 197, 94, 0.2)' 
-                              : clinic.assinatura.status === 'PENDING'
-                              ? 'rgba(251, 191, 36, 0.2)'
-                              : 'rgba(239, 68, 68, 0.2)',
-                            color: clinic.assinatura.status === 'ACTIVE'
-                              ? '#22c55e'
-                              : clinic.assinatura.status === 'PENDING'
-                              ? '#fbbf24'
-                              : '#ef4444',
-                            border: `1px solid ${
-                              clinic.assinatura.status === 'ACTIVE'
-                                ? 'rgba(34, 197, 94, 0.3)'
-                                : clinic.assinatura.status === 'PENDING'
-                                ? 'rgba(251, 191, 36, 0.3)'
-                                : 'rgba(239, 68, 68, 0.3)'
-                            }`
-                          }}>
-                            {clinic.assinatura.status === 'ACTIVE' 
-                              ? 'Ativo' 
-                              : clinic.assinatura.status === 'PENDING'
-                              ? 'Pendente'
-                              : clinic.assinatura.status || 'Desconhecido'
-                            }
+                          <span 
+                            className={`status-badge ${
+                              clinic.assinatura.status === 'ACTIVE' ? 'active' :
+                              clinic.assinatura.status === 'PENDING' ? 'pending' : 'inactive'
+                            }`}
+                          >
+                            {clinic.assinatura.status === 'ACTIVE' ? 'Ativo' :
+                             clinic.assinatura.status === 'PENDING' ? 'Pendente' :
+                             clinic.assinatura.status || 'Desconhecido'}
                           </span>
                         </div>
                       )}
                     </div>
                     {selectedClinic?.id === clinic.id && (
-                      <FontAwesomeIcon 
-                        icon={faCheckCircle} 
-                        style={{ 
-                          color: '#0ea5e9',
-                          fontSize: '1.5rem',
-                          flexShrink: 0
-                        }} 
-                      />
+                      <div className="selected-indicator">
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -485,7 +512,7 @@ const SelectClinic = () => {
 
               <button 
                 type="submit" 
-                className="auth-button-modern" 
+                className="submit-btn" 
                 disabled={!selectedClinic || submitting}
               >
                 {submitting ? (
@@ -495,7 +522,7 @@ const SelectClinic = () => {
                   </>
                 ) : (
                   <>
-                    Entrar
+                    Entrar no Consultório
                     <FontAwesomeIcon icon={faArrowRight} />
                   </>
                 )}
@@ -509,4 +536,3 @@ const SelectClinic = () => {
 }
 
 export default SelectClinic
-

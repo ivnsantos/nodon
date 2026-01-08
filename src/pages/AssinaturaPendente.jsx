@@ -17,12 +17,11 @@ const AssinaturaPendente = () => {
   const [checkAttempt, setCheckAttempt] = useState(0)
   const [statusMessage, setStatusMessage] = useState('Aguardando confirmação do pagamento...')
   const hasCheckedRef = useRef(false)
-  const isNavigatingRef = useRef(false)
+  const hasNavigatedRef = useRef(false)
 
-  // Obter assinatura do cliente master selecionado ou do usuário
-  const clienteMaster = selectedClinicData?.clienteMaster || selectedClinicData
+  // Obter assinatura do selectedClinicData ou do user
   const assinatura = selectedClinicData?.assinatura || user?.assinatura
-  const plano = assinatura?.plano || selectedClinicData?.plano
+  const plano = assinatura?.plano
 
   // Mostrar loading enquanto autenticação carrega
   if (authLoading) {
@@ -41,8 +40,8 @@ const AssinaturaPendente = () => {
 
   // Se não houver usuário, redirecionar
   if (!user) {
-    if (!isNavigatingRef.current) {
-      isNavigatingRef.current = true
+    if (!hasNavigatedRef.current) {
+      hasNavigatedRef.current = true
       navigate('/login', { replace: true })
     }
     return null
@@ -50,44 +49,39 @@ const AssinaturaPendente = () => {
 
   useEffect(() => {
     // Evitar múltiplas verificações
-    if (hasCheckedRef.current || isNavigatingRef.current) {
-      return
-    }
-
-    // Se não tiver cliente master selecionado, não verificar
-    if (!selectedClinicId) {
+    if (hasCheckedRef.current || hasNavigatedRef.current) {
       return
     }
 
     // Verificar se realmente está pendente
+    if (!selectedClinicId) {
+      // Se não tiver cliente master selecionado, redirecionar para seleção
+      hasNavigatedRef.current = true
+      navigate('/select-clinic', { replace: true })
+      return
+    }
+
+    // Verificar status da assinatura
     const assinaturaStatus = assinatura?.status
     
     // Se a assinatura estiver ativa, redirecionar para o app
     if (assinaturaStatus === 'ACTIVE') {
       hasCheckedRef.current = true
-      isNavigatingRef.current = true
+      hasNavigatedRef.current = true
       navigate('/app', { replace: true })
       return
     }
 
     // Se não estiver pendente e não estiver ativa, manter na página
-    if (assinaturaStatus !== 'PENDING') {
-      return
-    }
-
     // Iniciar verificação automática apenas uma vez
-    if (!isChecking && !hasCheckedRef.current) {
+    if (!isChecking && assinaturaStatus === 'PENDING') {
       hasCheckedRef.current = true
       checkPaymentStatus()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClinicId, assinatura?.status])
+  }, [selectedClinicId])
 
   const checkPaymentStatus = async () => {
-    if (isNavigatingRef.current) {
-      return
-    }
-
     setIsChecking(true)
     setCheckAttempt(0)
     setStatusMessage('Verificando status do pagamento...')
@@ -97,43 +91,25 @@ const AssinaturaPendente = () => {
     let attempts = 0
 
     const check = async () => {
-      if (isNavigatingRef.current) {
-        return
-      }
-
       attempts++
       setCheckAttempt(attempts)
       setStatusMessage(`Verificando pagamento... (Tentativa ${attempts}/${maxAttempts})`)
 
       try {
-        // Buscar dados completos do cliente master para verificar assinatura atualizada
-        if (!selectedClinicId) {
-          setIsChecking(false)
-          return
-        }
+        // Primeiro verificar na Asaas e atualizar o banco, depois buscar do banco
+        // Endpoint que verifica na Asaas primeiro e atualiza o banco
+        const response = await api.get('/assinaturas/minha?sync=true')
+        const assinatura = response.data
 
-        const response = await api.get(`/clientes-master/${selectedClinicId}/complete`)
-        const clinicCompleteData = response.data?.data || response.data
-        
-        if (!clinicCompleteData) {
-          setIsChecking(false)
-          return
-        }
-
-        // Verificar assinatura do cliente master
-        const assinaturaStatus = clinicCompleteData?.assinatura?.status
-        const clienteMaster = clinicCompleteData.clienteMaster || clinicCompleteData
-        const clienteMasterAtivo = clienteMaster?.ativo !== false && clienteMaster?.status !== 'INACTIVE'
-
-        // Se assinatura estiver ativa e cliente master estiver ativo, redirecionar
-        if (assinaturaStatus === 'ACTIVE' && clienteMasterAtivo) {
+        // Verificar status da assinatura (já atualizado pela Asaas)
+        if (assinatura?.status === 'ACTIVE') {
           setStatusMessage('Pagamento confirmado! Redirecionando...')
           
           // Atualizar usuário no contexto
           await refreshUser()
           
-          // Marcar que está navegando para evitar loops
-          isNavigatingRef.current = true
+          // Marcar como navegado para evitar loops
+          hasNavigatedRef.current = true
           
           // Aguardar um pouco antes de redirecionar
           setTimeout(() => {
@@ -169,9 +145,6 @@ const AssinaturaPendente = () => {
   }
 
   const handleManualCheck = () => {
-    // Resetar flags para permitir nova verificação manual
-    hasCheckedRef.current = false
-    isNavigatingRef.current = false
     checkPaymentStatus()
   }
 

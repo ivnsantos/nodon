@@ -5,17 +5,24 @@ import {
   faXRay, faUser, faFileMedical, faImage,
   faChartLine, faClock, faCheckCircle
 } from '@fortawesome/free-solid-svg-icons'
+import { useAuth } from '../context/AuthContext'
 import './Dashboard.css'
 
 const Dashboard = () => {
   const [selectedTab, setSelectedTab] = useState('overview')
+  const { isUsuario } = useAuth()
 
-  const stats = [
-    { label: 'Total de Dentistas', value: '0', icon: faUserMd, color: '#0ea5e9', trend: '+12%' },
-    { label: 'Radiografias', value: '0', icon: faXRay, color: '#06b6d4', trend: '+8%' },
-    { label: 'Pacientes', value: '0', icon: faUsers, color: '#14b8a6', trend: '+15%' },
-    { label: 'Relatórios', value: '0', icon: faFileMedical, color: '#8b5cf6', trend: '+20%' },
+  const allStats = [
+    { label: 'Total de Dentistas', value: '0', icon: faUserMd, color: '#0ea5e9', trend: '+12%', hideForUsuario: true },
+    { label: 'Radiografias', value: '0', icon: faXRay, color: '#06b6d4', trend: '+8%', hideForUsuario: false },
+    { label: 'Pacientes', value: '0', icon: faUsers, color: '#14b8a6', trend: '+15%', hideForUsuario: false },
+    { label: 'Relatórios', value: '0', icon: faFileMedical, color: '#8b5cf6', trend: '+20%', hideForUsuario: false },
   ]
+
+  // Filtrar stats baseado no tipo de relacionamento
+  const stats = isUsuario() 
+    ? allStats.filter(stat => !stat.hideForUsuario)
+    : allStats
 
   const recentRadiographs = [
     { id: 1, patient: 'João Silva', date: '2024-01-15', type: 'Panorâmica', status: 'Analisado' },

@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faArrowRight, faSpinner, faCheckCircle, faXRay, faFileMedical, faSearch, faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
 import { useAuth } from '../context/AuthContext'
+import api from '../utils/api'
 import './Auth.css'
 
 const VerifyEmail = () => {
@@ -116,9 +117,21 @@ const VerifyEmail = () => {
 
       if (result.success) {
         setSuccess(true)
-        // Aguardar 2 segundos e redirecionar para completar dados do cliente master
-        setTimeout(() => {
-          navigate('/complete-master-data')
+        // Aguardar 2 segundos e verificar se precisa completar dados
+        setTimeout(async () => {
+          try {
+            // Verificar se já existe pelo menos um cliente master com dados completos
+            // userBaseId vem do token JWT
+            const clinicsResult = await api.get(`/auth/get-client-token`)
+            const clinics = clinicsResult.data?.data?.clientesMaster || []
+            
+            // Sempre redirecionar para seleção de consultório
+            navigate('/select-clinic')
+          } catch (error) {
+            console.error('Erro ao verificar dados do cliente master:', error)
+            // Em caso de erro, ir para seleção de consultório
+            navigate('/select-clinic')
+          }
         }, 2000)
       } else {
         setError(result.message || 'Código inválido. Tente novamente.')

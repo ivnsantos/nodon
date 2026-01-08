@@ -18,7 +18,7 @@ const PublicRoute = ({ children }) => {
   // Mas permitir acesso a verify-email mesmo logado (pode estar verificando email)
   if (user) {
     // Rotas que podem ser acessadas mesmo logado
-    const allowedPathsWhenLoggedIn = ['/verify-email', '/complete-master-data', '/select-clinic', '/assinatura-pendente', '/checkout']
+    const allowedPathsWhenLoggedIn = ['/verify-email', '/select-clinic', '/assinatura-pendente', '/usuario-inativo', '/checkout']
     
     // Se estiver em uma rota que precisa ser acessível mesmo logado, permitir acesso
     if (allowedPathsWhenLoggedIn.includes(location.pathname)) {
