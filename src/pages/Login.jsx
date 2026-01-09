@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faLock, faArrowRight, faXRay, faFileMedical, faSearch } from '@fortawesome/free-solid-svg-icons'
+import { faGoogle, faFacebook } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
 import nodoImage from '../img/nodo.png'
 import './Auth.css'
+
+// URL base da API
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -15,6 +19,17 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // Handler do login com Google - redireciona para o backend
+  const handleGoogleClick = () => {
+    // Redirecionar para o endpoint do backend que inicia o fluxo OAuth
+    window.location.href = `${API_BASE_URL}/auth/google`
+  }
+
+  // Handler do login com Facebook - redireciona para o backend
+  const handleFacebookClick = () => {
+    window.location.href = `${API_BASE_URL}/auth/facebook`
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -134,6 +149,29 @@ const Login = () => {
                 required
                 placeholder="••••••••"
               />
+            </div>
+
+            <div className="social-login-buttons">
+              <button 
+                type="button" 
+                className="social-btn google-btn"
+                onClick={handleGoogleClick}
+              >
+                <FontAwesomeIcon icon={faGoogle} />
+                Entrar com Google
+              </button>
+              <button 
+                type="button" 
+                className="social-btn facebook-btn"
+                onClick={handleFacebookClick}
+              >
+                <FontAwesomeIcon icon={faFacebook} />
+                Entrar com Facebook
+              </button>
+            </div>
+
+            <div className="social-divider">
+              <span>ou</span>
             </div>
 
             <button type="submit" className="auth-button-modern" disabled={loading}>
