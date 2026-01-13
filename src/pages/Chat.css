@@ -570,6 +570,153 @@
   transform: translateY(-1px);
 }
 
+/* Estilos para Markdown nas mensagens do assistente */
+.message-modern.assistant .message-bubble h1,
+.message-modern.assistant .message-bubble h2,
+.message-modern.assistant .message-bubble h3,
+.message-modern.assistant .message-bubble h4,
+.message-modern.assistant .message-bubble h5,
+.message-modern.assistant .message-bubble h6 {
+  color: #7dd3fc;
+  margin: 0.3rem 0 0.05rem 0;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.message-modern.assistant .message-bubble h1:first-child,
+.message-modern.assistant .message-bubble h2:first-child,
+.message-modern.assistant .message-bubble h3:first-child,
+.message-modern.assistant .message-bubble h4:first-child {
+  margin-top: 0;
+}
+
+.message-modern.assistant .message-bubble h3 {
+  font-size: 1rem;
+}
+
+.message-modern.assistant .message-bubble h4 {
+  font-size: 0.9375rem;
+}
+
+.message-modern.assistant .message-bubble strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.message-modern.assistant .message-bubble em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.message-modern.assistant .message-bubble ul,
+.message-modern.assistant .message-bubble ol {
+  margin: 0.05rem 0;
+  padding-left: 1.25rem;
+  list-style-position: outside;
+}
+
+.message-modern.assistant .message-bubble li {
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+  list-style-position: outside;
+}
+
+.message-modern.assistant .message-bubble li + li {
+  margin-top: 0;
+}
+
+.message-modern.assistant .message-bubble li > ul,
+.message-modern.assistant .message-bubble li > ol {
+  margin: 0.05rem 0;
+}
+
+/* Remover espaçamento de parágrafos dentro de listas */
+.message-modern.assistant .message-bubble li p {
+  margin: 0;
+  padding: 0;
+  display: inline;
+  line-height: inherit;
+}
+
+.message-modern.assistant .message-bubble li p:first-child {
+  margin-top: 0;
+}
+
+.message-modern.assistant .message-bubble li p:last-child {
+  margin-bottom: 0;
+}
+
+.message-modern.assistant .message-bubble p {
+  margin: 0.05rem 0;
+  line-height: 1.4;
+}
+
+.message-modern.assistant .message-bubble p:first-child {
+  margin-top: 0;
+}
+
+.message-modern.assistant .message-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+/* Remover espaçamento extra entre elementos consecutivos */
+.message-modern.assistant .message-bubble h3 + ul,
+.message-modern.assistant .message-bubble h3 + ol,
+.message-modern.assistant .message-bubble h4 + ul,
+.message-modern.assistant .message-bubble h4 + ol,
+.message-modern.assistant .message-bubble h1 + ul,
+.message-modern.assistant .message-bubble h1 + ol,
+.message-modern.assistant .message-bubble h2 + ul,
+.message-modern.assistant .message-bubble h2 + ol {
+  margin-top: 0.05rem;
+}
+
+.message-modern.assistant .message-bubble p + h3,
+.message-modern.assistant .message-bubble p + h4 {
+  margin-top: 0.3rem;
+}
+
+.message-modern.assistant .message-bubble code {
+  background: rgba(14, 165, 233, 0.15);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.875em;
+  color: #7dd3fc;
+}
+
+.message-modern.assistant .message-bubble pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.25rem 0;
+}
+
+.message-modern.assistant .message-bubble pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.message-modern.assistant .message-bubble blockquote {
+  border-left: 3px solid rgba(14, 165, 233, 0.5);
+  padding-left: 0.75rem;
+  margin: 0.25rem 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+}
+
+.message-modern.assistant .message-bubble a {
+  color: #7dd3fc;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.message-modern.assistant .message-bubble a:hover {
+  color: #38bdf8;
+}
+
 .message-modern.typing .message-bubble {
   animation: typingPulse 1.5s ease-in-out infinite;
 }

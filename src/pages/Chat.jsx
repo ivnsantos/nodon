@@ -4,40 +4,10 @@ import {
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
   faHistory, faBars, faTimes, faPlus
 } from '@fortawesome/free-solid-svg-icons'
+import ReactMarkdown from 'react-markdown'
 import nodoLogo from '../img/nodo.png'
+import api from '../utils/api'
 import './Chat.css'
-
-// Função para gerar respostas mockadas
-const generateMockResponse = (message) => {
-  const lowerMessage = message.toLowerCase()
-  
-  if (lowerMessage.includes('cárie') || lowerMessage.includes('carie')) {
-    return 'Cáries são lesões causadas por bactérias que destroem o esmalte dentário. O tratamento geralmente envolve remoção da parte afetada e restauração com resina ou amálgama. É importante manter boa higiene bucal e visitas regulares ao dentista para prevenção.'
-  }
-  
-  if (lowerMessage.includes('canal') || lowerMessage.includes('endodontia')) {
-    return 'O tratamento de canal (endodontia) é realizado quando a polpa dentária está infectada ou danificada. O procedimento remove o tecido infectado, limpa e desinfeta o interior do dente, e depois o sela. Após o tratamento, geralmente é necessário uma coroa para proteger o dente.'
-  }
-  
-  if (lowerMessage.includes('ortodontia') || lowerMessage.includes('aparelho')) {
-    return 'A ortodontia corrige o alinhamento dos dentes e a mordida. Pode ser feita com aparelhos fixos ou móveis, dependendo do caso. O tratamento geralmente leva de 1 a 3 anos e requer manutenção periódica. É importante seguir as orientações do ortodontista para obter os melhores resultados.'
-  }
-  
-  if (lowerMessage.includes('limpeza') || lowerMessage.includes('profilaxia')) {
-    return 'A limpeza dental (profilaxia) remove placa bacteriana e tártaro que não podem ser removidos apenas com escovação. É recomendada a cada 6 meses para manter a saúde bucal. Durante o procedimento, o dentista também pode aplicar flúor para fortalecer os dentes.'
-  }
-  
-  if (lowerMessage.includes('implante') || lowerMessage.includes('implante')) {
-    return 'Implantes dentários são uma solução permanente para substituir dentes perdidos. Consistem em uma raiz artificial de titânio que é inserida no osso maxilar, sobre a qual é colocada uma coroa. O processo pode levar alguns meses e requer boa saúde bucal e óssea.'
-  }
-  
-  if (lowerMessage.includes('clareamento') || lowerMessage.includes('clarear')) {
-    return 'O clareamento dental pode ser feito no consultório ou em casa com acompanhamento profissional. O procedimento usa agentes clareadores como peróxido de hidrogênio. É importante ter cuidado com sensibilidade e seguir as orientações do dentista. Resultados variam de pessoa para pessoa.'
-  }
-  
-  // Resposta genérica
-  return 'Entendo sua dúvida sobre odontologia. Para uma resposta mais específica, você poderia detalhar melhor sua pergunta? Estou aqui para ajudar com informações sobre tratamentos, procedimentos, prevenção e cuidados com a saúde bucal. Lembre-se: o NODON serve como apoio ao profissional. A decisão final deve ser sempre do responsável.'
-}
 
 const Chat = () => {
   const [messages, setMessages] = useState([])
@@ -156,11 +126,27 @@ const Chat = () => {
     setIsThinking(true)
 
     try {
-      // Simular delay de pensamento
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      // Gerar resposta mockada baseada na mensagem
-      const aiResponse = generateMockResponse(messageToSend)
+      // Preparar histórico de conversa para enviar à API
+      // O histórico são as mensagens anteriores (excluindo a mensagem atual que acabou de ser adicionada)
+      const currentMessages = [...messages]
+      const history = currentMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+
+      // Montar payload da API
+      const payload = {
+        message: messageToSend
+      }
+
+      // Adicionar histórico apenas se houver mensagens anteriores
+      if (history.length > 0) {
+        payload.history = history
+      }
+
+      // Fazer chamada à API
+      const response = await api.post('/chat', payload)
+      const aiResponse = response.data.data.response
       
       setIsThinking(false)
       
@@ -218,7 +204,7 @@ const Chat = () => {
         return newMessages
       })
       
-      // Salvar no histórico
+      // Salvar no histórico local
       const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
       const newConversation = {
         id: Date.now(),
@@ -234,9 +220,20 @@ const Chat = () => {
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       setIsThinking(false)
+      
+      // Mensagem de erro mais detalhada
+      let errorContent = 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.'
+      if (error.response?.status === 401) {
+        errorContent = 'Sua sessão expirou. Por favor, faça login novamente.'
+      } else if (error.response?.status === 500) {
+        errorContent = 'Erro no servidor. Tente novamente em alguns instantes.'
+      } else if (!error.response) {
+        errorContent = 'Não foi possível conectar ao servidor. Verifique sua conexão.'
+      }
+      
       const errorMessage = {
         role: 'assistant',
-        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
+        content: errorContent,
         isTyping: false
       }
       setMessages(prev => [...prev, errorMessage])
@@ -393,7 +390,11 @@ const Chat = () => {
                 </div>
                 <div className="message-content-modern">
                   <div className="message-bubble">
-                    {msg.content}
+                    {msg.role === 'assistant' ? (
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    ) : (
+                      msg.content
+                    )}
                     {msg.isTyping && (
                       <span className="typing-cursor">|</span>
                     )}
