@@ -158,6 +158,92 @@
   line-height: 1.4;
 }
 
+/* Mensagem de bloqueio por tokens */
+.tokens-blocked-message {
+  padding: 1.5rem;
+  margin: 1rem 0;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  border-radius: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+  animation: tokensBlockedSlide 0.5s ease-out;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+}
+
+@keyframes tokensBlockedSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tokens-blocked-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  animation: lockPulse 2s ease-in-out infinite;
+}
+
+@keyframes lockPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.tokens-blocked-content {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.tokens-blocked-content h3 {
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tokens-blocked-content p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.tokens-stats {
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tokens-stats strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 @keyframes headerSlide {
   from {
     opacity: 0;

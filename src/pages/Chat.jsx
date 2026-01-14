@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
-  faHistory, faBars, faTimes, faPlus
+  faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock
 } from '@fortawesome/free-solid-svg-icons'
 import ReactMarkdown from 'react-markdown'
 import nodoLogo from '../img/nodo.png'
@@ -19,6 +19,8 @@ const Chat = () => {
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [tokensInfo, setTokensInfo] = useState(null)
+  const [tokensBlocked, setTokensBlocked] = useState(false)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 
@@ -32,7 +34,35 @@ const Chat = () => {
 
   useEffect(() => {
     loadConversations()
+    checkTokens()
   }, [])
+
+  const checkTokens = async () => {
+    try {
+      const response = await api.get('/assinaturas/dashboard')
+      const tokensChat = response.data.tokensChat
+      
+      if (tokensChat) {
+        setTokensInfo(tokensChat)
+        // Verificar se tokensUtilizados >= limitePlano
+        // Pode vir tokensUtilizados (total) ou tokensUtilizadosMes (do mês)
+        const tokensUtilizados = tokensChat.tokensUtilizadosMes !== undefined 
+          ? tokensChat.tokensUtilizadosMes 
+          : (tokensChat.tokensUtilizados || 0)
+        const limitePlano = tokensChat.limitePlano || 0
+        
+        if (limitePlano > 0 && tokensUtilizados >= limitePlano) {
+          setTokensBlocked(true)
+        } else {
+          setTokensBlocked(false)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar tokens:', error)
+      // Em caso de erro, não bloquear o chat
+      setTokensBlocked(false)
+    }
+  }
 
   const loadConversations = async () => {
     try {
@@ -107,7 +137,7 @@ const Chat = () => {
 
   const handleSend = async (e) => {
     e.preventDefault()
-    if (!input.trim() || loading) return
+    if (!input.trim() || loading || tokensBlocked) return
 
     setIsTyping(false)
     if (typingTimeoutRef.current) {
@@ -144,72 +174,122 @@ const Chat = () => {
         payload.history = history
       }
 
-      // Fazer chamada à API
-      const response = await api.post('/chat', payload)
-      const aiResponse = response.data.data.response
+      // Obter token de autenticação
+      const token = sessionStorage.getItem('token')
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
       
+      // Fazer requisição POST com streaming
+      const response = await fetch(`${baseURL}/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       setIsThinking(false)
       
-      // Simular digitação da IA palavra por palavra com velocidade variável
-      const words = aiResponse.split(' ')
-      let currentText = ''
-      
-      // Adicionar mensagem vazia inicial
+      // Adicionar mensagem vazia inicial para o assistente
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '',
         isTyping: true
       }])
 
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i]
-        // Velocidade variável: mais rápido para palavras curtas, mais lento para pontuação
-        const delay = word.length < 4 ? 15 : word.match(/[.,!?;:]/) ? 60 : 25
+      let chatText = ''
+      let tokensUsed = 0
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
         
-        await new Promise(resolve => setTimeout(resolve, delay))
-        currentText += (i > 0 ? ' ' : '') + word
+        if (done) break
+
+        // Decodificar chunk e adicionar ao buffer
+        buffer += decoder.decode(value, { stream: true })
         
-        setMessages(prev => {
-          const newMessages = [...prev]
-          const lastMessage = newMessages[newMessages.length - 1]
-          if (lastMessage && lastMessage.role === 'assistant') {
-            newMessages[newMessages.length - 1] = {
-              ...lastMessage,
-              content: currentText,
-              isTyping: true
+        // Processar linhas completas (SSE format: "data: {...}\n\n")
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || '' // Manter última linha incompleta no buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          
+          // Remover prefixo "data: " se presente
+          const dataLine = line.startsWith('data: ') ? line.slice(6) : line
+          
+          try {
+            const data = JSON.parse(dataLine)
+            
+            if (data.type === 'chunk') {
+              // Adicionar chunk ao texto visível
+              chatText += data.content
+              
+              // Atualizar UI com o texto acumulado
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: chatText,
+                    isTyping: true
+                  }
+                }
+                return newMessages
+              })
+              
+              // Scroll suave a cada atualização
+              scrollToBottom()
+            } else if (data.type === 'done') {
+              // Resposta completa
+              tokensUsed = data.tokensUsed || 0
+              console.log('Tokens usados:', tokensUsed)
+              
+              // Marcar mensagem como completa
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: chatText,
+                    isTyping: false
+                  }
+                }
+                return newMessages
+              })
+              
+              break
+            } else if (data.type === 'error') {
+              console.error('Erro:', data.message)
+              throw new Error(data.message || 'Erro ao processar resposta')
+            }
+          } catch (parseError) {
+            // Ignorar erros de parsing de linhas incompletas
+            if (dataLine.trim()) {
+              console.warn('Erro ao parsear linha:', dataLine, parseError)
             }
           }
-          return newMessages
-        })
-        
-        // Scroll suave apenas a cada 5 palavras para melhor performance
-        if (i % 5 === 0) {
-          scrollToBottom()
         }
       }
       
       // Scroll final
       scrollToBottom()
       
-      // Marcar mensagem como completa
-      setMessages(prev => {
-        const newMessages = [...prev]
-        const lastMessage = newMessages[newMessages.length - 1]
-        if (lastMessage && lastMessage.role === 'assistant') {
-          newMessages[newMessages.length - 1] = {
-            ...lastMessage,
-            isTyping: false
-          }
-        }
-        return newMessages
-      })
-      
       // Salvar no histórico local
       const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
       const newConversation = {
         id: Date.now(),
         mensagem: messageToSend,
-        resposta: aiResponse,
+        resposta: chatText,
         created_at: new Date().toISOString()
       }
       savedHistory.unshift(newConversation)
@@ -217,17 +297,20 @@ const Chat = () => {
       
       // Recarregar histórico após nova mensagem
       loadConversations()
+      
+      // Verificar tokens após enviar mensagem
+      await checkTokens()
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       setIsThinking(false)
       
       // Mensagem de erro mais detalhada
       let errorContent = 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.'
-      if (error.response?.status === 401) {
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
         errorContent = 'Sua sessão expirou. Por favor, faça login novamente.'
-      } else if (error.response?.status === 500) {
+      } else if (error.message?.includes('500') || error.message?.includes('Internal Server Error')) {
         errorContent = 'Erro no servidor. Tente novamente em alguns instantes.'
-      } else if (!error.response) {
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
         errorContent = 'Não foi possível conectar ao servidor. Verifique sua conexão.'
       }
       
@@ -346,6 +429,32 @@ const Chat = () => {
                 <strong>Importante:</strong> O NODON deve servir como apoio ao profissional. A decisão final deve ser sempre do responsável.
               </div>
             </div>
+            
+            {/* Mensagem de bloqueio por tokens */}
+            {tokensBlocked && (
+              <div className="tokens-blocked-message">
+                <div className="tokens-blocked-icon">
+                  <FontAwesomeIcon icon={faLock} />
+                </div>
+                <div className="tokens-blocked-content">
+                  <h3>Limite de Tokens Atingido</h3>
+                  <p>
+                    Você atingiu o limite de tokens do seu plano ({tokensInfo?.limitePlano?.toLocaleString('pt-BR') || 'N/A'} tokens).
+                    Para continuar usando o chat, entre em contato para renovar ou atualizar seu plano.
+                  </p>
+                  <div className="tokens-stats">
+                    <span>
+                      Tokens utilizados: <strong>
+                        {(tokensInfo?.tokensUtilizadosMes !== undefined 
+                          ? tokensInfo.tokensUtilizadosMes 
+                          : tokensInfo?.tokensUtilizados || 0).toLocaleString('pt-BR')}
+                      </strong> / {tokensInfo?.limitePlano?.toLocaleString('pt-BR') || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
           {messages.length === 0 ? (
             <div className="chat-welcome-modern">
               <div className="welcome-icon-modern">
@@ -457,14 +566,14 @@ const Chat = () => {
               type="text"
               value={input}
               onChange={handleInputChange}
-              placeholder="Digite sua mensagem..."
+              placeholder={tokensBlocked ? "Limite de tokens atingido" : "Digite sua mensagem..."}
               className="chat-input-field"
-              disabled={loading}
+              disabled={loading || tokensBlocked}
             />
             <button 
               type="submit" 
               className="chat-send-btn-modern" 
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || tokensBlocked}
             >
               <FontAwesomeIcon icon={faPaperPlane} />
             </button>
