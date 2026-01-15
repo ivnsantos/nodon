@@ -58,7 +58,7 @@ const Diagnosticos = () => {
   const [diagnosticos, setDiagnosticos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
+  const [selectedImages, setSelectedImages] = useState([])
   
   // Estados para busca de cliente
   const [searchTerm, setSearchTerm] = useState('')
@@ -74,7 +74,7 @@ const Diagnosticos = () => {
     descricao: '',
     tratamento: '',
     data: new Date().toISOString().split('T')[0],
-    imagem: null,
+    imagem: [],
     cliente_id: null
   })
   
@@ -163,20 +163,48 @@ const Diagnosticos = () => {
   }
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
+    const files = Array.from(e.target.files)
+    const remainingSlots = 4 - selectedImages.length
+    
+    if (remainingSlots <= 0) {
+      showAlert('Você pode adicionar no máximo 4 imagens', 'error')
+      return
+    }
+    
+    const filesToAdd = files.slice(0, remainingSlots)
+    
+    if (files.length > remainingSlots) {
+      showAlert(`Apenas ${remainingSlots} imagem(ns) foram adicionadas. Limite de 4 imagens.`, 'error')
+    }
+    
+    filesToAdd.forEach((file) => {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setFormData({ ...formData, imagem: reader.result })
-        setSelectedImage(reader.result)
+        const newImage = reader.result
+        setSelectedImages(prev => [...prev, newImage])
+        setFormData(prev => ({ 
+          ...prev, 
+          imagem: [...prev.imagem, newImage] 
+        }))
       }
       reader.readAsDataURL(file)
-    }
+    })
+    
+    // Resetar o input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = ''
+  }
+  
+  const handleRemoveImage = (index) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index))
+    setFormData(prev => ({
+      ...prev,
+      imagem: prev.imagem.filter((_, i) => i !== index)
+    }))
   }
 
   const handleSelectCliente = (cliente) => {
     setSelectedCliente(cliente)
-    setFormData({ ...formData, cliente_id: cliente.id, radiografica: cliente.nome })
+    setFormData({ ...formData, cliente_id: cliente.id, radiografica: '' })
     setSearchTerm('')
     setSearchResults([])
   }
@@ -245,8 +273,10 @@ const Diagnosticos = () => {
         descricao: formData.descricao || 'Radiografia cadastrada',
         tratamento: formData.tratamento || '',
         data: formData.data || new Date().toISOString().split('T')[0],
-        // Se tiver imagem base64 do upload, usar. Senão, usar exameImage como exemplo
-        imagem: formData.imagem && formData.imagem.startsWith('data:') ? formData.imagem : null,
+        // Array de imagens base64 do upload
+        imagem: Array.isArray(formData.imagem) && formData.imagem.length > 0 
+          ? formData.imagem.filter(img => img && img.startsWith('data:'))
+          : null,
         cliente_id: selectedCliente.id,
         cliente_nome: selectedCliente.nome,
         cliente_email: selectedCliente.email,
@@ -263,10 +293,10 @@ const Diagnosticos = () => {
         descricao: '',
         tratamento: '',
         data: new Date().toISOString().split('T')[0],
-        imagem: null,
+        imagem: [],
         cliente_id: null
       })
-      setSelectedImage(null)
+      setSelectedImages([])
       setSelectedCliente(null)
       setSearchTerm('')
       setSearchResults([])
@@ -289,10 +319,10 @@ const Diagnosticos = () => {
       descricao: '',
       tratamento: '',
       data: new Date().toISOString().split('T')[0],
-      imagem: null,
+      imagem: [],
       cliente_id: null
     })
-    setSelectedImage(null)
+    setSelectedImages([])
     setNewClienteData({ nome: '', email: '', cpf: '', telefone: '' })
   }
 
@@ -551,14 +581,14 @@ const Diagnosticos = () => {
               <div className="form-grid-modern">
                 <div className="form-group-modern">
                   <label>
-                    <FontAwesomeIcon icon={faUser} /> Radiográfica
+                    <FontAwesomeIcon icon={faUser} /> Nome da radiografia
                   </label>
                   <input
                     type="text"
                     value={formData.radiografica}
                     onChange={(e) => setFormData({ ...formData, radiografica: e.target.value })}
                     required
-                    placeholder="Nome da radiográfica"
+                    placeholder="Digite o nome da radiografia"
                   />
                 </div>
                 <div className="form-group-modern">
@@ -577,29 +607,37 @@ const Diagnosticos = () => {
               <div className="form-group-modern">
                 <label>
                   <FontAwesomeIcon icon={faImage} /> Imagem da Radiografia
+                  {selectedImages.length > 0 && (
+                    <span className="image-count-badge">({selectedImages.length}/4)</span>
+                  )}
                 </label>
-                <div className="image-upload-area">
-                  {selectedImage ? (
-                    <div className="image-preview">
-                      <img src={selectedImage} alt="Preview" />
-                      <button 
-                        type="button" 
-                        className="remove-image-btn"
-                        onClick={() => {
-                          setSelectedImage(null)
-                          setFormData({ ...formData, imagem: null })
-                        }}
-                      >
-                        Remover
-                      </button>
+                <div className="images-upload-container">
+                  {selectedImages.length > 0 && (
+                    <div className="images-preview-grid">
+                      {selectedImages.map((image, index) => (
+                        <div key={index} className="image-preview-item">
+                          <img src={image} alt={`Preview ${index + 1}`} />
+                          <button 
+                            type="button" 
+                            className="remove-image-btn"
+                            onClick={() => handleRemoveImage(index)}
+                            title="Remover imagem"
+                          >
+                            <FontAwesomeIcon icon={faTimes} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
+                  )}
+                  {selectedImages.length < 4 && (
                     <label className="upload-label">
                       <FontAwesomeIcon icon={faImage} size="3x" />
                       <span>Clique para fazer upload</span>
+                      <span className="upload-hint">Máximo 4 imagens</span>
                       <input
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleImageChange}
                         style={{ display: 'none' }}
                       />
@@ -608,20 +646,20 @@ const Diagnosticos = () => {
                 </div>
               </div>
 
-              <div className="form-group-modern">
+              <div className="form-group-modern form-group-tipo-exame">
                 <label>
-                  <FontAwesomeIcon icon={faFileMedical} /> Descrição
+                  <FontAwesomeIcon icon={faFileMedical} /> Tipo de Exame
                 </label>
                 <textarea
                   rows="4"
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                   required
-                  placeholder="Descreva o caso..."
+                  placeholder="Ex: Panorâmica, Periapical, Interproximal, etc..."
                 />
               </div>
 
-              <div className="form-group-modern">
+              <div className="form-group-modern form-group-tratamento">
                 <label>
                   <FontAwesomeIcon icon={faFileMedical} /> Tratamento
                 </label>

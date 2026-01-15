@@ -8,7 +8,8 @@ import {
   faCheckCircle, faClock, faTimesCircle, faExclamationTriangle,
   faXRay, faEye
 } from '@fortawesome/free-solid-svg-icons'
-// Removido import de axios - usando dados mockados
+import api from '../utils/api'
+import exameImage from '../img/exame.jpg'
 import './ClienteDetalhes.css'
 
 const ClienteDetalhes = () => {
@@ -40,94 +41,102 @@ const ClienteDetalhes = () => {
 
   const loadCliente = async () => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Fazer GET para buscar dados do paciente
+      const response = await api.get(`/pacientes/${id}`)
+      const paciente = response.data?.data || response.data
       
-      // Buscar cliente do localStorage
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      const cliente = savedClientes.find(c => c.id === parseInt(id))
-      
-      if (cliente) {
-        // Garantir que necessidades seja sempre um array
-        const clienteComNecessidades = {
-          ...cliente,
-          necessidades: Array.isArray(cliente.necessidades) 
-            ? cliente.necessidades 
-            : (cliente.necessidades ? [cliente.necessidades] : [])
-        }
-        setCliente(clienteComNecessidades)
-      } else {
-        // Dados mockados padrão
-        setCliente({
-          id: parseInt(id),
-          nome: 'João Silva',
-          email: 'joao@email.com',
-          telefone: '(11) 99999-9999',
-          cpf: '123.456.789-00',
-          dataNascimento: '1985-05-15',
+      if (paciente) {
+        // Normalizar dados do paciente para o formato esperado
+        // A API retorna os dados diretamente no objeto, não aninhados
+        const clienteNormalizado = {
+          id: paciente.id,
+          nome: paciente.nomePaciente || '',
+          email: paciente.email || '',
+          telefone: paciente.telefone || '',
+          cpf: paciente.cpf || '',
+          dataNascimento: paciente.dataNascimento || '',
           endereco: {
-            rua: 'Rua das Flores, 123',
-            bairro: 'Centro',
-            cidade: 'São Paulo',
-            estado: 'SP',
-            cep: '01234-567'
+            rua: paciente.rua || '',
+            numero: paciente.numero || '',
+            complemento: paciente.complemento || '',
+            bairro: paciente.bairro || '',
+            cidade: paciente.cidade || '',
+            estado: paciente.estado || '',
+            cep: paciente.cep || ''
           },
-          status: 'em-andamento',
-          necessidades: [
-            'Tratamento de canal no dente 36',
-            'Limpeza e profilaxia',
-            'Avaliação ortodôntica'
-          ],
-          observacoes: 'Paciente com histórico de sensibilidade dentária.',
-          createdAt: '2024-01-10'
-        })
+          status: paciente.status || 'avaliacao-realizada',
+          necessidades: paciente.necessidades 
+            ? (Array.isArray(paciente.necessidades) 
+                ? paciente.necessidades 
+                : (typeof paciente.necessidades === 'string' && paciente.necessidades.trim()
+                    ? [paciente.necessidades]
+                    : []))
+            : [],
+          observacoes: paciente.observacoes || '',
+          createdAt: paciente.createdAt || new Date().toISOString()
+        }
+        
+        setCliente(clienteNormalizado)
+      } else {
+        alert('Paciente não encontrado')
+        navigate('/app/clientes')
       }
     } catch (error) {
-      console.error('Erro ao carregar cliente:', error)
+      console.error('Erro ao carregar paciente:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao carregar dados do paciente.'
+      alert(errorMessage)
+      navigate('/app/clientes')
     } finally {
       setLoading(false)
     }
   }
 
+  const mapCampoAlteradoToTipo = (campoAlterado) => {
+    const campoMap = {
+      'status': 'status',
+      'necessidades': 'necessidade',
+      'informacoesClinicas.necessidades': 'necessidade',
+      'observacoes': 'observacao',
+      'informacoesClinicas.observacoes': 'observacao',
+      'email': 'observacao',
+      'telefone': 'observacao',
+      'cpf': 'observacao',
+      'dataNascimento': 'observacao',
+      'nomePaciente': 'observacao',
+      'endereco': 'observacao'
+    }
+    return campoMap[campoAlterado] || 'observacao'
+  }
+
   const loadHistorico = async () => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Fazer GET para buscar histórico do paciente
+      const response = await api.get(`/pacientes/${id}/historico`)
+      // A API pode retornar diretamente um array ou dentro de response.data
+      const historicoData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.data || [])
       
-      // Buscar histórico do localStorage
-      const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
-      if (savedHistorico.length > 0) {
-        setHistorico(savedHistorico)
+      if (historicoData.length > 0) {
+        // Mapear dados da API para o formato esperado pelo componente
+        const historicoMapeado = historicoData.map(item => ({
+          id: item.id,
+          tipo: mapCampoAlteradoToTipo(item.campoAlterado),
+          descricao: item.descricaoAlteracao || '',
+          data: item.dataFormatada || item.createdAt, // Usar dataFormatada se disponível
+          dataOriginal: item.createdAt, // Manter createdAt para ordenação se necessário
+          usuario: item.nomeAlterador || 'Usuário'
+        }))
+        
+        setHistorico(historicoMapeado)
       } else {
-        // Dados mockados padrão
-        const mockHistorico = [
-          {
-            id: 1,
-            tipo: 'status',
-            descricao: 'Status alterado para Em Andamento',
-            data: '2024-01-15T10:30:00',
-            usuario: 'Dr. Silva'
-          },
-          {
-            id: 2,
-            tipo: 'necessidade',
-            descricao: 'Necessidade adicionada: Tratamento de canal no dente 36',
-            data: '2024-01-12T14:20:00',
-            usuario: 'Dr. Silva'
-          },
-          {
-            id: 3,
-            tipo: 'avaliacao',
-            descricao: 'Avaliação realizada',
-            data: '2024-01-10T09:00:00',
-            usuario: 'Dr. Silva'
-          }
-        ]
-        setHistorico(mockHistorico)
-        localStorage.setItem(`mockHistorico_${id}`, JSON.stringify(mockHistorico))
+        // Se não houver histórico, definir array vazio
+        setHistorico([])
       }
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
+      // Em caso de erro, definir array vazio
+      setHistorico([])
     }
   }
 
@@ -165,6 +174,35 @@ const ClienteDetalhes = () => {
     } catch (error) {
       console.error('Erro ao carregar radiografias:', error)
     }
+  }
+
+  const formatTelefone = (telefone) => {
+    if (!telefone) return ''
+    const cleaned = telefone.replace(/\D/g, '')
+    if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    } else if (cleaned.length === 10) {
+      return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+    }
+    return telefone
+  }
+
+  const formatCPF = (cpf) => {
+    if (!cpf) return ''
+    const cleaned = cpf.replace(/\D/g, '')
+    if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+    }
+    return cpf
+  }
+
+  const formatCEP = (cep) => {
+    if (!cep) return ''
+    const cleaned = cep.replace(/\D/g, '')
+    if (cleaned.length === 8) {
+      return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2')
+    }
+    return cep
   }
 
   const getStatusLabel = (status) => {
@@ -362,7 +400,7 @@ const ClienteDetalhes = () => {
                     <label>
                       <FontAwesomeIcon icon={faIdCard} /> CPF
                     </label>
-                    <p>{cliente.cpf}</p>
+                    <p>{formatCPF(cliente.cpf)}</p>
                   </div>
                 )}
                 {cliente.dataNascimento && (
@@ -383,7 +421,7 @@ const ClienteDetalhes = () => {
                   <label>
                     <FontAwesomeIcon icon={faPhone} /> Telefone
                   </label>
-                  <p>{cliente.telefone}</p>
+                  <p>{formatTelefone(cliente.telefone)}</p>
                 </div>
               </div>
             </div>
@@ -397,7 +435,11 @@ const ClienteDetalhes = () => {
                 <div className="ficha-grid">
                   <div className="ficha-item">
                     <label>Rua</label>
-                    <p>{cliente.endereco.rua}</p>
+                    <p>
+                      {cliente.endereco.rua}
+                      {cliente.endereco.numero && `, ${cliente.endereco.numero}`}
+                      {cliente.endereco.complemento && ` - ${cliente.endereco.complemento}`}
+                    </p>
                   </div>
                   {cliente.endereco.bairro && (
                     <div className="ficha-item">
@@ -412,7 +454,7 @@ const ClienteDetalhes = () => {
                   {cliente.endereco.cep && (
                     <div className="ficha-item">
                       <label>CEP</label>
-                      <p>{cliente.endereco.cep}</p>
+                      <p>{formatCEP(cliente.endereco.cep)}</p>
                     </div>
                   )}
                 </div>
@@ -550,7 +592,7 @@ const ClienteDetalhes = () => {
                     <div className="historico-meta">
                       <span className="historico-usuario">{item.usuario}</span>
                       <span className="historico-data">
-                        {new Date(item.data).toLocaleString('pt-BR')}
+                        {item.data}
                       </span>
                     </div>
                   </div>
@@ -558,7 +600,13 @@ const ClienteDetalhes = () => {
               ))}
             </div>
           ) : (
-            <p className="empty-text">Nenhum histórico registrado</p>
+            <div className="historico-empty-state">
+              <div className="historico-empty-icon">
+                <FontAwesomeIcon icon={faHistory} />
+              </div>
+              <h3>Nenhum histórico registrado</h3>
+              <p>As alterações feitas neste paciente aparecerão aqui.</p>
+            </div>
           )}
         </div>
       </div>

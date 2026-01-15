@@ -1,17 +1,22 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft, faSave, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faIdCard,
   faStethoscope, faCheckCircle
 } from '@fortawesome/free-solid-svg-icons'
-// Removido import de axios - usando dados mockados
+import api from '../utils/api'
 import './ClienteNovo.css'
 
 const ClienteNovo = () => {
+  const { id } = useParams()
   const navigate = useNavigate()
+  const { selectedClinicData } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [loadingData, setLoadingData] = useState(false)
+  const isEditMode = !!id
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -29,6 +34,76 @@ const ClienteNovo = () => {
     observacoes: '',
     status: 'avaliacao-realizada'
   })
+
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadPacienteData()
+    }
+  }, [id, isEditMode])
+
+  const loadPacienteData = async () => {
+    setLoadingData(true)
+    try {
+      const response = await api.get(`/pacientes/${id}`)
+      const paciente = response.data?.data || response.data
+      
+      if (paciente) {
+        // A API retorna os dados diretamente no objeto, não aninhados
+        // Formatar CEP, telefone e CPF para exibição
+        const formatCEP = (cep) => {
+          if (!cep) return ''
+          const cleaned = cep.replace(/\D/g, '')
+          if (cleaned.length === 8) {
+            return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2')
+          }
+          return cep
+        }
+
+        const formatTelefone = (telefone) => {
+          if (!telefone) return ''
+          const cleaned = telefone.replace(/\D/g, '')
+          if (cleaned.length === 11) {
+            return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+          } else if (cleaned.length === 10) {
+            return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+          }
+          return telefone
+        }
+
+        const formatCPF = (cpf) => {
+          if (!cpf) return ''
+          const cleaned = cpf.replace(/\D/g, '')
+          if (cleaned.length === 11) {
+            return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+          }
+          return cpf
+        }
+
+        setFormData({
+          nome: paciente.nomePaciente || '',
+          email: paciente.email || '',
+          telefone: formatTelefone(paciente.telefone || ''),
+          cpf: formatCPF(paciente.cpf || ''),
+          dataNascimento: paciente.dataNascimento || '',
+          cep: formatCEP(paciente.cep || ''),
+          rua: paciente.rua || '',
+          numero: paciente.numero || '',
+          complemento: paciente.complemento || '',
+          bairro: paciente.bairro || '',
+          cidade: paciente.cidade || '',
+          estado: paciente.estado || '',
+          necessidades: paciente.necessidades || '',
+          observacoes: paciente.observacoes || '',
+          status: paciente.status || 'avaliacao-realizada'
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do paciente:', error)
+      alert('Erro ao carregar dados do paciente. Tente novamente.')
+    } finally {
+      setLoadingData(false)
+    }
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -70,52 +145,59 @@ const ClienteNovo = () => {
     setLoading(true)
 
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Obter dados do clienteMaster e user do contexto
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      const userId = selectedClinicData?.user?.id
       
-      // Buscar clientes existentes
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      
-      // Criar novo cliente
-      const novoCliente = {
-        id: Math.max(...savedClientes.map(c => c.id), 0) + 1,
-        nome: formData.nome,
-        email: formData.email,
-        telefone: formData.telefone,
-        cpf: formData.cpf,
-        dataNascimento: formData.dataNascimento,
+      if (!clienteMasterId) {
+        alert('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')
+        setLoading(false)
+        return
+      }
+
+      // Preparar dados para a API
+      const payload = {
+        dentistId: userId || null,
+        masterClientId: clienteMasterId,
+        dadosPessoais: {
+          nomePaciente: formData.nome,
+          cpf: formData.cpf.replace(/\D/g, ''),
+          dataNascimento: formData.dataNascimento,
+          email: formData.email,
+          telefone: formData.telefone.replace(/\D/g, ''),
+          status: formData.status || 'avaliacao-realizada'
+        },
         endereco: {
+          cep: formData.cep.replace(/\D/g, ''),
           rua: formData.rua,
           numero: formData.numero,
           complemento: formData.complemento,
           bairro: formData.bairro,
           cidade: formData.cidade,
-          estado: formData.estado,
-          cep: formData.cep
+          estado: formData.estado
         },
-        status: formData.status || 'avaliacao-realizada',
-        necessidades: formData.necessidades ? [formData.necessidades] : [],
-        observacoes: formData.observacoes || '',
-        createdAt: new Date().toISOString().split('T')[0]
+        informacoesClinicas: {
+          necessidades: formData.necessidades,
+          observacoes: formData.observacoes
+        }
       }
+
+      let response
+      if (isEditMode) {
+        // PUT para editar
+        response = await api.put(`/pacientes/${id}`, payload)
+      } else {
+        // POST para criar
+        response = await api.post('/pacientes', payload)
+      }
+
+      const pacienteId = response.data?.data?.id || response.data?.id || id
       
-      savedClientes.push(novoCliente)
-      localStorage.setItem('mockClientesCompletos', JSON.stringify(savedClientes))
-      
-      // Criar histórico inicial
-      const historicoInicial = [{
-        id: Date.now(),
-        tipo: 'avaliacao',
-        descricao: 'Cliente cadastrado',
-        data: new Date().toISOString(),
-        usuario: 'Dr. Usuário'
-      }]
-      localStorage.setItem(`mockHistorico_${novoCliente.id}`, JSON.stringify(historicoInicial))
-      
-      navigate(`/app/clientes/${novoCliente.id}`)
+      navigate(`/app/clientes/${pacienteId}`)
     } catch (error) {
-      console.error('Erro ao cadastrar cliente:', error)
-      alert('Erro ao cadastrar cliente. Tente novamente.')
+      console.error('Erro ao salvar paciente:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao salvar paciente. Tente novamente.'
+      alert(errorMessage)
       setLoading(false)
     }
   }
@@ -127,8 +209,14 @@ const ClienteNovo = () => {
           <FontAwesomeIcon icon={faArrowLeft} />
           Voltar
         </button>
-        <h1>Novo Cliente</h1>
+        <h1>{isEditMode ? 'Editar Cliente' : 'Novo Cliente'}</h1>
       </div>
+
+      {loadingData && (
+        <div className="loading-message">
+          <p>Carregando dados do paciente...</p>
+        </div>
+      )}
 
       <form className="cliente-novo-form" onSubmit={handleSubmit}>
         <div className="form-section">
@@ -138,14 +226,14 @@ const ClienteNovo = () => {
           </h2>
           <div className="form-grid">
             <div className="form-group">
-              <label>Radiográfica *</label>
+              <label>Paciente *</label>
               <input
                 type="text"
                 name="nome"
                 value={formData.nome}
                 onChange={handleInputChange}
                 required
-                placeholder="Nome da radiográfica"
+                placeholder="Nome da paciente"
               />
             </div>
             <div className="form-group">
