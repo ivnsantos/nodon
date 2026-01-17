@@ -3,7 +3,8 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
-  faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding
+  faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding,
+  faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -12,19 +13,18 @@ import './Layout.css'
 const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario } = useAuth()
+  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario, clearUserComumId } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   
-  // Sempre recarregar dados do cliente master ao entrar no app para garantir dados atualizados
+  // Recarregar dados do cliente master ao entrar no app apenas se não houver dados carregados
   useEffect(() => {
     let isMounted = true
     
     const loadClinicData = async () => {
-      if (selectedClinicId && location.pathname.startsWith('/app')) {
+      if (selectedClinicId && location.pathname.startsWith('/app') && !selectedClinicData) {
         try {
-          // Sempre buscar dados completos usando a rota /complete para garantir dados atualizados
-          // Isso remove dados antigos e adiciona os novos
+          // Buscar dados apenas se não estiverem carregados
           if (isMounted) {
             await setSelectedClinicId(selectedClinicId)
           }
@@ -34,7 +34,7 @@ const Layout = () => {
       }
     }
     
-    // Executar apenas quando entrar na rota /app
+    // Executar apenas quando entrar na rota /app e não houver dados
     loadClinicData()
     
     return () => {
@@ -54,6 +54,7 @@ const Layout = () => {
     { path: '/app', label: 'Dashboard', icon: faChartBar },
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
+    { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/chat', label: 'Chat IA', icon: faComments },
     { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
@@ -82,21 +83,8 @@ const Layout = () => {
     setSidebarMinimized(!sidebarMinimized)
   }
 
-  // Carregar dados do cliente master quando o Layout carregar
-  useEffect(() => {
-    const loadClinicData = async () => {
-      if (selectedClinicId && !selectedClinicData) {
-        try {
-          // Buscar dados completos usando a rota /complete
-          await setSelectedClinicId(selectedClinicId)
-        } catch (error) {
-          console.error('Erro ao carregar dados do cliente master:', error)
-        }
-      }
-    }
-    
-    loadClinicData()
-  }, [selectedClinicId, selectedClinicData, setSelectedClinicId])
+  // Carregar dados do cliente master quando o Layout carregar (apenas se necessário)
+  // Este useEffect foi removido pois já temos outro que faz isso de forma mais eficiente
 
   // Fechar sidebar ao mudar de rota em mobile
   useEffect(() => {
@@ -196,6 +184,7 @@ const Layout = () => {
           <button 
             className="clinic-btn" 
             onClick={() => {
+              clearUserComumId()
               navigate('/select-clinic')
               closeSidebar()
             }}

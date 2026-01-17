@@ -9,7 +9,7 @@ import api from '../utils/api'
 import './UsuarioInativo.css'
 
 const UsuarioInativo = () => {
-  const { user, selectedClinicData, selectedClinicId, loading: authLoading, logout, setSelectedClinicId } = useAuth()
+  const { user, selectedClinicData, selectedClinicId, loading: authLoading, logout, setSelectedClinicId, clearUserComumId } = useAuth()
   const navigate = useNavigate()
   const hasCheckedRef = useRef(false)
   const hasNavigatedRef = useRef(false)
@@ -51,8 +51,12 @@ const UsuarioInativo = () => {
 
     const checkStatus = async () => {
       try {
-        // Buscar dados atualizados do cliente master
-        const response = await api.get(`/clientes-master/${selectedClinicId}/complete`)
+        // Buscar dados atualizados do cliente master via POST com ID no header
+        const response = await api.post('/clientes-master/complete', {}, {
+          headers: {
+            'X-Cliente-Master-Id': selectedClinicId
+          }
+        })
         const clinicData = response.data?.data || response.data
         
         if (clinicData?.relacionamento) {
@@ -61,8 +65,9 @@ const UsuarioInativo = () => {
           // Se o status mudou para ativo, redirecionar para o app
           if (newStatus === 'ativo') {
             hasNavigatedRef.current = true
-            // Atualizar dados no contexto
-            await setSelectedClinicId(selectedClinicId)
+            // Atualizar dados no contexto passando os dados já obtidos para evitar chamada duplicada
+            // O setSelectedClinicId já cuida de salvar o relacionamento corretamente
+            await setSelectedClinicId(selectedClinicId, clinicData)
             navigate('/app', { replace: true })
             return
           }
@@ -97,6 +102,7 @@ const UsuarioInativo = () => {
   }, [isInativo, selectedClinicData, navigate])
 
   const handleVoltar = () => {
+    clearUserComumId()
     navigate('/select-clinic', { replace: true })
   }
 

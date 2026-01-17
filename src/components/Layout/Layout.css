@@ -511,9 +511,14 @@
     left: 0;
   }
 
+  .layout {
+    flex-direction: column;
+  }
+
   .main-content {
     width: 100%;
     margin-left: 0;
+    flex: 1;
   }
 
   .topbar {
@@ -526,6 +531,11 @@
   
   .content-area {
     padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .logo-image {

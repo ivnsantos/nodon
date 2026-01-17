@@ -11,7 +11,7 @@ import nodoLogo from '../img/nodo.png'
 import './AssinaturaPendente.css'
 
 const AssinaturaPendente = () => {
-  const { user, refreshUser, loading: authLoading, selectedClinicId, selectedClinicData } = useAuth()
+  const { user, refreshUser, loading: authLoading, selectedClinicId, selectedClinicData, clearUserComumId } = useAuth()
   const navigate = useNavigate()
   const [isChecking, setIsChecking] = useState(false)
   const [checkAttempt, setCheckAttempt] = useState(0)
@@ -152,7 +152,10 @@ const AssinaturaPendente = () => {
   return (
     <div className="assinatura-pendente-page">
       <button
-        onClick={() => navigate('/select-clinic')}
+        onClick={() => {
+          clearUserComumId()
+          navigate('/select-clinic')
+        }}
         style={{
           position: 'absolute',
           top: '1.5rem',
