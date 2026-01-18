@@ -436,13 +436,14 @@
 }
 
 .modal-confirm-delete {
-  background: #1a1f3a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(14, 165, 233, 0.3);
   border-radius: 1.5rem;
   padding: 2.5rem;
   width: 90%;
   max-width: 480px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(14, 165, 233, 0.15);
   text-align: center;
   animation: modalSlideUp 0.3s ease;
 }
@@ -499,7 +500,7 @@
 }
 
 .modal-confirm-delete p strong {
-  color: #ffffff;
+  color: #0ea5e9;
   font-weight: 600;
 }
 
@@ -544,14 +545,14 @@
 }
 
 .btn-modal-delete {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: #ffffff;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
 }
 
 .btn-modal-delete:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
 }
 
 .btn-modal-delete:active {

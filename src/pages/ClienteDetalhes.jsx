@@ -65,13 +65,45 @@ const ClienteDetalhes = () => {
             cep: paciente.cep || ''
           },
           status: paciente.status || 'avaliacao-realizada',
-          necessidades: paciente.necessidades 
-            ? (Array.isArray(paciente.necessidades) 
-                ? paciente.necessidades 
-                : (typeof paciente.necessidades === 'string' && paciente.necessidades.trim()
-                    ? [paciente.necessidades]
-                    : []))
-            : [],
+          necessidades: (() => {
+            // Verificar se necessidades está em informacoesClinicas ou diretamente no paciente
+            const necessidadesRaw = paciente.informacoesClinicas?.necessidades || paciente.necessidades
+            
+            if (!necessidadesRaw) return []
+            
+            // Se for array, normalizar cada item para string
+            if (Array.isArray(necessidadesRaw)) {
+              return necessidadesRaw.map(nec => {
+                // Se o item já é uma string, retornar
+                if (typeof nec === 'string') return nec
+                // Se for um array, juntar com vírgula
+                if (Array.isArray(nec)) return nec.join(', ')
+                // Se for objeto, tentar converter para string
+                if (typeof nec === 'object' && nec !== null) {
+                  return JSON.stringify(nec)
+                }
+                // Caso contrário, converter para string
+                return String(nec)
+              })
+            }
+            
+            // Se for string, retornar como array
+            if (typeof necessidadesRaw === 'string' && necessidadesRaw.trim()) {
+              // Tentar fazer parse se for JSON
+              try {
+                const parsed = JSON.parse(necessidadesRaw)
+                if (Array.isArray(parsed)) {
+                  return parsed.map(nec => typeof nec === 'string' ? nec : String(nec))
+                }
+              } catch (e) {
+                // Não é JSON, retornar como string única
+                return [necessidadesRaw]
+              }
+              return [necessidadesRaw]
+            }
+            
+            return []
+          })(),
           observacoes: paciente.observacoes || '',
           createdAt: paciente.createdAt || new Date().toISOString()
         }
@@ -108,6 +140,41 @@ const ClienteDetalhes = () => {
     return campoMap[campoAlterado] || 'observacao'
   }
 
+  const formatarDescricaoHistorico = (item, clienteAtual) => {
+    // Se for uma alteração de necessidades, verificar se é uma adição
+    if (item.campoAlterado === 'necessidades' || item.campoAlterado === 'informacoesClinicas.necessidades') {
+      const descricao = item.descricaoAlteracao || ''
+      
+      // Verificar se a descrição contém "alterado de" e "para" (formato de alteração)
+      if (descricao.toLowerCase().includes('alterado de') && descricao.toLowerCase().includes('para')) {
+        // Tentar extrair os valores antigo e novo usando regex mais flexível
+        // Pode estar no formato: "alterado de "X" para "Y"" ou "alterado de X para Y"
+        const match = descricao.match(/alterado de\s+["']?([^"']+)["']?\s+para\s+["']?([^"']+)["']?/i)
+        if (match) {
+          const valorAntigo = match[1] || ''
+          const valorNovo = match[2] || ''
+          
+          // Se o valor novo tem mais itens que o antigo (separados por vírgula), é uma adição
+          const itensAntigos = valorAntigo.split(',').map(s => s.trim()).filter(s => s)
+          const itensNovos = valorNovo.split(',').map(s => s.trim()).filter(s => s)
+          
+          if (itensNovos.length > itensAntigos.length) {
+            // Encontrar qual item foi adicionado
+            const itensAdicionados = itensNovos.filter(itemNovo => 
+              !itensAntigos.some(itemAntigo => itemAntigo === itemNovo)
+            )
+            if (itensAdicionados.length > 0) {
+              return `Necessidade adicionada: ${itensAdicionados.join(', ')}`
+            }
+          }
+        }
+      }
+    }
+    
+    // Retornar descrição original se não for uma adição detectada
+    return item.descricaoAlteracao || ''
+  }
+
   const loadHistorico = async () => {
     try {
       // Fazer GET para buscar histórico do paciente
@@ -122,7 +189,7 @@ const ClienteDetalhes = () => {
         const historicoMapeado = historicoData.map(item => ({
           id: item.id,
           tipo: mapCampoAlteradoToTipo(item.campoAlterado),
-          descricao: item.descricaoAlteracao || '',
+          descricao: formatarDescricaoHistorico(item, cliente),
           data: item.dataFormatada || item.createdAt, // Usar dataFormatada se disponível
           dataOriginal: item.createdAt, // Manter createdAt para ordenação se necessário
           usuario: item.nomeAlterador || 'Usuário'
@@ -242,36 +309,36 @@ const ClienteDetalhes = () => {
     if (!novaNecessidade.trim()) return
 
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Obter necessidades atuais do cliente
+      const necessidadesAtuais = Array.isArray(cliente.necessidades) 
+        ? cliente.necessidades 
+        : (cliente.necessidades ? [cliente.necessidades] : [])
       
-      // Atualizar cliente no localStorage
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      const clienteIndex = savedClientes.findIndex(c => c.id === parseInt(id))
+      // Adicionar nova necessidade à lista
+      const updatedNecessidades = [...necessidadesAtuais, novaNecessidade.trim()]
       
-      if (clienteIndex !== -1) {
-        const updatedNecessidades = [...(savedClientes[clienteIndex].necessidades || []), novaNecessidade]
-        savedClientes[clienteIndex].necessidades = updatedNecessidades
-        localStorage.setItem('mockClientesCompletos', JSON.stringify(savedClientes))
-        setCliente({ ...cliente, necessidades: updatedNecessidades })
+      // Preparar payload para a API - necessidades deve estar dentro de informacoesClinicas
+      const payload = {
+        informacoesClinicas: {
+          necessidades: updatedNecessidades
+        }
       }
+
+      // Fazer PUT para atualizar as necessidades do paciente
+      await api.put(`/pacientes/${id}`, payload)
       
-      // Adicionar ao histórico
-      const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
-      savedHistorico.unshift({
-        id: Date.now(),
-        tipo: 'necessidade',
-        descricao: `Necessidade adicionada: ${novaNecessidade}`,
-        data: new Date().toISOString(),
-        usuario: 'Dr. Usuário'
-      })
-      localStorage.setItem(`mockHistorico_${id}`, JSON.stringify(savedHistorico))
+      // Atualizar estado local
+      setCliente({ ...cliente, necessidades: updatedNecessidades })
+      
+      // Recarregar histórico da API (a API gera o histórico automaticamente)
+      await loadHistorico()
       
       setNovaNecessidade('')
       setShowNecessidadesModal(false)
-      loadHistorico()
     } catch (error) {
       console.error('Erro ao adicionar necessidade:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao adicionar necessidade. Tente novamente.'
+      alert(errorMessage)
     }
   }
 
@@ -279,18 +346,18 @@ const ClienteDetalhes = () => {
     if (!novoStatus) return
 
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      // Atualizar cliente no localStorage
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      const clienteIndex = savedClientes.findIndex(c => c.id === parseInt(id))
-      
-      if (clienteIndex !== -1) {
-        savedClientes[clienteIndex].status = novoStatus
-        localStorage.setItem('mockClientesCompletos', JSON.stringify(savedClientes))
-        setCliente({ ...cliente, status: novoStatus })
+      // Preparar payload para a API - status deve estar dentro de dadosPessoais
+      const payload = {
+        dadosPessoais: {
+          status: novoStatus
+        }
       }
+
+      // Fazer PUT para atualizar o status do paciente
+      await api.put(`/pacientes/${id}`, payload)
+      
+      // Atualizar estado local
+      setCliente({ ...cliente, status: novoStatus })
       
       // Adicionar ao histórico
       const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
@@ -308,6 +375,8 @@ const ClienteDetalhes = () => {
       loadHistorico()
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao atualizar status. Tente novamente.'
+      alert(errorMessage)
     }
   }
 
@@ -477,12 +546,21 @@ const ClienteDetalhes = () => {
               </div>
               {Array.isArray(cliente.necessidades) && cliente.necessidades.length > 0 ? (
                 <ul className="necessidades-list">
-                  {cliente.necessidades.map((necessidade, index) => (
-                    <li key={index}>
-                      <FontAwesomeIcon icon={faStethoscope} />
-                      {necessidade}
-                    </li>
-                  ))}
+                  {cliente.necessidades.map((necessidade, index) => {
+                    // Garantir que necessidade seja uma string
+                    const necessidadeTexto = typeof necessidade === 'string' 
+                      ? necessidade 
+                      : (Array.isArray(necessidade) 
+                          ? necessidade.join(', ') 
+                          : String(necessidade))
+                    
+                    return (
+                      <li key={index}>
+                        <FontAwesomeIcon icon={faStethoscope} />
+                        {necessidadeTexto}
+                      </li>
+                    )
+                  })}
                 </ul>
               ) : (
                 <p className="empty-text">Nenhuma necessidade registrada</p>

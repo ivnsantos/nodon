@@ -277,16 +277,6 @@ const Clientes = () => {
                     </span>
                   </div>
                 )}
-                {cliente.necessidades && (Array.isArray(cliente.necessidades) ? cliente.necessidades.length > 0 : cliente.necessidades.trim()) && (
-                  <div className="detail-item necessidades">
-                    <strong>Necessidades:</strong>
-                    <span>
-                      {Array.isArray(cliente.necessidades) 
-                        ? cliente.necessidades.join(', ') 
-                        : cliente.necessidades}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <div className="cliente-actions">

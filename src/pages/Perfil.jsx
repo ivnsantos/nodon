@@ -40,7 +40,8 @@ const Perfil = () => {
       
       // Buscar dados do dashboard da API
       const response = await api.get('/assinaturas/dashboard')
-      const data = response.data
+      // A API retorna os dados em response.data.data
+      const data = response.data?.data || response.data
 
       // Mapear dados de tokens
       if (data.tokensChat) {

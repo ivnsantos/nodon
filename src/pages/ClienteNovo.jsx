@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft, faSave, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faIdCard,
-  faStethoscope, faCheckCircle
+  faStethoscope, faCheckCircle, faPlus, faTimes
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import './ClienteNovo.css'
@@ -30,10 +30,11 @@ const ClienteNovo = () => {
     bairro: '',
     cidade: '',
     estado: '',
-    necessidades: '',
+    necessidades: [],
     observacoes: '',
     status: 'avaliacao-realizada'
   })
+  const [novaNecessidade, setNovaNecessidade] = useState('')
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -79,6 +80,38 @@ const ClienteNovo = () => {
           return cpf
         }
 
+        // Normalizar necessidades para array
+        const necessidadesNormalizadas = (() => {
+          const necessidadesRaw = paciente.informacoesClinicas?.necessidades || paciente.necessidades
+          
+          if (!necessidadesRaw) return []
+          
+          if (Array.isArray(necessidadesRaw)) {
+            return necessidadesRaw.map(nec => {
+              if (typeof nec === 'string') return nec
+              if (Array.isArray(nec)) return nec.join(', ')
+              if (typeof nec === 'object' && nec !== null) {
+                return JSON.stringify(nec)
+              }
+              return String(nec)
+            })
+          }
+          
+          if (typeof necessidadesRaw === 'string' && necessidadesRaw.trim()) {
+            try {
+              const parsed = JSON.parse(necessidadesRaw)
+              if (Array.isArray(parsed)) {
+                return parsed.map(nec => typeof nec === 'string' ? nec : String(nec))
+              }
+            } catch (e) {
+              return [necessidadesRaw]
+            }
+            return [necessidadesRaw]
+          }
+          
+          return []
+        })()
+
         setFormData({
           nome: paciente.nomePaciente || '',
           email: paciente.email || '',
@@ -92,7 +125,7 @@ const ClienteNovo = () => {
           bairro: paciente.bairro || '',
           cidade: paciente.cidade || '',
           estado: paciente.estado || '',
-          necessidades: paciente.necessidades || '',
+          necessidades: necessidadesNormalizadas,
           observacoes: paciente.observacoes || '',
           status: paciente.status || 'avaliacao-realizada'
         })
@@ -108,6 +141,23 @@ const ClienteNovo = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleAddNecessidade = () => {
+    if (!novaNecessidade.trim()) return
+    
+    setFormData(prev => ({
+      ...prev,
+      necessidades: [...prev.necessidades, novaNecessidade.trim()]
+    }))
+    setNovaNecessidade('')
+  }
+
+  const handleRemoveNecessidade = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      necessidades: prev.necessidades.filter((_, i) => i !== index)
+    }))
   }
 
   const handleCepChange = async (e) => {
@@ -157,7 +207,6 @@ const ClienteNovo = () => {
 
       // Preparar dados para a API
       const payload = {
-        dentistId: userId || null,
         masterClientId: clienteMasterId,
         dadosPessoais: {
           nomePaciente: formData.nome,
@@ -177,7 +226,7 @@ const ClienteNovo = () => {
           estado: formData.estado
         },
         informacoesClinicas: {
-          necessidades: formData.necessidades,
+          necessidades: formData.necessidades, // Já é um array
           observacoes: formData.observacoes
         }
       }
@@ -221,12 +270,13 @@ const ClienteNovo = () => {
       <form className="cliente-novo-form" onSubmit={handleSubmit}>
         <div className="form-section">
           <h2>
-            <FontAwesomeIcon icon={faUser} />
-            Dados Pessoais
+            <FontAwesomeIcon icon={faUser} /> Dados Pessoais
           </h2>
           <div className="form-grid">
             <div className="form-group">
-              <label>Paciente *</label>
+              <label>
+                <FontAwesomeIcon icon={faUser} /> Paciente *
+              </label>
               <input
                 type="text"
                 name="nome"
@@ -421,14 +471,50 @@ const ClienteNovo = () => {
           </h2>
           <div className="form-grid">
             <div className="form-group full-width">
-              <label>Necessidades</label>
-              <textarea
-                name="necessidades"
-                value={formData.necessidades}
-                onChange={handleInputChange}
-                rows="4"
-                placeholder="Descreva as necessidades do cliente..."
-              />
+              <div className="necessidades-header">
+                <label>Necessidades</label>
+                <div className="necessidades-input-group">
+                  <input
+                    type="text"
+                    value={novaNecessidade}
+                    onChange={(e) => setNovaNecessidade(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAddNecessidade()
+                      }
+                    }}
+                    placeholder="Digite uma necessidade e pressione Enter ou clique em Adicionar"
+                  />
+                  <button
+                    type="button"
+                    className="btn-add-necessidade"
+                    onClick={handleAddNecessidade}
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+              {formData.necessidades.length > 0 ? (
+                <ul className="necessidades-list">
+                  {formData.necessidades.map((necessidade, index) => (
+                    <li key={index}>
+                      <FontAwesomeIcon icon={faStethoscope} />
+                      <span>{necessidade}</span>
+                      <button
+                        type="button"
+                        className="btn-remove-necessidade"
+                        onClick={() => handleRemoveNecessidade(index)}
+                      >
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty-text">Nenhuma necessidade adicionada</p>
+              )}
             </div>
             <div className="form-group full-width">
               <label>Observações</label>

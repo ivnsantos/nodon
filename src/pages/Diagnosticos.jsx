@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faXRay, faPlus, faImage, faFileMedical, faCalendar, faUser,
   faSearch, faCheck, faTimes, faEnvelope, faIdCard,
   faExclamationTriangle, faEye, faTrash
 } from '@fortawesome/free-solid-svg-icons'
+import api from '../utils/api'
 import exameImage from '../img/exame.jpg'
 import './Diagnosticos.css'
 
@@ -55,6 +57,7 @@ const getMockDiagnosticos = () => {
 
 const Diagnosticos = () => {
   const navigate = useNavigate()
+  const { selectedClinicData } = useAuth()
   const [diagnosticos, setDiagnosticos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -67,6 +70,10 @@ const Diagnosticos = () => {
   const [showNewClienteForm, setShowNewClienteForm] = useState(false)
   const [searching, setSearching] = useState(false)
   const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
+  const [allPacientes, setAllPacientes] = useState([]) // Armazenar todos os pacientes carregados
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [diagnosticoToDelete, setDiagnosticoToDelete] = useState(null)
+  const [savingRadiografia, setSavingRadiografia] = useState(false)
   
   // Formulário de radiografia
   const [formData, setFormData] = useState({
@@ -86,36 +93,88 @@ const Diagnosticos = () => {
     telefone: ''
   })
 
-  useEffect(() => {
-    fetchDiagnosticos()
-  }, [])
-
-  // Buscar clientes (mockado)
-  useEffect(() => {
-    const searchClientes = async () => {
-      if (searchTerm.trim().length < 2) {
-        setSearchResults([])
+  // Carregar todos os pacientes do masterClientId
+  const loadPacientes = async () => {
+    try {
+      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!masterClientId) {
+        console.error('masterClientId não encontrado')
         return
       }
 
+      const response = await api.get(`/pacientes?masterClientId=${masterClientId}`)
+      const pacientes = response.data?.data || response.data || []
+      
+      // Normalizar dados dos pacientes para o formato esperado
+      const pacientesNormalizados = pacientes.map(paciente => ({
+        id: paciente.id,
+        nome: paciente.nomePaciente || '',
+        email: paciente.email || '',
+        cpf: paciente.cpf || '',
+        telefone: paciente.telefone || ''
+      }))
+      
+      setAllPacientes(pacientesNormalizados)
+    } catch (error) {
+      console.error('Erro ao carregar pacientes:', error)
+      setAllPacientes([])
+    }
+  }
+
+  useEffect(() => {
+    if (selectedClinicData) {
+      fetchDiagnosticos()
+    }
+  }, [selectedClinicData])
+
+  useEffect(() => {
+    if (selectedClinicData) {
+      loadPacientes()
+    }
+  }, [selectedClinicData])
+
+  // Função para formatar CPF
+  const formatCPF = (cpf) => {
+    if (!cpf) return ''
+    const cleaned = cpf.replace(/\D/g, '')
+    if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+    }
+    return cpf
+  }
+
+  // Buscar clientes na lista carregada
+  useEffect(() => {
+    // Limpar resultados se não houver termo de busca ou se for muito curto
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+
+    const searchClientes = () => {
       setSearching(true)
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
       
       try {
-        // Buscar clientes do localStorage ou usar dados mockados
-        const savedClientes = JSON.parse(localStorage.getItem('mockClientes') || '[]')
-        const mockClientes = savedClientes.length > 0 ? savedClientes : [
-          { id: 1, nome: 'João Silva', email: 'joao@email.com', cpf: '123.456.789-00' },
-          { id: 2, nome: 'Maria Santos', email: 'maria@email.com', cpf: '987.654.321-00' },
-          { id: 3, nome: 'Pedro Oliveira', email: 'pedro@email.com', cpf: '111.222.333-44' }
-        ]
+        const searchLower = searchTerm.trim().toLowerCase()
+        const searchTermClean = searchTerm.trim().replace(/\D/g, '')
         
-        const filtered = mockClientes.filter(cliente => 
-          cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cliente.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cliente.cpf?.includes(searchTerm)
-        )
+        // Filtrar pacientes por nome, email ou CPF
+        const filtered = allPacientes.filter(paciente => {
+          // Busca por nome
+          const nomeMatch = paciente.nome?.toLowerCase().includes(searchLower) || false
+          
+          // Busca por email
+          const emailMatch = paciente.email?.toLowerCase().includes(searchLower) || false
+          
+          // Busca por CPF (remove formatação para comparação)
+          const cpfClean = paciente.cpf?.replace(/\D/g, '') || ''
+          const cpfMatch = cpfClean.includes(searchTermClean) && searchTermClean.length >= 3
+          
+          return nomeMatch || emailMatch || cpfMatch
+        })
+        
         setSearchResults(filtered)
       } catch (error) {
         console.error('Erro ao buscar clientes:', error)
@@ -127,36 +186,49 @@ const Diagnosticos = () => {
 
     const timeoutId = setTimeout(searchClientes, 300)
     return () => clearTimeout(timeoutId)
-  }, [searchTerm])
+  }, [searchTerm, allPacientes])
 
   const fetchDiagnosticos = async () => {
     try {
-      // Buscar diagnósticos do localStorage ou usar dados mockados
-      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-      if (savedDiagnosticos.length > 0) {
-        // Garantir que todos os diagnósticos tenham exameImage se não tiverem base64
-        const diagnosticosComImagem = savedDiagnosticos.map(d => ({
-          ...d,
-          // Manter base64 se existir, caso contrário será substituído por exameImage no render
-          imagem: (d.imagem && typeof d.imagem === 'string' && d.imagem.startsWith('data:image')) 
-            ? d.imagem 
-            : null // null será substituído por exameImage no render
-        }))
-        setDiagnosticos(diagnosticosComImagem)
-      } else {
-        const mockData = getMockDiagnosticos()
-        // Garantir que todos os dados mockados tenham a referência correta
-        setDiagnosticos(mockData)
-        // Salvar sem a imagem (será substituída por exameImage no render)
-        const dataToSave = mockData.map(d => ({
-          ...d,
-          imagem: null // Não salvar, sempre usar exameImage no render
-        }))
-        localStorage.setItem('mockDiagnosticos', JSON.stringify(dataToSave))
+      setLoading(true)
+      
+      // Obter masterClientId do contexto
+      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!masterClientId) {
+        console.error('masterClientId não encontrado')
+        setDiagnosticos([])
+        setLoading(false)
+        return
       }
+
+      // Fazer GET para buscar radiografias
+      const response = await api.get(`/radiografias?masterClientId=${masterClientId}`)
+      const radiografias = response.data?.data || response.data || []
+      
+      // Normalizar dados das radiografias para o formato esperado
+      const diagnosticosNormalizados = radiografias.map(radiografia => ({
+        id: radiografia.id,
+        paciente: radiografia.nomePaciente || radiografia.nome || '',
+        descricao: radiografia.tipoExame || '',
+        tratamento: radiografia.tratamento || '',
+        data: radiografia.data || '',
+        imagem: radiografia.imagens && radiografia.imagens.length > 0 
+          ? radiografia.imagens[0]?.url || null
+          : null,
+        imagens: radiografia.imagens && Array.isArray(radiografia.imagens) && radiografia.imagens.length > 0
+          ? radiografia.imagens.map(img => img.url || img).filter(Boolean)
+          : [],
+        cliente_id: radiografia.pacienteId || null,
+        cliente_nome: radiografia.nomePaciente || '',
+        cliente_email: radiografia.emailPaciente || '',
+        created_at: radiografia.createdAt || new Date().toISOString()
+      }))
+      
+      setDiagnosticos(diagnosticosNormalizados)
     } catch (error) {
-      console.error('Erro ao buscar diagnósticos:', error)
-      setDiagnosticos(getMockDiagnosticos())
+      console.error('Erro ao buscar radiografias:', error)
+      setDiagnosticos([])
     } finally {
       setLoading(false)
     }
@@ -258,35 +330,77 @@ const Diagnosticos = () => {
       return
     }
 
+    // Validações
+    if (!formData.radiografica || !formData.radiografica.trim()) {
+      showAlert('Por favor, preencha o nome da radiografia')
+      return
+    }
+
+    if (!formData.descricao || !formData.descricao.trim()) {
+      showAlert('Por favor, preencha o tipo de exame')
+      return
+    }
+
+    if (!formData.tratamento || !formData.tratamento.trim()) {
+      showAlert('Por favor, preencha o tratamento')
+      return
+    }
+
+    if (!formData.data) {
+      showAlert('Por favor, selecione a data')
+      return
+    }
+
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Obter masterClientId do contexto
+      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      // Buscar diagnósticos existentes
-      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-      const mockDiagnosticos = savedDiagnosticos.length > 0 ? savedDiagnosticos : getMockDiagnosticos()
-      
-      // Criar novo diagnóstico
-      const novoDiagnostico = {
-        id: Math.max(...mockDiagnosticos.map(d => d.id), 0) + 1,
-        paciente: formData.radiografica || selectedCliente.nome,
-        descricao: formData.descricao || 'Radiografia cadastrada',
-        tratamento: formData.tratamento || '',
-        data: formData.data || new Date().toISOString().split('T')[0],
-        // Array de imagens base64 do upload
-        imagem: Array.isArray(formData.imagem) && formData.imagem.length > 0 
-          ? formData.imagem.filter(img => img && img.startsWith('data:'))
-          : null,
-        cliente_id: selectedCliente.id,
-        cliente_nome: selectedCliente.nome,
-        cliente_email: selectedCliente.email,
-        created_at: new Date().toISOString()
+      if (!masterClientId) {
+        showAlert('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')
+        return
       }
+
+      // Preparar imagens - usar selectedImages ou formData.imagem
+      const imagensArray = selectedImages.length > 0 ? selectedImages : (formData.imagem || [])
+      const imagens = Array.isArray(imagensArray) && imagensArray.length > 0
+        ? imagensArray
+            .filter(img => img && typeof img === 'string' && img.length > 0 && (img.startsWith('data:image') || img.startsWith('http')))
+            .map(img => ({
+              url: img
+            }))
+        : []
       
-      mockDiagnosticos.unshift(novoDiagnostico) // Adicionar no início
-      // Salvar no localStorage (imagem será substituída por exameImage no render se não for base64)
-      localStorage.setItem('mockDiagnosticos', JSON.stringify(mockDiagnosticos))
+      // Preparar payload para a API
+      const payload = {
+        nomePaciente: selectedCliente.nome,
+        emailPaciente: selectedCliente.email || '',
+        radiografia: formData.radiografica.trim(),
+        data: formData.data,
+        imagens: imagens,
+        tipoExame: formData.descricao.trim(),
+        tratamento: formData.tratamento.trim()
+      }
+
+      // Log detalhado para debug
+      console.log('=== DEBUG POST RADIOGRAFIA ===')
+      console.log('Payload completo:', JSON.stringify(payload, null, 2))
+      console.log('masterClientId:', masterClientId)
+      console.log('URL:', `/radiografias?masterClientId=${masterClientId}`)
+      console.log('Número de imagens:', imagens.length)
+      if (imagens.length > 0) {
+        console.log('Primeira imagem (primeiros 100 chars):', imagens[0].url.substring(0, 100))
+      }
+      console.log('================================')
+
+      // Ativar loading
+      setSavingRadiografia(true)
+
+      // Fazer POST para criar radiografia
+      const response = await api.post(`/radiografias?masterClientId=${masterClientId}`, payload)
       
+      console.log('Resposta da API:', response.data)
+      
+      // Limpar formulário
       setShowForm(false)
       setFormData({
         radiografica: '',
@@ -300,11 +414,48 @@ const Diagnosticos = () => {
       setSelectedCliente(null)
       setSearchTerm('')
       setSearchResults([])
-      fetchDiagnosticos()
+      
+      // Recarregar lista de radiografias
+      await fetchDiagnosticos()
       showAlert('Radiografia cadastrada com sucesso!', 'success')
+      
+      // Desativar loading após sucesso
+      setSavingRadiografia(false)
     } catch (error) {
-      console.error('Erro ao cadastrar diagnóstico:', error)
-      showAlert('Erro ao cadastrar diagnóstico')
+      // Desativar loading em caso de erro
+      setSavingRadiografia(false)
+      
+      console.error('=== ERRO AO CADASTRAR RADIOGRAFIA ===')
+      console.error('Erro completo:', error)
+      console.error('Mensagem:', error.message)
+      console.error('Status:', error.response?.status)
+      console.error('Status Text:', error.response?.statusText)
+      console.error('Response Data:', error.response?.data)
+      console.error('=====================================')
+      
+      let errorMessage = 'Erro ao cadastrar radiografia. Tente novamente.'
+      
+      // Verificar se é erro de limite mensal excedido
+      if (error.response?.status === 400 && error.response?.data?.message) {
+        // Usar a mensagem da API diretamente para erros de limite
+        errorMessage = error.response.data.message
+      } else if (error.response?.data) {
+        const responseData = error.response.data
+        
+        if (responseData.message) {
+          errorMessage = responseData.message
+        } else if (responseData.error) {
+          errorMessage = typeof responseData.error === 'string' 
+            ? responseData.error 
+            : JSON.stringify(responseData.error)
+        } else if (responseData.statusCode === 500) {
+          errorMessage = 'Erro interno do servidor. Verifique os logs do backend ou tente novamente.'
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      showAlert(errorMessage)
     }
   }
 
@@ -330,34 +481,43 @@ const Diagnosticos = () => {
     navigate(`/app/diagnosticos/${diagnostico.id}`)
   }
 
-  const handleDelete = async (diagnosticoId, e) => {
-    e.stopPropagation() // Prevenir navegação ao clicar no botão
-    
-    if (!window.confirm('Tem certeza que deseja excluir esta radiografia?')) {
-      return
+  const handleDeleteClick = (diagnostico, e) => {
+    if (e) {
+      e.stopPropagation() // Prevenir navegação ao clicar no botão
+      e.preventDefault() // Prevenir comportamento padrão
     }
+    setDiagnosticoToDelete(diagnostico)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!diagnosticoToDelete) return
 
     try {
-      // Buscar diagnósticos do localStorage
-      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
+      // Fazer DELETE para deletar radiografia
+      await api.delete(`/radiografias/${diagnosticoToDelete.id}`)
       
-      // Remover o diagnóstico
-      const updatedDiagnosticos = savedDiagnosticos.filter(d => d.id !== diagnosticoId)
-      
-      // Salvar no localStorage
-      localStorage.setItem('mockDiagnosticos', JSON.stringify(updatedDiagnosticos))
-      
-      // Atualizar estado
-      setDiagnosticos(updatedDiagnosticos)
+      // Recarregar lista de radiografias
+      await fetchDiagnosticos()
       
       // Também remover dados de desenho associados se existirem
-      localStorage.removeItem(`drawing_${diagnosticoId}`)
+      localStorage.removeItem(`drawing_${diagnosticoToDelete.id}`)
       
+      setShowDeleteModal(false)
+      setDiagnosticoToDelete(null)
       showAlert('Radiografia excluída com sucesso!', 'success')
     } catch (error) {
-      console.error('Erro ao excluir diagnóstico:', error)
-      showAlert('Erro ao excluir radiografia')
+      console.error('Erro ao excluir radiografia:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao excluir radiografia. Tente novamente.'
+      showAlert(errorMessage)
+      setShowDeleteModal(false)
+      setDiagnosticoToDelete(null)
     }
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false)
+    setDiagnosticoToDelete(null)
   }
 
   if (loading) {
@@ -425,13 +585,14 @@ const Diagnosticos = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   autoFocus
                 />
-                {searchTerm && (
+                {searchTerm.trim().length > 0 && (
                   <button 
                     type="button"
                     className="clear-search-btn"
                     onClick={() => {
                       setSearchTerm('')
                       setSearchResults([])
+                      setSearching(false)
                     }}
                   >
                     <FontAwesomeIcon icon={faTimes} />
@@ -440,14 +601,14 @@ const Diagnosticos = () => {
               </div>
 
               {/* Resultados da busca */}
-              {searching && (
+              {searching && searchTerm.trim().length >= 2 && (
                 <div className="search-loading">
                   <div className="loading-spinner-small"></div>
                   <span>Buscando...</span>
                 </div>
               )}
 
-              {!searching && searchResults.length > 0 && (
+              {!searching && searchTerm.trim().length >= 2 && searchResults.length > 0 && (
                 <div className="search-results">
                   {searchResults.map((cliente) => (
                     <div 
@@ -459,7 +620,7 @@ const Diagnosticos = () => {
                         <div className="result-name">{cliente.nome}</div>
                         <div className="result-details">
                           {cliente.email && <span><FontAwesomeIcon icon={faEnvelope} /> {cliente.email}</span>}
-                          {cliente.cpf && <span><FontAwesomeIcon icon={faIdCard} /> {cliente.cpf}</span>}
+                          {cliente.cpf && <span><FontAwesomeIcon icon={faIdCard} /> {formatCPF(cliente.cpf)}</span>}
                         </div>
                       </div>
                       <FontAwesomeIcon icon={faCheck} className="select-icon" />
@@ -468,7 +629,7 @@ const Diagnosticos = () => {
                 </div>
               )}
 
-              {!searching && searchTerm.length >= 2 && searchResults.length === 0 && (
+              {!searching && searchTerm.trim().length >= 2 && searchResults.length === 0 && (
                 <div className="no-results">
                   <p>Nenhum cliente encontrado</p>
                   <button 
@@ -680,8 +841,21 @@ const Diagnosticos = () => {
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn-submit-modern">
-                  <FontAwesomeIcon icon={faPlus} /> Cadastrar Radiografia
+                <button 
+                  type="submit" 
+                  className="btn-submit-modern"
+                  disabled={savingRadiografia}
+                >
+                  {savingRadiografia ? (
+                    <>
+                      <div className="loading-spinner-small"></div>
+                      <span>Cadastrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faPlus} /> Cadastrar Radiografia
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -701,16 +875,36 @@ const Diagnosticos = () => {
             <div key={diagnostico.id} className="diagnostico-card">
               <button 
                 className="diagnostico-delete-btn"
-                onClick={(e) => handleDelete(diagnostico.id, e)}
+                onClick={(e) => handleDeleteClick(diagnostico, e)}
                 title="Excluir radiografia"
               >
                 <FontAwesomeIcon icon={faTrash} />
               </button>
-              <div className="diagnostico-image" onClick={() => handleViewDetails(diagnostico)}>
-                <img 
-                  src={exameImage}
-                  alt={diagnostico.paciente}
-                />
+              <div className={`diagnostico-image-container ${diagnostico.imagens && diagnostico.imagens.length === 4 ? 'has-four-images' : ''}`} onClick={() => handleViewDetails(diagnostico)}>
+                {diagnostico.imagens && diagnostico.imagens.length > 0 ? (
+                  <div className={`diagnostico-images-grid ${
+                    diagnostico.imagens.length === 1 ? 'single' 
+                    : diagnostico.imagens.length === 2 ? 'two-columns' 
+                    : diagnostico.imagens.length === 3 ? 'three-grid'
+                    : 'four-grid'
+                  }`}>
+                    {diagnostico.imagens.map((img, index) => (
+                      <div key={index} className="diagnostico-image-item">
+                        <img 
+                          src={img || exameImage}
+                          alt={`${diagnostico.paciente} - Imagem ${index + 1}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="diagnostico-image">
+                    <img 
+                      src={diagnostico.imagem || exameImage}
+                      alt={diagnostico.paciente}
+                    />
+                  </div>
+                )}
                 <div className="diagnostico-overlay">
                   <button 
                     className="view-btn"
@@ -729,6 +923,39 @@ const Diagnosticos = () => {
           ))
         )}
       </div>
+
+      {/* Modal de Confirmação de Exclusão */}
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={handleCancelDelete}>
+          <div className="modal-confirm-delete" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-confirm-icon">
+              <FontAwesomeIcon icon={faTrash} />
+            </div>
+            <h3>Excluir Radiografia</h3>
+            <p>
+              Tem certeza que deseja excluir a radiografia de <strong>{diagnosticoToDelete?.paciente}</strong>?
+            </p>
+            <p className="modal-warning">
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="modal-actions">
+              <button 
+                className="btn-modal-cancel"
+                onClick={handleCancelDelete}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-modal-delete"
+                onClick={handleConfirmDelete}
+              >
+                <FontAwesomeIcon icon={faTrash} />
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
