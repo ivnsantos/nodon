@@ -182,19 +182,19 @@ const DiagnosticoDetalhes = () => {
     }
   }, [id, diagnostico])
 
-  const buscarPacienteId = async (nomePaciente, emailPaciente, masterClientId) => {
-    if ((!nomePaciente && !emailPaciente) || !masterClientId) {
+  const buscarPacienteId = async (nome, emailPaciente, clienteMasterId) => {
+    if ((!nome && !emailPaciente) || !clienteMasterId) {
       return
     }
 
     try {
-      // Buscar lista de pacientes do masterClientId
-      const response = await api.get(`/pacientes?masterClientId=${masterClientId}`)
+      // Buscar lista de pacientes do clienteMasterId
+      const response = await api.get(`/pacientes?clienteMasterId=${clienteMasterId}`)
       const pacientes = response.data?.data || response.data || []
       
       // Procurar paciente pelo nome ou email
       const paciente = pacientes.find(p => {
-        const nomeMatch = nomePaciente && p.nomePaciente === nomePaciente
+        const nomeMatch = nome && p.nome === nome
         const emailMatch = emailPaciente && p.emailPaciente === emailPaciente
         return nomeMatch || emailMatch
       })
@@ -207,40 +207,52 @@ const DiagnosticoDetalhes = () => {
     }
   }
 
-  const loadProfissionalNome = async (userId, masterClientId) => {
-    if (!userId) return
+  const loadProfissionalNome = async (responsavelId, clienteMasterId) => {
+    if (!responsavelId) return
     
     try {
       // Primeiro tentar usar dados do contexto ou sessionStorage
       const userFromStorage = sessionStorage.getItem('user')
       if (userFromStorage) {
         const user = JSON.parse(userFromStorage)
-        if (user.id === userId) {
-          setProfissionalNome(user.nome || '')
+        if (user.id === responsavelId) {
+          setProfissionalNome(user.nome || user.name || '')
           return
         }
       }
       
       // Se o usuário do contexto corresponder
-      if (selectedClinicData?.user?.id === userId) {
+      if (selectedClinicData?.user?.id === responsavelId) {
         setProfissionalNome(selectedClinicData.user.nome || '')
         return
       }
       
-      // Tentar buscar pela API de usuários do cliente master
-      if (masterClientId) {
-        try {
-          const response = await api.get(`/clientes-master/${masterClientId}/usuarios`)
-          const usuarios = response.data?.data?.usuarios || response.data?.usuarios || []
-          const usuario = usuarios.find(u => u.id === userId || u.userId === userId)
-          if (usuario) {
-            setProfissionalNome(usuario.nome || '')
-            return
-          }
-        } catch (apiError) {
-          console.error('Erro ao buscar usuários do cliente master:', apiError)
-        }
+      // Buscar users e usuarios em paralelo
+      const [usersResponse, usuariosResponse] = await Promise.all([
+        api.get('/users').catch(() => ({ data: [] })),
+        clienteMasterId 
+          ? api.get(`/users/usuarios-comum/listar?cliente_master_id=${clienteMasterId}`).catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] })
+      ])
+
+      const users = usersResponse.data?.data || usersResponse.data || []
+      const usuarios = usuariosResponse.data?.data || usuariosResponse.data || []
+
+      // Procurar na lista de users
+      const userEncontrado = (Array.isArray(users) ? users : []).find(u => u.id === responsavelId)
+      if (userEncontrado) {
+        setProfissionalNome(userEncontrado.nome || userEncontrado.name || userEncontrado.email || '')
+        return
       }
+
+      // Procurar na lista de usuarios
+      const usuarioEncontrado = (Array.isArray(usuarios) ? usuarios : []).find(u => u.id === responsavelId)
+      if (usuarioEncontrado) {
+        setProfissionalNome(usuarioEncontrado.nome || usuarioEncontrado.name || usuarioEncontrado.email || '')
+        return
+      }
+
+      console.log('Responsável não encontrado com ID:', responsavelId)
     } catch (error) {
       console.error('Erro ao buscar nome do profissional:', error)
     }
@@ -354,14 +366,14 @@ const DiagnosticoDetalhes = () => {
           const radiografia = response.data?.data || response.data
           
           if (radiografia) {
-            // Buscar nome do profissional responsável usando userId do masterClient
+            // Buscar nome do profissional responsável usando responsavelId
             let nomeProfissional = ''
-            const userId = radiografia.masterClient?.userId
+            const responsavelId = radiografia.responsavelId || radiografia.masterClient?.userId
             
-            if (userId) {
+            if (responsavelId) {
               try {
                 // Tentar buscar o usuário pela API ou usar dados do contexto
-                if (selectedClinicData?.user?.id === userId) {
+                if (selectedClinicData?.user?.id === responsavelId) {
                   nomeProfissional = selectedClinicData.user.nome || ''
                 } else {
                   // Se não estiver no contexto, tentar buscar pela API
@@ -369,7 +381,7 @@ const DiagnosticoDetalhes = () => {
                   const userFromStorage = sessionStorage.getItem('user')
                   if (userFromStorage) {
                     const user = JSON.parse(userFromStorage)
-                    if (user.id === userId) {
+                    if (user.id === responsavelId) {
                       nomeProfissional = user.nome || ''
                     }
                   }
@@ -404,14 +416,14 @@ const DiagnosticoDetalhes = () => {
             
             const diagnosticoCompleto = {
               id: radiografia.id,
-              paciente: radiografia.nomePaciente || radiografia.nome || '',
+              paciente: radiografia.nome || radiografia.nome || '',
               radiografia: radiografia.radiografia || '',
               tipoExame: radiografia.tipoExame || '',
               descricao: radiografia.descricaoExame || radiografia.tipoExame || '',
               tratamento: radiografia.tratamento || '',
               data: radiografia.data || '',
               cliente_id: radiografia.pacienteId || null,
-              cliente_nome: radiografia.nomePaciente || '',
+              cliente_nome: radiografia.nome || '',
               cliente_email: radiografia.emailPaciente || '',
               imagem: radiografia.imagens && radiografia.imagens.length > 0 
                 ? radiografia.imagens[0]?.url || exameImage
@@ -423,7 +435,7 @@ const DiagnosticoDetalhes = () => {
               recomendacoes: radiografia.recomendacoes || [],
               necessidades: necessidadesNormalizadas,
               created_at: radiografia.createdAt || new Date().toISOString(),
-              userId: userId
+              responsavelId: responsavelId
             }
             
             setDiagnostico(diagnosticoCompleto)
@@ -434,12 +446,12 @@ const DiagnosticoDetalhes = () => {
             setEditedTitulo(diagnosticoCompleto.paciente || '')
             
             // Buscar ID do paciente pelo nome ou email
-            await buscarPacienteId(radiografia.nomePaciente, radiografia.emailPaciente, radiografia.masterClient?.id || radiografia.masterClientId)
+            await buscarPacienteId(radiografia.nome, radiografia.emailPaciente, radiografia.masterClient?.id || radiografia.clienteMasterId)
             
             // Se não encontrou o nome ainda, tentar buscar pela API
-            const masterClientId = radiografia.masterClient?.id || radiografia.masterClientId
-            if (!nomeProfissional && userId) {
-              loadProfissionalNome(userId, masterClientId)
+            const clienteMasterId = radiografia.masterClient?.id || radiografia.clienteMasterId
+            if (!nomeProfissional && responsavelId) {
+              loadProfissionalNome(responsavelId, clienteMasterId)
             } else if (nomeProfissional) {
               setProfissionalNome(nomeProfissional)
             }
@@ -876,6 +888,20 @@ const DiagnosticoDetalhes = () => {
           </div>
         </div>
 
+        {/* Tratamento */}
+        {diagnostico.tratamento && (
+          <div className="detalhes-section tratamento-section">
+            <div className="detalhes-section-header">
+              <h3>
+                <FontAwesomeIcon icon={faStethoscope} /> Tratamento
+              </h3>
+            </div>
+            <div className="tratamento-content">
+              <p>{diagnostico.tratamento}</p>
+            </div>
+          </div>
+        )}
+
         {/* Detalhamento Profissional */}
         <div className="detalhes-section">
           <div className="detalhes-section-header">
@@ -914,9 +940,9 @@ const DiagnosticoDetalhes = () => {
                         {desenho.tituloDesenho || 'Desenho Profissional'}
                       </p>
                     </div>
-                    {desenho.nomePaciente && (
+                    {desenho.nome && (
                       <div className="detalhamento-card-paciente">
-                        <span>{desenho.nomePaciente}</span>
+                        <span>{desenho.nome}</span>
                       </div>
                     )}
                     {desenho.nomeUsuario && (

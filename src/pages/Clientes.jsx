@@ -28,24 +28,24 @@ const Clientes = () => {
 
   const loadClientes = async () => {
     try {
-      // Obter masterClientId do contexto
-      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Obter clienteMasterId do contexto
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      if (!masterClientId) {
-        console.error('masterClientId não encontrado')
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
         setLoading(false)
         return
       }
 
       // Fazer GET para listar pacientes
-      const response = await api.get(`/pacientes?masterClientId=${masterClientId}`)
+      const response = await api.get(`/pacientes?clienteMasterId=${clienteMasterId}`)
       const pacientes = response.data?.data || response.data || []
       
       // Normalizar dados dos pacientes para o formato esperado
       // A API retorna os dados diretamente no objeto, não aninhados
       const clientesNormalizados = pacientes.map(paciente => ({
         id: paciente.id,
-        nome: paciente.nomePaciente || '',
+        nome: paciente.nome || '',
         email: paciente.email || '',
         telefone: paciente.telefone || '',
         cpf: paciente.cpf || '',

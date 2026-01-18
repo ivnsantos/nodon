@@ -113,7 +113,7 @@ const ClienteNovo = () => {
         })()
 
         setFormData({
-          nome: paciente.nomePaciente || '',
+          nome: paciente.nome || '',
           email: paciente.email || '',
           telefone: formatTelefone(paciente.telefone || ''),
           cpf: formatCPF(paciente.cpf || ''),
@@ -195,6 +195,25 @@ const ClienteNovo = () => {
     setLoading(true)
 
     try {
+      // Validação básica dos campos obrigatórios
+      if (!formData.nome || !formData.nome.trim()) {
+        alert('Por favor, preencha o nome do paciente.')
+        setLoading(false)
+        return
+      }
+
+      if (!formData.email || !formData.email.trim()) {
+        alert('Por favor, preencha o e-mail do paciente.')
+        setLoading(false)
+        return
+      }
+
+      if (!formData.telefone || !formData.telefone.replace(/\D/g, '')) {
+        alert('Por favor, preencha o telefone do paciente.')
+        setLoading(false)
+        return
+      }
+
       // Obter dados do clienteMaster e user do contexto
       const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       const userId = selectedClinicData?.user?.id
@@ -205,31 +224,52 @@ const ClienteNovo = () => {
         return
       }
 
-      // Preparar dados para a API
-      const payload = {
-        masterClientId: clienteMasterId,
-        dadosPessoais: {
-          nomePaciente: formData.nome,
-          cpf: formData.cpf.replace(/\D/g, ''),
-          dataNascimento: formData.dataNascimento,
-          email: formData.email,
-          telefone: formData.telefone.replace(/\D/g, ''),
-          status: formData.status || 'avaliacao-realizada'
-        },
-        endereco: {
-          cep: formData.cep.replace(/\D/g, ''),
-          rua: formData.rua,
-          numero: formData.numero,
-          complemento: formData.complemento,
-          bairro: formData.bairro,
-          cidade: formData.cidade,
-          estado: formData.estado
-        },
-        informacoesClinicas: {
-          necessidades: formData.necessidades, // Já é um array
-          observacoes: formData.observacoes
-        }
+      // Preparar dados para a API seguindo a estrutura do curl de exemplo
+      const cpfLimpo = formData.cpf.replace(/\D/g, '')
+      const telefoneLimpo = formData.telefone.replace(/\D/g, '')
+      const cepLimpo = formData.cep.replace(/\D/g, '')
+
+      // Construir dadosPessoais - seguindo exatamente a estrutura do curl
+      const dadosPessoais = {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(),
+        telefone: telefoneLimpo,
+        status: formData.status || 'avaliacao-realizada'
       }
+      
+      // Adicionar campos opcionais (cpf e dataNascimento podem ser omitidos se vazios)
+      if (cpfLimpo) dadosPessoais.cpf = cpfLimpo
+      if (formData.dataNascimento) dadosPessoais.dataNascimento = formData.dataNascimento
+
+      // Construir endereco - incluir todos os campos, mesmo vazios (como no curl)
+      const endereco = {
+        cep: cepLimpo || '',
+        rua: formData.rua?.trim() || '',
+        numero: formData.numero?.trim() || '',
+        complemento: formData.complemento?.trim() || '',
+        bairro: formData.bairro?.trim() || '',
+        cidade: formData.cidade?.trim() || '',
+        estado: formData.estado?.trim() || ''
+      }
+
+      // Construir informacoesClinicas
+      const informacoesClinicas = {
+        necessidades: formData.necessidades && formData.necessidades.length > 0 
+          ? formData.necessidades 
+          : [],
+        observacoes: formData.observacoes?.trim() || ''
+      }
+
+      // Montar payload completo seguindo exatamente a estrutura do curl
+      const payload = {
+        clienteMasterId: clienteMasterId,
+        dadosPessoais: dadosPessoais,
+        endereco: endereco,
+        informacoesClinicas: informacoesClinicas
+      }
+
+      // Log para debug
+      console.log('Payload enviado:', JSON.stringify(payload, null, 2))
 
       let response
       if (isEditMode) {
@@ -245,7 +285,23 @@ const ClienteNovo = () => {
       navigate(`/app/clientes/${pacienteId}`)
     } catch (error) {
       console.error('Erro ao salvar paciente:', error)
-      const errorMessage = error.response?.data?.message || 'Erro ao salvar paciente. Tente novamente.'
+      console.error('Status:', error.response?.status)
+      console.error('Data do erro:', error.response?.data)
+      
+      let errorMessage = 'Erro ao salvar paciente. Tente novamente.'
+      
+      if (error.response?.data) {
+        const errorData = error.response.data
+        errorMessage = errorData.message || errorData.error || errorMessage
+        
+        // Se houver detalhes de validação, mostrar
+        if (errorData.message && errorData.message.includes('validation')) {
+          errorMessage += '\n\nVerifique se todos os campos obrigatórios estão preenchidos corretamente.'
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       alert(errorMessage)
       setLoading(false)
     }

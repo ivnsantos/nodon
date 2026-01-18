@@ -7,7 +7,6 @@ import {
 import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
-import api from '../utils/api'
 import './Chat.css'
 
 const Chat = () => {
@@ -262,7 +261,7 @@ const Chat = () => {
       const conversationId = data.conversationId || data.id || data.conversation_id || null
       
       // Fazer requisição POST com streaming
-      const response = await fetch(`${baseURL}/chat/stream`, {
+      const streamResponse = await fetch(`${baseURL}/chat/stream`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -271,8 +270,8 @@ const Chat = () => {
         body: JSON.stringify(payload)
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      if (!streamResponse.ok) {
+        throw new Error(`HTTP error! status: ${streamResponse.status}`)
       }
 
       setIsThinking(false)
@@ -295,7 +294,7 @@ const Chat = () => {
 
       let chatText = ''
       let tokensUsed = 0
-      const reader = response.body.getReader()
+      const reader = streamResponse.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
 
@@ -422,6 +421,8 @@ const Chat = () => {
         role: 'assistant',
         content: errorContent,
         isTyping: false
+      }
+      
       // Tentar usar resposta mockada como fallback
       try {
         const aiResponse = generateMockResponse(messageToSend)

@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faXRay, faPlus, faImage, faFileMedical, faCalendar, faUser,
   faSearch, faCheck, faTimes, faEnvelope, faIdCard,
-  faExclamationTriangle, faEye, faTrash
+  faExclamationTriangle, faEye, faTrash, faUserMd, faUsers
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import exameImage from '../img/exame.jpg'
@@ -57,7 +57,7 @@ const getMockDiagnosticos = () => {
 
 const Diagnosticos = () => {
   const navigate = useNavigate()
-  const { selectedClinicData } = useAuth()
+  const { selectedClinicData, user } = useAuth()
   const [diagnosticos, setDiagnosticos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -74,6 +74,13 @@ const Diagnosticos = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [diagnosticoToDelete, setDiagnosticoToDelete] = useState(null)
   const [savingRadiografia, setSavingRadiografia] = useState(false)
+  
+  // Estados para modal de seleção de responsável
+  const [showResponsavelModal, setShowResponsavelModal] = useState(false)
+  const [responsaveis, setResponsaveis] = useState([])
+  const [selectedResponsavel, setSelectedResponsavel] = useState(null)
+  const [loadingResponsaveis, setLoadingResponsaveis] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState(null)
   
   // Formulário de radiografia
   const [formData, setFormData] = useState({
@@ -93,23 +100,97 @@ const Diagnosticos = () => {
     telefone: ''
   })
 
-  // Carregar todos os pacientes do masterClientId
-  const loadPacientes = async () => {
+  // Carregar responsáveis (users e usuarios)
+  const loadResponsaveis = async () => {
     try {
-      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      setLoadingResponsaveis(true)
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      if (!masterClientId) {
-        console.error('masterClientId não encontrado')
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
+        setResponsaveis([])
         return
       }
 
-      const response = await api.get(`/pacientes?masterClientId=${masterClientId}`)
+      // Buscar users e usuarios em paralelo usando as rotas corretas
+      const [usersResponse, usuariosResponse] = await Promise.all([
+        api.get('/users').catch((err) => {
+          console.log('Erro ao buscar users:', err)
+          return { data: [] }
+        }),
+        api.get(`/users/usuarios-comum/listar?cliente_master_id=${clienteMasterId}`).catch((err) => {
+          console.log('Erro ao buscar usuarios:', err)
+          return { data: [] }
+        })
+      ])
+
+      console.log('Response users:', usersResponse.data)
+      console.log('Response usuarios:', usuariosResponse.data)
+
+      const users = usersResponse.data?.data || usersResponse.data || []
+      const usuarios = usuariosResponse.data?.data || usuariosResponse.data || []
+
+      // Normalizar e combinar as listas
+      const usersNormalizados = (Array.isArray(users) ? users : []).map(u => ({
+        id: u.id,
+        nome: u.nome || u.name || u.email,
+        email: u.email || '',
+        tipo: 'user',
+        label: 'Usuário Master'
+      }))
+
+      const usuariosNormalizados = (Array.isArray(usuarios) ? usuarios : []).map(usuario => ({
+        id: usuario.id,
+        nome: usuario.nome || usuario.name || usuario.email,
+        email: usuario.email || '',
+        tipo: 'usuario',
+        label: 'Usuário Comum'
+      }))
+
+      // Combinar todas as listas
+      let todosResponsaveis = [...usersNormalizados, ...usuariosNormalizados]
+
+      // Se o usuário logado não está na lista, adicionar
+      if (user && user.id) {
+        const usuarioLogadoJaNaLista = todosResponsaveis.some(r => r.id === user.id)
+        if (!usuarioLogadoJaNaLista) {
+          todosResponsaveis.unshift({
+            id: user.id,
+            nome: user.nome || user.name || user.email,
+            email: user.email || '',
+            tipo: 'user',
+            label: 'Usuário Logado'
+          })
+        }
+      }
+
+      console.log('Responsáveis encontrados:', todosResponsaveis)
+      setResponsaveis(todosResponsaveis)
+    } catch (error) {
+      console.error('Erro ao carregar responsáveis:', error)
+      setResponsaveis([])
+    } finally {
+      setLoadingResponsaveis(false)
+    }
+  }
+
+  // Carregar todos os pacientes do clienteMasterId
+  const loadPacientes = async () => {
+    try {
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
+        return
+      }
+
+      const response = await api.get(`/pacientes?clienteMasterId=${clienteMasterId}`)
       const pacientes = response.data?.data || response.data || []
       
       // Normalizar dados dos pacientes para o formato esperado
       const pacientesNormalizados = pacientes.map(paciente => ({
         id: paciente.id,
-        nome: paciente.nomePaciente || '',
+        nome: paciente.nome || '',
         email: paciente.email || '',
         cpf: paciente.cpf || '',
         telefone: paciente.telefone || ''
@@ -192,24 +273,24 @@ const Diagnosticos = () => {
     try {
       setLoading(true)
       
-      // Obter masterClientId do contexto
-      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Obter clienteMasterId do contexto
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      if (!masterClientId) {
-        console.error('masterClientId não encontrado')
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
         setDiagnosticos([])
         setLoading(false)
         return
       }
 
       // Fazer GET para buscar radiografias
-      const response = await api.get(`/radiografias?masterClientId=${masterClientId}`)
+      const response = await api.get(`/radiografias?clienteMasterId=${clienteMasterId}`)
       const radiografias = response.data?.data || response.data || []
       
       // Normalizar dados das radiografias para o formato esperado
       const diagnosticosNormalizados = radiografias.map(radiografia => ({
         id: radiografia.id,
-        paciente: radiografia.nomePaciente || radiografia.nome || '',
+        paciente: radiografia.nome || radiografia.nome || '',
         descricao: radiografia.tipoExame || '',
         tratamento: radiografia.tratamento || '',
         data: radiografia.data || '',
@@ -220,7 +301,7 @@ const Diagnosticos = () => {
           ? radiografia.imagens.map(img => img.url || img).filter(Boolean)
           : [],
         cliente_id: radiografia.pacienteId || null,
-        cliente_nome: radiografia.nomePaciente || '',
+        cliente_nome: radiografia.nome || '',
         cliente_email: radiografia.emailPaciente || '',
         created_at: radiografia.createdAt || new Date().toISOString()
       }))
@@ -323,6 +404,7 @@ const Diagnosticos = () => {
     }
   }
 
+  // Abre o modal de seleção de responsável
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!selectedCliente) {
@@ -351,17 +433,36 @@ const Diagnosticos = () => {
       return
     }
 
+    // Salvar dados do formulário e abrir modal de responsável
+    setPendingFormData({ ...formData })
+    setSelectedResponsavel(null)
+    loadResponsaveis()
+    setShowResponsavelModal(true)
+  }
+
+  // Função que realmente envia os dados após selecionar responsável
+  const handleConfirmCadastro = async () => {
+    if (!selectedResponsavel) {
+      showAlert('Por favor, selecione um responsável')
+      return
+    }
+
+    setShowResponsavelModal(false)
+
     try {
-      // Obter masterClientId do contexto
-      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Obter clienteMasterId do contexto
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      if (!masterClientId) {
+      if (!clienteMasterId) {
         showAlert('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')
         return
       }
 
+      // Usar pendingFormData que foi salvo antes de abrir o modal
+      const formDataToUse = pendingFormData || formData
+
       // Preparar imagens - usar selectedImages ou formData.imagem
-      const imagensArray = selectedImages.length > 0 ? selectedImages : (formData.imagem || [])
+      const imagensArray = selectedImages.length > 0 ? selectedImages : (formDataToUse.imagem || [])
       const imagens = Array.isArray(imagensArray) && imagensArray.length > 0
         ? imagensArray
             .filter(img => img && typeof img === 'string' && img.length > 0 && (img.startsWith('data:image') || img.startsWith('http')))
@@ -370,22 +471,26 @@ const Diagnosticos = () => {
             }))
         : []
       
-      // Preparar payload para a API
+      // Preparar payload para a API - incluindo responsavel e pacienteId
       const payload = {
-        nomePaciente: selectedCliente.nome,
+        nome: selectedCliente.nome,
         emailPaciente: selectedCliente.email || '',
-        radiografia: formData.radiografica.trim(),
-        data: formData.data,
+        radiografia: formDataToUse.radiografica?.trim() || '',
+        data: formDataToUse.data,
+        tipoExame: formDataToUse.descricao?.trim() || '',
+        tratamento: formDataToUse.tratamento?.trim() || '',
         imagens: imagens,
-        tipoExame: formData.descricao.trim(),
-        tratamento: formData.tratamento.trim()
+        pacienteId: selectedCliente.id, // ID do paciente selecionado
+        responsavel: selectedResponsavel.id // ID do responsável selecionado
       }
 
       // Log detalhado para debug
       console.log('=== DEBUG POST RADIOGRAFIA ===')
       console.log('Payload completo:', JSON.stringify(payload, null, 2))
-      console.log('masterClientId:', masterClientId)
-      console.log('URL:', `/radiografias?masterClientId=${masterClientId}`)
+      console.log('clienteMasterId:', clienteMasterId)
+      console.log('Paciente selecionado:', selectedCliente)
+      console.log('Responsável selecionado:', selectedResponsavel)
+      console.log('URL:', `/radiografias?clienteMasterId=${clienteMasterId}`)
       console.log('Número de imagens:', imagens.length)
       if (imagens.length > 0) {
         console.log('Primeira imagem (primeiros 100 chars):', imagens[0].url.substring(0, 100))
@@ -396,7 +501,7 @@ const Diagnosticos = () => {
       setSavingRadiografia(true)
 
       // Fazer POST para criar radiografia
-      const response = await api.post(`/radiografias?masterClientId=${masterClientId}`, payload)
+      const response = await api.post(`/radiografias?clienteMasterId=${clienteMasterId}`, payload)
       
       console.log('Resposta da API:', response.data)
       
@@ -414,6 +519,8 @@ const Diagnosticos = () => {
       setSelectedCliente(null)
       setSearchTerm('')
       setSearchResults([])
+      setPendingFormData(null)
+      setSelectedResponsavel(null)
       
       // Recarregar lista de radiografias
       await fetchDiagnosticos()
@@ -951,6 +1058,91 @@ const Diagnosticos = () => {
               >
                 <FontAwesomeIcon icon={faTrash} />
                 Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seleção de Responsável */}
+      {showResponsavelModal && (
+        <div className="modal-overlay" onClick={() => setShowResponsavelModal(false)}>
+          <div className="modal-responsavel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-responsavel-header">
+              <div className="modal-responsavel-icon">
+                <FontAwesomeIcon icon={faUserMd} />
+              </div>
+              <h3>Selecione o Responsável</h3>
+              <p>Escolha o profissional responsável por esta radiografia</p>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowResponsavelModal(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            
+            <div className="modal-responsavel-content">
+              {loadingResponsaveis ? (
+                <div className="loading-responsaveis">
+                  <div className="loading-spinner"></div>
+                  <p>Carregando responsáveis...</p>
+                </div>
+              ) : responsaveis.length === 0 ? (
+                <div className="empty-responsaveis">
+                  <FontAwesomeIcon icon={faUsers} />
+                  <p>Nenhum responsável encontrado</p>
+                </div>
+              ) : (
+                <div className="responsaveis-list">
+                  {responsaveis.map((responsavel) => (
+                    <div
+                      key={`${responsavel.tipo}-${responsavel.id}`}
+                      className={`responsavel-item ${selectedResponsavel?.id === responsavel.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedResponsavel(responsavel)}
+                    >
+                      <div className="responsavel-avatar">
+                        <FontAwesomeIcon icon={faUser} />
+                      </div>
+                      <div className="responsavel-info">
+                        <span className="responsavel-nome">{responsavel.nome}</span>
+                        <span className="responsavel-email">{responsavel.email}</span>
+                        <span className={`responsavel-tipo ${responsavel.tipo}`}>{responsavel.label}</span>
+                      </div>
+                      {selectedResponsavel?.id === responsavel.id && (
+                        <div className="responsavel-check">
+                          <FontAwesomeIcon icon={faCheck} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-responsavel-actions">
+              <button 
+                className="btn-modal-cancel"
+                onClick={() => setShowResponsavelModal(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-modal-confirm"
+                onClick={handleConfirmCadastro}
+                disabled={!selectedResponsavel || savingRadiografia}
+              >
+                {savingRadiografia ? (
+                  <>
+                    <div className="loading-spinner-small"></div>
+                    Cadastrando...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faCheck} />
+                    Cadastrar Radiografia
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -9,12 +9,14 @@ import {
   faXRay, faEye
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import { useAuth } from '../context/AuthContext'
 import exameImage from '../img/exame.jpg'
 import './ClienteDetalhes.css'
 
 const ClienteDetalhes = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { selectedClinicData } = useAuth()
   const [cliente, setCliente] = useState(null)
   const [historico, setHistorico] = useState([])
   const [radiografias, setRadiografias] = useState([])
@@ -50,7 +52,7 @@ const ClienteDetalhes = () => {
         // A API retorna os dados diretamente no objeto, não aninhados
         const clienteNormalizado = {
           id: paciente.id,
-          nome: paciente.nomePaciente || '',
+          nome: paciente.nome || '',
           email: paciente.email || '',
           telefone: paciente.telefone || '',
           cpf: paciente.cpf || '',
@@ -134,7 +136,7 @@ const ClienteDetalhes = () => {
       'telefone': 'observacao',
       'cpf': 'observacao',
       'dataNascimento': 'observacao',
-      'nomePaciente': 'observacao',
+      'nome': 'observacao',
       'endereco': 'observacao'
     }
     return campoMap[campoAlterado] || 'observacao'
@@ -209,37 +211,40 @@ const ClienteDetalhes = () => {
 
   const loadRadiografias = async (clienteData = null) => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      // Buscar radiografias do localStorage filtradas por cliente_id
-      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-      const clienteId = parseInt(id)
-      const clienteInfo = clienteData || cliente
-      
-      // Filtrar radiografias do cliente
-      let radiografiasCliente = []
-      
-      if (clienteInfo) {
-        radiografiasCliente = savedDiagnosticos.filter(d => 
-          d.cliente_id === clienteId || 
-          (d.cliente_nome && d.cliente_nome === clienteInfo.nome)
-        )
-      } else {
-        // Se não tiver cliente, buscar por ID apenas
-        radiografiasCliente = savedDiagnosticos.filter(d => d.cliente_id === clienteId)
+      if (!clienteMasterId) {
+        console.log('clienteMasterId não encontrado')
+        setRadiografias([])
+        return
       }
+
+      // Buscar radiografias da API filtrando por pacienteId
+      const pacienteId = id // O ID do paciente vem da URL
+      const response = await api.get(`/radiografias?clienteMasterId=${clienteMasterId}&pacienteId=${pacienteId}`)
+      
+      const radiografiasData = response.data?.data || response.data || []
+      
+      // Normalizar dados das radiografias
+      const radiografiasNormalizadas = (Array.isArray(radiografiasData) ? radiografiasData : []).map(rad => ({
+        id: rad.id,
+        radiografia: rad.radiografia || rad.nome || '',
+        data: rad.data || '',
+        tipoExame: rad.tipoExame || '',
+        imagem: rad.imagens?.[0]?.url || exameImage
+      }))
       
       // Ordenar por data mais recente primeiro
-      radiografiasCliente.sort((a, b) => {
-        const dateA = new Date(a.data || a.created_at || 0)
-        const dateB = new Date(b.data || b.created_at || 0)
+      radiografiasNormalizadas.sort((a, b) => {
+        const dateA = new Date(a.data || 0)
+        const dateB = new Date(b.data || 0)
         return dateB - dateA
       })
       
-      setRadiografias(radiografiasCliente)
+      setRadiografias(radiografiasNormalizadas)
     } catch (error) {
       console.error('Erro ao carregar radiografias:', error)
+      setRadiografias([])
     }
   }
 
@@ -608,38 +613,20 @@ const ClienteDetalhes = () => {
                 Radiografias
               </h2>
               {radiografias.length > 0 ? (
-                <div className="radiografias-grid">
+                <div className="radiografias-list">
                   {radiografias.map((radiografia) => (
                     <div 
                       key={radiografia.id} 
-                      className="radiografia-card"
+                      className="radiografia-item"
                       onClick={() => navigate(`/app/diagnosticos/${radiografia.id}`)}
                     >
-                      <div className="radiografia-card-image">
-                        <img 
-                          src={radiografia.imagem && radiografia.imagem.startsWith('data:image') 
-                            ? radiografia.imagem 
-                            : exameImage} 
-                          alt={radiografia.paciente}
-                          onError={(e) => {
-                            e.target.src = exameImage
-                          }}
-                        />
-                        <div className="radiografia-card-overlay">
-                          <button className="btn-view-radiografia">
-                            <FontAwesomeIcon icon={faEye} /> Ver Detalhes
-                          </button>
-                        </div>
+                      <div className="radiografia-item-content">
+                        <FontAwesomeIcon icon={faXRay} className="radiografia-item-icon" />
+                        <span className="radiografia-item-nome">{radiografia.radiografia || 'Radiografia'}</span>
                       </div>
-                      <div className="radiografia-card-info">
-                        <h3>{radiografia.paciente || 'Radiografia'}</h3>
-                        <p className="radiografia-card-date">
-                          {new Date(radiografia.data || radiografia.created_at).toLocaleDateString('pt-BR')}
-                        </p>
-                        {radiografia.tipoExame && (
-                          <p className="radiografia-card-type">{radiografia.tipoExame}</p>
-                        )}
-                      </div>
+                      <button className="btn-view-radiografia-small">
+                        <FontAwesomeIcon icon={faEye} />
+                      </button>
                     </div>
                   ))}
                 </div>

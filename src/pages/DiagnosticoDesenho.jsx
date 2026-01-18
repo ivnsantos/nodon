@@ -1969,9 +1969,9 @@ const DiagnosticoDesenho = () => {
     try {
       setSaving(true)
       
-      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
-      if (!masterClientId) {
-        setCustomAlert({ show: true, message: 'Erro: masterClientId não encontrado', type: 'error' })
+      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      if (!clienteMasterId) {
+        setCustomAlert({ show: true, message: 'Erro: clienteMasterId não encontrado', type: 'error' })
         setTimeout(() => {
           setCustomAlert({ show: false, message: '', type: 'error' })
         }, 3000)
@@ -2021,7 +2021,7 @@ const DiagnosticoDesenho = () => {
       }
 
       // Fazer POST para salvar o desenho
-      await api.post(`/desenhos-profissionais?masterClientId=${masterClientId}`, payload)
+      await api.post(`/desenhos-profissionais?clienteMasterId=${clienteMasterId}`, payload)
       
       // Também salvar no localStorage para compatibilidade
       const drawingData = {

@@ -263,7 +263,6 @@
   justify-content: space-between;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   gap: 1rem;
 }
 
@@ -356,6 +355,18 @@
 
 .detalhes-text-content p:last-child {
   margin-bottom: 0;
+}
+
+/* Seção de Tratamento */
+.tratamento-content {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.tratamento-content p {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .detalhes-list {
