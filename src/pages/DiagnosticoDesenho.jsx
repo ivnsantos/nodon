@@ -3,15 +3,18 @@
  * Lousa interativa com drag and drop nativo
  */
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import api from '../utils/api'
 import { 
   faArrowLeft, faPalette, faUndo, faRedo,
   faSave, faFilter, faPencil, faSearchPlus,
   faSearchMinus, faExpand, faFont, faTimes,
   faFileAlt, faCheck, faCircle, faSquare, faMinus,
   faArrowRight, faCrosshairs, faChevronLeft, faChevronRight,
-  faDownload, faEdit, faStethoscope, faPlus, faTrash
+  faDownload, faEdit, faStethoscope, faPlus, faTrash,
+  faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons'
 import exameImage from '../img/exame.jpg'
 import denteparafusoImage from '../img/denteparafuso.png'
@@ -85,10 +88,15 @@ const getMockRadiografia = (id) => {
 const DiagnosticoDesenho = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { selectedClinicData } = useAuth()
   const boardRef = useRef(null)
   const canvasRef = useRef(null)
   const [radiografia, setRadiografia] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
+  const selectedImageUrl = location.state?.imagemUrl
   const [observacoes, setObservacoes] = useState('')
   const [editedTitulo, setEditedTitulo] = useState('')
   const [necessidades, setNecessidades] = useState([])
@@ -230,14 +238,61 @@ const DiagnosticoDesenho = () => {
   }
 
   /**
+   * Carrega imagem via proxy do backend para evitar problemas de CORS
+   * Se não houver proxy, retorna a URL original
+   */
+  const loadImageAsBlob = async (imageUrl) => {
+    // Se for uma imagem local ou base64, retornar diretamente
+    if (!imageUrl || imageUrl.startsWith('data:') || imageUrl.startsWith('/') || !imageUrl.startsWith('http')) {
+      return imageUrl
+    }
+    
+    // Tentar usar um endpoint de proxy no backend (se existir)
+    // Exemplo: /api/proxy-image?url=...
+    try {
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+      const response = await fetch(proxyUrl)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      // Proxy não disponível, retornar URL original
+      // O canvas pode ficar "tainted", mas a imagem será exibida
+    }
+    
+    // Se não houver proxy, retornar a URL original
+    // O canvas pode ficar "tainted", mas a imagem será exibida
+    return imageUrl
+  }
+
+  /**
    * Carrega imagem de fundo no canvas
    */
-  const drawImageOnCanvas = useCallback(() => {
+  const drawImageOnCanvas = useCallback(async () => {
     const canvas = canvasRef.current
     if (!canvas || !radiografia) return
 
     const ctx = canvas.getContext('2d')
     const img = new Image()
+    
+    // Usar imagem selecionada do state, depois imagem da radiografia, depois padrão
+    const imageSrc = selectedImageUrl || radiografia?.imagem || radiografia?.imagens?.[0] || exameImage
+    
+    // Para URLs externas, tentar usar proxy do backend se disponível
+    // Caso contrário, usar a URL original diretamente (canvas pode ficar "tainted")
+    let finalImageSrc = imageSrc
+    if (imageSrc && imageSrc.startsWith('http') && !imageSrc.startsWith('data:')) {
+      try {
+        const proxyResult = await loadImageAsBlob(imageSrc)
+        // Se retornou blob URL, usar; caso contrário, usar URL original
+        finalImageSrc = proxyResult
+      } catch (error) {
+        // Se houver erro, usar URL original
+        finalImageSrc = imageSrc
+      }
+    }
     
     img.onload = () => {
       if (!boardRef.current) {
@@ -268,7 +323,16 @@ const DiagnosticoDesenho = () => {
       // Desenhar imagem no tamanho original (sem distorção)
       ctx.drawImage(img, 0, 0, img.width, img.height)
       setImageLoaded(true)
-      saveState()
+      
+      // Limpar object URL se foi criado após um delay
+      if (finalImageSrc !== imageSrc && finalImageSrc.startsWith('blob:')) {
+        setTimeout(() => {
+          URL.revokeObjectURL(finalImageSrc)
+        }, 1000)
+      }
+      
+      // Não chamar saveState aqui para evitar erro de canvas tainted
+      // O saveState será chamado quando o usuário começar a desenhar
       console.log('Imagem carregada no canvas:', displayWidth, displayHeight, 'Board:', boardWidth, boardHeight)
     }
     
@@ -278,10 +342,10 @@ const DiagnosticoDesenho = () => {
       img.src = exameImage
     }
     
-    img.src = radiografia?.imagem || exameImage
-  }, [radiografia])
+    img.src = finalImageSrc
+  }, [radiografia, selectedImageUrl])
 
-  // Carregar imagem quando radiografia mudar
+  // Carregar imagem quando radiografia ou imagem selecionada mudar
   useEffect(() => {
     if (radiografia && canvasRef.current && boardRef.current) {
       const timer = setTimeout(() => {
@@ -289,7 +353,7 @@ const DiagnosticoDesenho = () => {
       }, 200)
       return () => clearTimeout(timer)
     }
-  }, [radiografia, drawImageOnCanvas])
+  }, [radiografia, selectedImageUrl, drawImageOnCanvas])
 
   // Redesenhar quando board mudar de tamanho
   useEffect(() => {
@@ -1769,20 +1833,224 @@ const DiagnosticoDesenho = () => {
   }
 
   /**
-   * Salva o desenho
+   * Captura a imagem completa (canvas + elementos) como base64
    */
-  const saveDrawing = () => {
-    const drawingData = {
-      elements,
-      observacoes,
-      selectedDentes,
-      radiografiaId: id
+  const captureCompleteImage = async () => {
+    const canvas = canvasRef.current
+    if (!canvas) return null
+    
+    try {
+      // Criar um canvas temporário para combinar canvas + elementos
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = canvas.width
+      tempCanvas.height = canvas.height
+      const tempCtx = tempCanvas.getContext('2d')
+      
+      // Tentar desenhar o canvas original primeiro
+      try {
+        tempCtx.drawImage(canvas, 0, 0)
+      } catch (error) {
+        console.warn('Canvas pode estar tainted, tentando recriar imagem de fundo via blob...', error)
+        // Se o canvas estiver tainted, recriar a imagem de fundo usando blob
+        const imageSrc = selectedImageUrl || radiografia?.imagem || radiografia?.imagens?.[0] || exameImage
+        
+        // Tentar carregar via blob se for URL externa
+        let finalSrc = imageSrc
+        if (imageSrc && !imageSrc.startsWith('data:') && !imageSrc.startsWith('/') && imageSrc.startsWith('http')) {
+          try {
+            finalSrc = await loadImageAsBlob(imageSrc)
+          } catch (e) {
+            console.warn('Erro ao carregar imagem via blob, usando URL original:', e)
+            finalSrc = imageSrc
+          }
+        }
+        
+        const img = new Image()
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            tempCtx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            resolve()
+          }
+          img.onerror = reject
+          img.src = finalSrc
+        })
+        
+        // Limpar blob URL se foi criado
+        if (finalSrc !== imageSrc && finalSrc.startsWith('blob:')) {
+          URL.revokeObjectURL(finalSrc)
+        }
+      }
+      
+      // Se não houver elementos, retornar apenas o canvas
+      if (elements.length === 0) {
+        try {
+          return tempCanvas.toDataURL('image/png')
+        } catch (error) {
+          console.error('Erro ao exportar canvas:', error)
+          throw new Error('Não foi possível exportar a imagem devido a restrições de segurança CORS. Certifique-se de que o servidor de imagens permite acesso CORS.')
+        }
+      }
+      
+      // Calcular escala do canvas em relação ao board
+      const boardWidth = boardRef.current?.offsetWidth || canvas.width
+      const boardHeight = boardRef.current?.offsetHeight || canvas.height
+      const scaleX = canvas.width / boardWidth
+      const scaleY = canvas.height / boardHeight
+      
+      // Carregar todas as imagens dos elementos
+      const loadImage = (src) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => resolve(img)
+          img.onerror = () => {
+            // Tentar sem CORS se falhar
+            img.crossOrigin = null
+            img.onload = () => resolve(img)
+            img.onerror = reject
+            img.src = src
+          }
+          img.src = src
+        })
+      }
+      
+      // Carregar todas as imagens em paralelo
+      const images = await Promise.all(
+        elements.map(element => loadImage(element.imageSrc))
+      )
+      
+      // Desenhar cada elemento no canvas temporário
+      elements.forEach((element, index) => {
+        const img = images[index]
+        if (!img) return
+        
+        // Salvar o estado do contexto
+        tempCtx.save()
+        
+        // Calcular posição e escala no canvas
+        const x = element.x * scaleX
+        const y = element.y * scaleY
+        const width = element.width * scaleX
+        const height = element.height * scaleY
+        
+        // Aplicar rotação se houver
+        if (element.rotation) {
+          const centerX = x + width / 2
+          const centerY = y + height / 2
+          tempCtx.translate(centerX, centerY)
+          tempCtx.rotate(element.rotation)
+          tempCtx.translate(-centerX, -centerY)
+        }
+        
+        // Desenhar a imagem do elemento
+        tempCtx.drawImage(img, x, y, width, height)
+        
+        // Restaurar o estado do contexto
+        tempCtx.restore()
+      })
+      
+      // Tentar exportar o canvas
+      try {
+        return tempCanvas.toDataURL('image/png')
+      } catch (error) {
+        console.error('Erro ao exportar canvas final:', error)
+        throw new Error('Não foi possível exportar a imagem devido a restrições de segurança CORS. Certifique-se de que o servidor de imagens permite acesso CORS.')
+      }
+    } catch (error) {
+      console.error('Erro ao capturar imagem completa:', error)
+      throw error
     }
-    
-    // Salvar no localStorage (futuramente via API)
-    localStorage.setItem(`drawing_${id}`, JSON.stringify(drawingData))
-    
-    alert('Desenho salvo com sucesso!')
+  }
+
+  /**
+   * Salva o desenho na API
+   */
+  const saveDrawing = async () => {
+    try {
+      setSaving(true)
+      
+      const masterClientId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      if (!masterClientId) {
+        setCustomAlert({ show: true, message: 'Erro: masterClientId não encontrado', type: 'error' })
+        setTimeout(() => {
+          setCustomAlert({ show: false, message: '', type: 'error' })
+        }, 3000)
+        setSaving(false)
+        return
+      }
+
+      // Capturar imagem completa como base64
+      let imagemDesenhadaBase64
+      try {
+        imagemDesenhadaBase64 = await captureCompleteImage()
+        if (!imagemDesenhadaBase64) {
+          setCustomAlert({ show: true, message: 'Erro ao capturar imagem do desenho', type: 'error' })
+          setTimeout(() => {
+            setCustomAlert({ show: false, message: '', type: 'error' })
+          }, 3000)
+          setSaving(false)
+          return
+        }
+      } catch (error) {
+        console.error('Erro ao capturar imagem:', error)
+        const errorMessage = error.message || 'Erro ao capturar imagem do desenho'
+        setCustomAlert({ show: true, message: errorMessage + '. Se o erro persistir, verifique se o servidor de imagens está configurado para permitir CORS.', type: 'error' })
+        setTimeout(() => {
+          setCustomAlert({ show: false, message: '', type: 'error' })
+        }, 5000)
+        setSaving(false)
+        return
+      }
+
+      // Preparar dados para enviar
+      const payload = {
+        tituloDesenho: editedTitulo.trim() || 'Desenho Profissional',
+        imagemDesenhada: {
+          url: imagemDesenhadaBase64
+        },
+        dentesAnotacoes: selectedDentes.map(dente => ({
+          dente: dente.numero.toString(),
+          descricao: dente.descricao || ''
+        })),
+        necessidades: editedNecessidades.map(nec => ({
+          procedimento: typeof nec === 'object' && nec !== null ? (nec.procedimento || '') : '',
+          anotacoes: typeof nec === 'object' && nec !== null ? (nec.anotacoes || '') : ''
+        })),
+        observacoes: observacoes || '',
+        radiografiaId: id // ID da radiografia (obrigatório)
+      }
+
+      // Fazer POST para salvar o desenho
+      await api.post(`/desenhos-profissionais?masterClientId=${masterClientId}`, payload)
+      
+      // Também salvar no localStorage para compatibilidade
+      const drawingData = {
+        elements,
+        observacoes,
+        selectedDentes,
+        radiografiaId: id
+      }
+      localStorage.setItem(`drawing_${id}`, JSON.stringify(drawingData))
+      
+      // Mostrar toast de sucesso
+      setCustomAlert({ show: true, message: 'Desenho salvo com sucesso!', type: 'success' })
+      
+      // Manter loading até navegar para mostrar feedback visual completo
+      // Navegar de volta após um pequeno delay para mostrar o toast
+      setTimeout(() => {
+        setSaving(false)
+        navigate(`/app/diagnosticos/${id}`)
+      }, 1500)
+    } catch (error) {
+      console.error('Erro ao salvar desenho:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao salvar desenho. Tente novamente.'
+      setCustomAlert({ show: true, message: errorMessage, type: 'error' })
+      setTimeout(() => {
+        setCustomAlert({ show: false, message: '', type: 'error' })
+      }, 3000)
+      // Desativar loading em caso de erro
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -1797,6 +2065,28 @@ const DiagnosticoDesenho = () => {
 
   return (
     <div>
+      {/* Custom Alert Toast */}
+      {customAlert.show && (
+        <div className={`custom-alert ${customAlert.type}`}>
+          <div className="alert-content">
+            <div className="alert-icon">
+              {customAlert.type === 'success' ? (
+                <FontAwesomeIcon icon={faCheck} />
+              ) : (
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+              )}
+            </div>
+            <div className="alert-message">{customAlert.message}</div>
+            <button 
+              className="alert-close"
+              onClick={() => setCustomAlert({ show: false, message: '', type: 'error' })}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="desenho-header">
         <div className="header-left">
@@ -1821,8 +2111,13 @@ const DiagnosticoDesenho = () => {
           <button className="btn-download-header" onClick={downloadDrawing} title="Download">
             <FontAwesomeIcon icon={faDownload} /> Download
           </button>
-          <button className="btn-salvar-header" onClick={saveDrawing} title="Salvar">
-            <FontAwesomeIcon icon={faSave} /> Salvar
+          <button 
+            className="btn-salvar-header" 
+            onClick={saveDrawing} 
+            title="Salvar"
+            disabled={saving}
+          >
+            <FontAwesomeIcon icon={faSave} /> {saving ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
       </div>
@@ -2553,8 +2848,21 @@ const DiagnosticoDesenho = () => {
           <button className="btn-exportar-pdf" onClick={handleExportPDF}>
             <FontAwesomeIcon icon={faFileAlt} /> Exportar PDF
           </button>
-          <button className="btn-salvar-observacoes" onClick={saveDrawing}>
-            <FontAwesomeIcon icon={faSave} /> SALVAR
+          <button 
+            className="btn-salvar-observacoes" 
+            onClick={saveDrawing}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <div className="loading-spinner-small"></div>
+                <span>SALVANDO...</span>
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faSave} /> SALVAR
+              </>
+            )}
           </button>
         </div>
       </div>
