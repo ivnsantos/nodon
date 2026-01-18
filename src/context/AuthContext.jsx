@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [selectedClinicId, setSelectedClinicIdState] = useState(null)
   const [selectedClinicData, setSelectedClinicData] = useState(null)
   const [userComumId, setUserComumId] = useState(null)
+  const [planoAcesso, setPlanoAcesso] = useState(null) // 'chat' ou 'all'
 
   useEffect(() => {
     const token = sessionStorage.getItem('token')
@@ -42,6 +43,18 @@ export const AuthProvider = ({ children }) => {
         try {
           const clinicData = JSON.parse(savedClinicData)
           setSelectedClinicData(clinicData)
+          
+          // Restaurar acesso do plano
+          const savedAcesso = sessionStorage.getItem('planoAcesso')
+          if (savedAcesso) {
+            setPlanoAcesso(savedAcesso)
+          } else {
+            // Tentar extrair do relacionamento ou plano
+            const acesso = clinicData.relacionamento?.acesso || clinicData.plano?.acesso || 'all'
+            setPlanoAcesso(acesso)
+            sessionStorage.setItem('planoAcesso', acesso)
+          }
+          
           // Restaurar relacionamento se existir
           if (clinicData.relacionamento) {
             sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
@@ -63,6 +76,12 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
           console.error('Erro ao restaurar dados do cliente master:', error)
         }
+      }
+      
+      // Restaurar acesso do plano se não foi restaurado acima
+      const savedAcesso = sessionStorage.getItem('planoAcesso')
+      if (savedAcesso) {
+        setPlanoAcesso(savedAcesso)
       }
       
       // Restaurar userComumId apenas se o relacionamento for tipo "usuario"
@@ -338,9 +357,11 @@ export const AuthProvider = ({ children }) => {
     // Limpar dados antigos antes de buscar novos
     setSelectedClinicData(null)
     setUserComumId(null)
+    setPlanoAcesso(null)
     sessionStorage.removeItem('selectedClinicData')
     sessionStorage.removeItem('relacionamento')
     sessionStorage.removeItem('userComumId')
+    sessionStorage.removeItem('planoAcesso')
     
     // Atualizar o ID do consultório selecionado
     setSelectedClinicIdState(clinicId)
@@ -367,29 +388,46 @@ export const AuthProvider = ({ children }) => {
           setUserComumId(null)
           sessionStorage.removeItem('userComumId')
         }
+        
+        // Extrair e salvar acesso do plano
+        const acesso = relacionamento.acesso || clinicData.plano?.acesso || 'all'
+        setPlanoAcesso(acesso)
+        sessionStorage.setItem('planoAcesso', acesso)
       } else {
         // Se não houver relacionamento, limpar userComumId
         setUserComumId(null)
         sessionStorage.removeItem('userComumId')
+        // Definir acesso padrão como 'all'
+        setPlanoAcesso('all')
+        sessionStorage.setItem('planoAcesso', 'all')
       }
       return
     }
     
     // Buscar dados completos do cliente master selecionado usando a rota /complete
     try {
-      // Chamar API via POST com o ID no header
-      const response = await api.post('/clientes-master/complete', {}, {
+      // Chamar API via GET com o ID no header
+      const response = await api.get('/clientes-master/complete', {
         headers: {
           'X-Cliente-Master-Id': clinicId
         }
       })
+      
+      // A estrutura pode ser: response.data.data ou response.data
       const data = response.data?.data || response.data
       
       if (data) {
         // Garantir que o relacionamento seja salvo
-        // A estrutura já vem com relacionamento: { tipo: "clienteMaster", id: "..." }
+        // A estrutura já vem com relacionamento: { tipo: "clienteMaster", id: "...", acesso: "all" ou "chat" }
         setSelectedClinicData(data)
         sessionStorage.setItem('selectedClinicData', JSON.stringify(data))
+        
+        // Extrair e salvar o acesso do plano
+        // O acesso pode vir de: data.relacionamento.acesso ou data.plano.acesso
+        const acesso = data.relacionamento?.acesso || data.plano?.acesso || 'all'
+        setPlanoAcesso(acesso)
+        sessionStorage.setItem('planoAcesso', acesso)
+        console.log('Acesso do plano:', acesso)
         
         // Salvar também o relacionamento separadamente para fácil acesso
         if (data.relacionamento) {
@@ -478,6 +516,7 @@ export const AuthProvider = ({ children }) => {
     getRelacionamento,
     userComumId,
     clearUserComumId,
+    planoAcesso,
     loading
   }
 

@@ -13,7 +13,7 @@ import './Layout.css'
 const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario, clearUserComumId } = useAuth()
+  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario, clearUserComumId, planoAcesso } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   
@@ -60,11 +60,26 @@ const Layout = () => {
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
   ]
 
-  // Filtrar menu items baseado no tipo de relacionamento
+  // Filtrar menu items baseado no tipo de relacionamento e acesso do plano
+  let menuItems = allMenuItems
+  
   // Se for tipo "usuario", não mostrar a aba "Usuário"
-  const menuItems = isUsuario() 
-    ? allMenuItems.filter(item => item.path !== '/app/dentistas')
-    : allMenuItems
+  if (isUsuario()) {
+    menuItems = menuItems.filter(item => item.path !== '/app/dentistas')
+  }
+  
+  // Filtrar baseado no acesso do plano
+  if (planoAcesso === 'chat') {
+    // Se acesso for "chat", mostrar apenas Chat e Perfil
+    menuItems = menuItems.filter(item => 
+      item.path === '/app/chat' || 
+      item.path === '/app/perfil'
+    )
+  } else if (planoAcesso === 'all') {
+    // Se acesso for "all", mostrar todos (já filtrado acima se for usuário comum)
+    // Não precisa fazer nada, já tem todos os itens
+  }
+  // Se planoAcesso for null ou undefined, mostrar todos (compatibilidade)
 
   const handleLogout = async () => {
     await logout()

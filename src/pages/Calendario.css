@@ -1428,7 +1428,7 @@
 /* Custom Alert */
 .custom-alert {
   position: fixed;
-  top: 2rem;
+  top: 5rem;
   right: 2rem;
   z-index: 10000;
   animation: slideInRight 0.3s ease-out;

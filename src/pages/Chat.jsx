@@ -4,6 +4,7 @@ import {
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
   faHistory, faBars, faTimes, faPlus
 } from '@fortawesome/free-solid-svg-icons'
+import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
 import './Chat.css'
 
@@ -67,25 +68,54 @@ const Chat = () => {
   const loadConversations = async () => {
     try {
       setLoadingHistory(true)
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
       
-      // Buscar histórico do localStorage
-      const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
+      // Buscar histórico da API
+      const response = await api.get('/chat/history')
+      const data = response.data?.data || response.data
+      
+      // A estrutura pode variar, então vamos tratar diferentes formatos
+      let conversationsList = []
+      if (Array.isArray(data)) {
+        conversationsList = data
+      } else if (data?.conversations) {
+        conversationsList = data.conversations
+      } else if (data?.history) {
+        conversationsList = data.history
+      }
       
       // Agrupar conversas por data
-      const grouped = savedHistory.reduce((acc, conv) => {
-        const date = new Date(conv.created_at).toLocaleDateString('pt-BR')
+      const grouped = conversationsList.reduce((acc, conv) => {
+        const date = new Date(conv.created_at || conv.createdAt || Date.now()).toLocaleDateString('pt-BR')
         if (!acc[date]) {
           acc[date] = []
         }
-        acc[date].push(conv)
+        acc[date].push({
+          id: conv.id || conv.conversationId,
+          mensagem: conv.mensagem || conv.message || conv.userMessage || '',
+          resposta: conv.resposta || conv.response || conv.assistantMessage || '',
+          created_at: conv.created_at || conv.createdAt || new Date().toISOString()
+        })
         return acc
       }, {})
       
       setConversations(grouped)
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
+      // Em caso de erro, tentar carregar do localStorage como fallback
+      try {
+        const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
+        const grouped = savedHistory.reduce((acc, conv) => {
+          const date = new Date(conv.created_at).toLocaleDateString('pt-BR')
+          if (!acc[date]) {
+            acc[date] = []
+          }
+          acc[date].push(conv)
+          return acc
+        }, {})
+        setConversations(grouped)
+      } catch (fallbackError) {
+        console.error('Erro ao carregar histórico do localStorage:', fallbackError)
+      }
     } finally {
       setLoadingHistory(false)
     }
@@ -93,23 +123,63 @@ const Chat = () => {
 
   const loadConversation = async (conversationId) => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Buscar conversa específica da API
+      const response = await api.get(`/chat/history/${conversationId}`)
+      const data = response.data?.data || response.data
       
-      // Buscar do histórico do localStorage
-      const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
-      const conv = savedHistory.find(c => c.id === conversationId)
-      
-      if (conv) {
-        setMessages([
-          { role: 'user', content: conv.mensagem },
-          { role: 'assistant', content: conv.resposta, isTyping: false }
-        ])
-        setCurrentConversationId(conversationId)
-        setShowHistory(false)
+      if (data) {
+        // Mapear mensagens da API para o formato do componente
+        const messagesList = []
+        
+        // Se a API retornar mensagens individuais
+        if (Array.isArray(data.messages)) {
+          data.messages.forEach(msg => {
+            messagesList.push({
+              role: msg.role || (msg.tipo === 'user' ? 'user' : 'assistant'),
+              content: msg.content || msg.mensagem || msg.text || '',
+              isTyping: false
+            })
+          })
+        } else {
+          // Se a API retornar mensagem e resposta separadas
+          if (data.mensagem || data.message || data.userMessage) {
+            messagesList.push({
+              role: 'user',
+              content: data.mensagem || data.message || data.userMessage
+            })
+          }
+          if (data.resposta || data.response || data.assistantMessage) {
+            messagesList.push({
+              role: 'assistant',
+              content: data.resposta || data.response || data.assistantMessage,
+              isTyping: false
+            })
+          }
+        }
+        
+        if (messagesList.length > 0) {
+          setMessages(messagesList)
+          setCurrentConversationId(conversationId)
+          setShowHistory(false)
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar conversa:', error)
+      // Fallback para localStorage
+      try {
+        const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
+        const conv = savedHistory.find(c => c.id === conversationId)
+        if (conv) {
+          setMessages([
+            { role: 'user', content: conv.mensagem },
+            { role: 'assistant', content: conv.resposta, isTyping: false }
+          ])
+          setCurrentConversationId(conversationId)
+          setShowHistory(false)
+        }
+      } catch (fallbackError) {
+        console.error('Erro ao carregar conversa do localStorage:', fallbackError)
+      }
     }
   }
 
@@ -156,13 +226,26 @@ const Chat = () => {
     setIsThinking(true)
 
     try {
-      // Simular delay de pensamento
-      await new Promise(resolve => setTimeout(resolve, 800))
+      setIsThinking(true)
       
-      // Gerar resposta mockada baseada na mensagem
-      const aiResponse = generateMockResponse(messageToSend)
+      // Enviar mensagem para a API
+      const response = await api.post('/chat', {
+        message: messageToSend,
+        conversationId: currentConversationId || null
+      })
+      
+      const data = response.data?.data || response.data
+      
+      // Extrair resposta da IA
+      const aiResponse = data.response || data.resposta || data.message || data.assistantMessage || ''
+      const conversationId = data.conversationId || data.id || data.conversation_id || null
       
       setIsThinking(false)
+      
+      // Se recebeu um conversationId, atualizar
+      if (conversationId && !currentConversationId) {
+        setCurrentConversationId(conversationId)
+      }
       
       // Simular digitação da IA palavra por palavra com velocidade variável
       const words = aiResponse.split(' ')
@@ -218,28 +301,85 @@ const Chat = () => {
         return newMessages
       })
       
-      // Salvar no histórico
-      const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
-      const newConversation = {
-        id: Date.now(),
-        mensagem: messageToSend,
-        resposta: aiResponse,
-        created_at: new Date().toISOString()
-      }
-      savedHistory.unshift(newConversation)
-      localStorage.setItem('mockChatHistory', JSON.stringify(savedHistory))
-      
       // Recarregar histórico após nova mensagem
       loadConversations()
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       setIsThinking(false)
-      const errorMessage = {
-        role: 'assistant',
-        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
-        isTyping: false
+      
+      // Tentar usar resposta mockada como fallback
+      try {
+        const aiResponse = generateMockResponse(messageToSend)
+        
+        // Simular digitação da resposta mockada
+        const words = aiResponse.split(' ')
+        let currentText = ''
+        
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '',
+          isTyping: true
+        }])
+
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i]
+          const delay = word.length < 4 ? 15 : word.match(/[.,!?;:]/) ? 60 : 25
+          await new Promise(resolve => setTimeout(resolve, delay))
+          currentText += (i > 0 ? ' ' : '') + word
+          
+          setMessages(prev => {
+            const newMessages = [...prev]
+            const lastMessage = newMessages[newMessages.length - 1]
+            if (lastMessage && lastMessage.role === 'assistant') {
+              newMessages[newMessages.length - 1] = {
+                ...lastMessage,
+                content: currentText,
+                isTyping: true
+              }
+            }
+            return newMessages
+          })
+          
+          if (i % 5 === 0) {
+            scrollToBottom()
+          }
+        }
+        
+        scrollToBottom()
+        
+        setMessages(prev => {
+          const newMessages = [...prev]
+          const lastMessage = newMessages[newMessages.length - 1]
+          if (lastMessage && lastMessage.role === 'assistant') {
+            newMessages[newMessages.length - 1] = {
+              ...lastMessage,
+              isTyping: false
+            }
+          }
+          return newMessages
+        })
+        
+        // Salvar no localStorage como fallback
+        const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
+        const newConversation = {
+          id: Date.now(),
+          mensagem: messageToSend,
+          resposta: aiResponse,
+          created_at: new Date().toISOString()
+        }
+        savedHistory.unshift(newConversation)
+        localStorage.setItem('mockChatHistory', JSON.stringify(savedHistory))
+        
+        loadConversations()
+      } catch (fallbackError) {
+        console.error('Erro no fallback:', fallbackError)
+        const errorMessage = {
+          role: 'assistant',
+          content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
+          isTyping: false
+        }
+        setMessages(prev => [...prev, errorMessage])
       }
-      setMessages(prev => [...prev, errorMessage])
     } finally {
       setLoading(false)
     }

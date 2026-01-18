@@ -11,7 +11,7 @@ import api from '../utils/api'
 import './Perfil.css'
 
 const Perfil = () => {
-  const { user, selectedClinicData, isClienteMaster, getRelacionamento } = useAuth()
+  const { user, selectedClinicData, isClienteMaster, getRelacionamento, planoAcesso } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [tokensChat, setTokensChat] = useState({
@@ -163,6 +163,10 @@ const Perfil = () => {
   // Buscar relacionamento para determinar o tipo
   const relacionamento = getRelacionamento()
   const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Verificar se o acesso do plano é "chat" - se for, não mostrar análises
+  const acessoPlano = planoAcesso || selectedClinicData?.relacionamento?.acesso || selectedClinicData?.plano?.acesso || null
+  const isPlanoChat = acessoPlano === 'chat'
 
   return (
     <div className="perfil-page">
@@ -263,58 +267,60 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Análises */}
-        <div className="perfil-card analises-card">
-          <div className="card-header">
-            <h2>
-              <FontAwesomeIcon icon={faFileAlt} /> Análises
-            </h2>
-          </div>
-          <div className="card-body">
-            <div className="token-stats">
-              <div className="token-main-stat">
-                <div className="token-icon">
-                  <FontAwesomeIcon icon={faFileAlt} />
+        {/* Análises - Não mostrar se o acesso do plano for "chat" */}
+        {!isPlanoChat && (
+          <div className="perfil-card analises-card">
+            <div className="card-header">
+              <h2>
+                <FontAwesomeIcon icon={faFileAlt} /> Análises
+              </h2>
+            </div>
+            <div className="card-body">
+              <div className="token-stats">
+                <div className="token-main-stat">
+                  <div className="token-icon">
+                    <FontAwesomeIcon icon={faFileAlt} />
+                  </div>
+                  <div className="token-info">
+                    <div className="token-value">{analises.analisesFeitas.toLocaleString('pt-BR')}</div>
+                    <div className="token-label">Análises Realizadas</div>
+                  </div>
                 </div>
-                <div className="token-info">
-                  <div className="token-value">{analises.analisesFeitas.toLocaleString('pt-BR')}</div>
-                  <div className="token-label">Análises Realizadas</div>
+                <div className="token-details">
+                  <div className="token-detail-item">
+                    <FontAwesomeIcon icon={faChartLine} />
+                    <span>Este mês: {analises.analisesFeitasMes.toLocaleString('pt-BR')} análises</span>
+                  </div>
+                  <div className="token-detail-item">
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    <span>Restantes: {analises.analisesRestantes.toLocaleString('pt-BR')} análises</span>
+                  </div>
                 </div>
+                
+                {/* Barra de Progresso */}
+                {analises.limitePlano > 0 && (
+                  <div className="token-progress-section">
+                    <div className="token-progress-header">
+                      <span className="progress-label">Uso deste mês</span>
+                      <span className="progress-value">
+                        {analises.analisesFeitasMes.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="token-progress-bar">
+                      <div 
+                        className="token-progress-fill" 
+                        style={{ width: `${Math.min(analises.porcentagemUso, 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="token-progress-percent">
+                      {analises.porcentagemUso.toFixed(1)}% utilizado
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="token-details">
-                <div className="token-detail-item">
-                  <FontAwesomeIcon icon={faChartLine} />
-                  <span>Este mês: {analises.analisesFeitasMes.toLocaleString('pt-BR')} análises</span>
-                </div>
-                <div className="token-detail-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Restantes: {analises.analisesRestantes.toLocaleString('pt-BR')} análises</span>
-                </div>
-              </div>
-              
-              {/* Barra de Progresso */}
-              {analises.limitePlano > 0 && (
-                <div className="token-progress-section">
-                  <div className="token-progress-header">
-                    <span className="progress-label">Uso deste mês</span>
-                    <span className="progress-value">
-                      {analises.analisesFeitasMes.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                  <div className="token-progress-bar">
-                    <div 
-                      className="token-progress-fill" 
-                      style={{ width: `${Math.min(analises.porcentagemUso, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="token-progress-percent">
-                    {analises.porcentagemUso.toFixed(1)}% utilizado
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Informações Pessoais */}
         <div className="perfil-card info-pessoais-card">
@@ -356,8 +362,8 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Usuários - Apenas para ClienteMaster */}
-        {isClienteMaster() && usuarios !== null && (
+        {/* Usuários - Apenas para ClienteMaster e quando acesso não for "chat" */}
+        {isClienteMaster() && !isPlanoChat && usuarios !== null && (
           <div className="perfil-card usuarios-card">
             <div className="card-header">
               <h2>
