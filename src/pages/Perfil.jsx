@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
@@ -10,7 +11,8 @@ import api from '../utils/api'
 import './Perfil.css'
 
 const Perfil = () => {
-  const { user } = useAuth()
+  const { user, selectedClinicData, isClienteMaster, getRelacionamento, planoAcesso } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [tokensChat, setTokensChat] = useState({
     tokensUtilizados: 0,
@@ -32,15 +34,34 @@ const Perfil = () => {
 
   useEffect(() => {
     loadPerfilData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClinicData])
 
   const loadPerfilData = async () => {
     try {
       setLoading(true)
       
+      let assinaturaFromClinic = null
+      
+      // Se for clienteMaster, tentar usar dados do selectedClinicData primeiro
+      if (isClienteMaster() && selectedClinicData) {
+        const assinaturaData = selectedClinicData.assinatura
+        const planoData = selectedClinicData.plano
+        
+        // Mapear dados de assinatura do selectedClinicData
+        if (assinaturaData) {
+          assinaturaFromClinic = {
+            status: assinaturaData.status,
+            valorMensal: assinaturaData.value || planoData?.valorPromocional || planoData?.valorOriginal || 0,
+            dataInicio: assinaturaData.createdAt,
+            proximaRenovacao: assinaturaData.updatedAt || assinaturaData.createdAt
+          }
+        }
+      }
+      
       // Buscar dados do dashboard da API
       const response = await api.get('/assinaturas/dashboard')
-      // A API retorna os dados em response.data.data
+      // A API retorna { statusCode, message, data }, então precisamos acessar response.data.data
       const data = response.data?.data || response.data
 
       // Mapear dados de tokens
@@ -65,8 +86,10 @@ const Perfil = () => {
         })
       }
 
-      // Mapear dados de assinatura
-      if (data.assinatura) {
+      // Mapear dados de assinatura (priorizar dados do selectedClinicData)
+      if (assinaturaFromClinic) {
+        setAssinatura(assinaturaFromClinic)
+      } else if (data.assinatura) {
         setAssinatura({
           status: data.assinatura.status,
           valorMensal: data.assinatura.valorMensal,
@@ -137,6 +160,14 @@ const Perfil = () => {
     )
   }
 
+  // Buscar relacionamento para determinar o tipo
+  const relacionamento = getRelacionamento()
+  const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Verificar se o acesso do plano é "chat" - se for, não mostrar análises
+  const acessoPlano = planoAcesso || selectedClinicData?.relacionamento?.acesso || selectedClinicData?.plano?.acesso || null
+  const isPlanoChat = acessoPlano === 'chat'
+
   return (
     <div className="perfil-page">
       {/* Header com Avatar */}
@@ -152,11 +183,28 @@ const Perfil = () => {
         <div className="perfil-header-info">
           <h1>{user?.nome || 'Usuário'}</h1>
           <p className="perfil-email">{user?.email || 'Não informado'}</p>
-          <span className="user-type-badge-large">{user?.tipo || 'Usuário'}</span>
+          <span className="user-type-badge-large">
+            {relacionamento?.tipo === 'clienteMaster' ? 'Cliente Master' : 
+             relacionamento?.tipo === 'usuario' ? 'Usuário' : 
+             user?.tipo === 'master' ? 'Cliente Master' : 'Usuário'}
+          </span>
         </div>
-        <button className="btn-edit-perfil">
-          <FontAwesomeIcon icon={faEdit} /> Editar Perfil
-        </button>
+        <div className="perfil-header-actions">
+          {isMaster && selectedClinicData?.assinatura?.status === 'ACTIVE' && (
+            <button className="perfil-plan-badge-btn">
+              <FontAwesomeIcon icon={faCrown} />
+              PLANO ATIVO
+            </button>
+          )}
+          {isMaster && (
+            <button 
+              className="btn-edit-perfil"
+              onClick={() => navigate('/complete-master-data')}
+            >
+              <FontAwesomeIcon icon={faEdit} /> Editar Perfil
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="perfil-content">
@@ -219,58 +267,60 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Análises */}
-        <div className="perfil-card analises-card">
-          <div className="card-header">
-            <h2>
-              <FontAwesomeIcon icon={faFileAlt} /> Análises
-            </h2>
-          </div>
-          <div className="card-body">
-            <div className="token-stats">
-              <div className="token-main-stat">
-                <div className="token-icon">
-                  <FontAwesomeIcon icon={faFileAlt} />
+        {/* Análises - Não mostrar se o acesso do plano for "chat" */}
+        {!isPlanoChat && (
+          <div className="perfil-card analises-card">
+            <div className="card-header">
+              <h2>
+                <FontAwesomeIcon icon={faFileAlt} /> Análises
+              </h2>
+            </div>
+            <div className="card-body">
+              <div className="token-stats">
+                <div className="token-main-stat">
+                  <div className="token-icon">
+                    <FontAwesomeIcon icon={faFileAlt} />
+                  </div>
+                  <div className="token-info">
+                    <div className="token-value">{analises.analisesFeitas.toLocaleString('pt-BR')}</div>
+                    <div className="token-label">Análises Realizadas</div>
+                  </div>
                 </div>
-                <div className="token-info">
-                  <div className="token-value">{analises.analisesFeitas.toLocaleString('pt-BR')}</div>
-                  <div className="token-label">Análises Realizadas</div>
+                <div className="token-details">
+                  <div className="token-detail-item">
+                    <FontAwesomeIcon icon={faChartLine} />
+                    <span>Este mês: {analises.analisesFeitasMes.toLocaleString('pt-BR')} análises</span>
+                  </div>
+                  <div className="token-detail-item">
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    <span>Restantes: {analises.analisesRestantes.toLocaleString('pt-BR')} análises</span>
+                  </div>
                 </div>
+                
+                {/* Barra de Progresso */}
+                {analises.limitePlano > 0 && (
+                  <div className="token-progress-section">
+                    <div className="token-progress-header">
+                      <span className="progress-label">Uso deste mês</span>
+                      <span className="progress-value">
+                        {analises.analisesFeitasMes.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="token-progress-bar">
+                      <div 
+                        className="token-progress-fill" 
+                        style={{ width: `${Math.min(analises.porcentagemUso, 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="token-progress-percent">
+                      {analises.porcentagemUso.toFixed(1)}% utilizado
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="token-details">
-                <div className="token-detail-item">
-                  <FontAwesomeIcon icon={faChartLine} />
-                  <span>Este mês: {analises.analisesFeitasMes.toLocaleString('pt-BR')} análises</span>
-                </div>
-                <div className="token-detail-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Restantes: {analises.analisesRestantes.toLocaleString('pt-BR')} análises</span>
-                </div>
-              </div>
-              
-              {/* Barra de Progresso */}
-              {analises.limitePlano > 0 && (
-                <div className="token-progress-section">
-                  <div className="token-progress-header">
-                    <span className="progress-label">Uso deste mês</span>
-                    <span className="progress-value">
-                      {analises.analisesFeitasMes.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                  <div className="token-progress-bar">
-                    <div 
-                      className="token-progress-fill" 
-                      style={{ width: `${Math.min(analises.porcentagemUso, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="token-progress-percent">
-                    {analises.porcentagemUso.toFixed(1)}% utilizado
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Informações Pessoais */}
         <div className="perfil-card info-pessoais-card">
@@ -280,33 +330,40 @@ const Perfil = () => {
             </h2>
           </div>
           <div className="card-body">
-            <div className="info-grid">
-              <div className="info-item">
+            <div className="info-list">
+              <div className="info-row">
                 <div className="info-label">
-                  <FontAwesomeIcon icon={faUser} /> Nome Completo
+                  <FontAwesomeIcon icon={faUser} />
+                  <span>Nome Completo</span>
                 </div>
                 <div className="info-value">{user?.nome || 'Não informado'}</div>
               </div>
-              <div className="info-item">
+              <div className="info-row">
                 <div className="info-label">
-                  <FontAwesomeIcon icon={faEnvelope} /> Email
+                  <FontAwesomeIcon icon={faEnvelope} />
+                  <span>Email</span>
                 </div>
                 <div className="info-value">{user?.email || 'Não informado'}</div>
               </div>
-              <div className="info-item">
+              <div className="info-row">
                 <div className="info-label">
-                  <FontAwesomeIcon icon={faIdCard} /> Tipo de Usuário
+                  <FontAwesomeIcon icon={faIdCard} />
+                  <span>Tipo de Usuário</span>
                 </div>
                 <div className="info-value">
-                  <span className="user-type-badge">{user?.tipo || 'Usuário'}</span>
+                  <span className="user-type-badge">
+                    {relacionamento?.tipo === 'clienteMaster' ? 'Cliente Master' : 
+                     relacionamento?.tipo === 'usuario' ? 'Usuário' : 
+                     isClienteMaster() ? 'Cliente Master' : 'Usuário'}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Usuários - Apenas para Master */}
-        {user?.tipo === 'master' && usuarios !== null && (
+        {/* Usuários - Apenas para ClienteMaster e quando acesso não for "chat" */}
+        {isClienteMaster() && !isPlanoChat && usuarios !== null && (
           <div className="perfil-card usuarios-card">
             <div className="card-header">
               <h2>
@@ -329,8 +386,8 @@ const Perfil = () => {
           </div>
         )}
 
-        {/* Assinatura - Apenas para Master */}
-        {user?.tipo === 'master' && (
+        {/* Assinatura - Apenas para ClienteMaster */}
+        {isClienteMaster() && (
           <div className="perfil-card assinatura-card">
             <div className="card-header">
               <h2>
@@ -340,46 +397,69 @@ const Perfil = () => {
             <div className="card-body">
               {assinatura ? (
                 <div className="assinatura-info">
-                  <div className="assinatura-plan">
-                    <div className="plan-badge">
-                      <FontAwesomeIcon icon={faCrown} />
-                      <span>Plano Ativo</span>
-                    </div>
-                    <div className={`plan-status ${assinatura.status === 'ACTIVE' ? 'active' : 'inactive'}`}>
-                      {assinatura.status === 'ACTIVE' ? 'Ativa' : 
-                       assinatura.status === 'PENDING' ? 'Pendente' : 'Inativa'}
+                  <div className="assinatura-status-section">
+                    <div className="assinatura-status-badge">
+                      <span className={`status-indicator ${assinatura.status === 'ACTIVE' ? 'active' : 'inactive'}`}></span>
+                      <span className="status-text">
+                        {assinatura.status === 'ACTIVE' ? 'Ativa' : 
+                         assinatura.status === 'PENDING' ? 'Pendente' : 
+                         'Inativa'}
+                      </span>
                     </div>
                   </div>
+                  
                   <div className="assinatura-details">
-                    <div className="detail-row">
-                      <span className="detail-label">Valor Mensal:</span>
-                      <span className="detail-value">R$ {assinatura.valorMensal?.toFixed(2) || '0,00'}</span>
+                    <div className="assinatura-detail-item">
+                      <div className="detail-label">
+                        <FontAwesomeIcon icon={faCoins} /> Valor Mensal
+                      </div>
+                      <div className="detail-value">
+                        R$ {assinatura.valorMensal?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+                      </div>
                     </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Data de Início:</span>
-                      <span className="detail-value">
-                        {new Date(assinatura.dataInicio).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Próxima Renovação:</span>
-                      <span className="detail-value">
-                        {new Date(assinatura.proximaRenovacao).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
+                    
+                    {assinatura.dataInicio && (
+                      <div className="assinatura-detail-item">
+                        <div className="detail-label">
+                          <FontAwesomeIcon icon={faCalendar} /> Data de Início
+                        </div>
+                        <div className="detail-value">
+                          {new Date(assinatura.dataInicio).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {assinatura.proximaRenovacao && (
+                      <div className="assinatura-detail-item">
+                        <div className="detail-label">
+                          <FontAwesomeIcon icon={faCalendar} /> Próxima Renovação
+                        </div>
+                        <div className="detail-value">
+                          {new Date(assinatura.proximaRenovacao).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="no-assinatura">
-                  <p>Nenhuma assinatura ativa</p>
+                  <p>Nenhuma assinatura encontrada</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Cartão Vinculado - Apenas para Master */}
-        {user?.tipo === 'master' && (
+        {/* Cartão Vinculado - Apenas para ClienteMaster */}
+        {isClienteMaster() && (
           <div className="perfil-card cartao-card">
             <div className="card-header">
               <h2>
@@ -391,12 +471,14 @@ const Perfil = () => {
                 <div className="cartao-info">
                   <div className="cartao-display">
                     <div className="cartao-front">
-                      <div className="cartao-bandeira">{cartao.bandeira}</div>
+                      <div className="cartao-bandeira">{cartao.bandeira || 'CARTÃO'}</div>
                       <div className="cartao-numero">
-                        {cartao.numeroMascarado || `•••• •••• •••• ${cartao.ultimosDigitos}`}
+                        {cartao.numeroMascarado 
+                          ? cartao.numeroMascarado.replace(/\s/g, ' ').replace(/(.{4})/g, '$1 ').trim()
+                          : `•••• •••• •••• ${cartao.ultimosDigitos || '0000'}`}
                       </div>
                       <div className="cartao-footer">
-                        <div className="cartao-nome">{user?.nome || 'Usuário'}</div>
+                        <div className="cartao-nome">{(user?.nome || 'USUÁRIO').toUpperCase()}</div>
                       </div>
                     </div>
                   </div>

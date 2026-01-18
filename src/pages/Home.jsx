@@ -10,6 +10,7 @@ import {
   faChevronDown, faTrophy, faStar
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
+import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
 import nodoImage from '../img/nodo.png'
 import exameImage from '../img/exame.jpg'
@@ -25,6 +26,8 @@ const Home = () => {
   const [isTyping, setIsTyping] = useState(false)
   const chatSectionRef = useRef(null)
   const [scrollProgress, setScrollProgress] = useState(0)
+  const [planos, setPlanos] = useState([])
+  const [loadingPlanos, setLoadingPlanos] = useState(true)
   
   // Função para obter o horário atual
   const getCurrentTime = () => {
@@ -71,6 +74,46 @@ const Home = () => {
       return planId;
     });
   }
+
+  const loadPlanos = async () => {
+    try {
+      setLoadingPlanos(true)
+      const response = await api.get('/planos')
+      const data = response.data?.data || response.data
+      
+      // A estrutura pode variar, então vamos tratar diferentes formatos
+      let planosList = []
+      if (Array.isArray(data)) {
+        planosList = data
+      } else if (data?.planos) {
+        planosList = data.planos
+      } else if (data?.plans) {
+        planosList = data.plans
+      }
+      
+      // Filtrar apenas planos ativos e ordenar por ordem ou valor
+      planosList = planosList
+        .filter(plano => plano.ativo !== false)
+        .sort((a, b) => {
+          // Ordenar por valor promocional ou original
+          const valorA = parseFloat(a.valorPromocional || a.valorOriginal || a.valor || 0)
+          const valorB = parseFloat(b.valorPromocional || b.valorOriginal || b.valor || 0)
+          return valorA - valorB
+        })
+      
+      setPlanos(planosList)
+    } catch (error) {
+      console.error('Erro ao carregar planos:', error)
+      // Em caso de erro, manter array vazio ou usar planos padrão
+      setPlanos([])
+    } finally {
+      setLoadingPlanos(false)
+    }
+  }
+
+  useEffect(() => {
+    loadPlanos()
+  }, [])
 
   useEffect(() => {
     let rafId = null
@@ -623,195 +666,160 @@ const Home = () => {
           <div className="section-header">
             <h2 className="section-title">Escolha o plano mais adequado para a sua clínica.</h2>
           </div>
-          <div className="plans-grid">
-            <div className="plan-card">
-              <div className="plan-header-card">
-                <h3>Plano Inicial</h3>
-                <div className="plan-price">
-                  <span className="price-old">De: R$ 159/mês*</span>
-                  <span className="price-new">Por: R$ 98/mês*</span>
-                </div>
-                <div className="plan-feature-count">Até 12 análises por mês</div>
-              </div>
-              <button 
-                type="button"
-                className="plan-details-btn" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handlePlanToggle('inicial');
-                }}
-              >
-                <FontAwesomeIcon 
-                  icon={faChevronDown} 
-                  className={`plan-chevron ${expandedPlan === 'inicial' ? 'expanded' : ''}`}
-                />
-              </button>
-              <div className={expandedPlan === 'inicial' ? 'plan-details expanded' : 'plan-details'}>
-                <ul className="plan-features">
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Análise de radiografias</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Relatórios detalhados</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte por email</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Armazenamento na nuvem</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> 1 milhão de tokens no chat da NODON</li>
-                </ul>
-              </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Inicial')}>
-                Assine Agora
-              </button>
-              <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+          {loadingPlanos ? (
+            <div className="plans-loading">
+              <div className="loading-spinner"></div>
+              <p>Carregando planos...</p>
             </div>
-
-            <div className="plan-card featured">
-              <div className="plan-header-card">
-                <h3>Plano Básico</h3>
-                <div className="plan-price">
-                  <span className="price-old">De: R$ 299/mês*</span>
-                  <span className="price-new">Por: R$ 179/mês*</span>
-                </div>
-                <div className="plan-feature-count">Até 30 análises por mês</div>
-              </div>
-              <button 
-                type="button"
-                className="plan-details-btn" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handlePlanToggle('basico');
-                }}
-              >
-                <FontAwesomeIcon 
-                  icon={faChevronDown} 
-                  className={`plan-chevron ${expandedPlan === 'basico' ? 'expanded' : ''}`}
-                />
-              </button>
-              <div className={expandedPlan === 'basico' ? 'plan-details expanded' : 'plan-details'}>
-                <ul className="plan-features">
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Tudo do Plano Inicial</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Análise avançada com IA</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte prioritário</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Múltiplos profissionais</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Relatórios personalizados</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> 1 milhão de tokens no chat da NODON</li>
-                </ul>
-              </div>
-              <button className="btn-plan featured" onClick={() => navigate('/checkout?plano=Plano Básico')}>
-                Assine Agora
-              </button>
-              <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+          ) : planos.length === 0 ? (
+            <div className="plans-empty">
+              <p>Nenhum plano disponível no momento.</p>
             </div>
-
-            <div className="plan-card">
-              <div className="plan-badge-new">Novo</div>
-              <div className="plan-header-card">
-                <h3>Plano Premium</h3>
-                <div className="plan-price">
-                  <span className="price-single">R$ 299/mês*</span>
-                </div>
-                <div className="plan-feature-count">Até 50 análises por mês</div>
-              </div>
-              <button 
-                type="button"
-                className="plan-details-btn" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handlePlanToggle('premium');
-                }}
-              >
-                <FontAwesomeIcon 
-                  icon={faChevronDown} 
-                  className={`plan-chevron ${expandedPlan === 'premium' ? 'expanded' : ''}`}
-                />
-              </button>
-              <div className={expandedPlan === 'premium' ? 'plan-details expanded' : 'plan-details'}>
-                <ul className="plan-features">
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Tudo do Plano Básico</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte 24/7</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Treinamento dedicado</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> 1.5 milhão de tokens no chat da NODON</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Gerente de Conta especializado</li>
-                </ul>
-              </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Premium')}>
-                Assine Agora
-              </button>
-              <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+          ) : (
+            <div className="plans-grid">
+              {planos.map((plano, index) => {
+                const planoId = plano.id || plano.nome?.toLowerCase().replace(/\s+/g, '-') || `plano-${index}`
+                const nomePlano = plano.nome || 'Plano'
+                const valorOriginal = parseFloat(plano.valorOriginal || plano.valor || 0)
+                const valorPromocional = parseFloat(plano.valorPromocional || 0)
+                const limiteAnalises = plano.limiteAnalises || plano.limite_analises || 0
+                const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat || '0'
+                const temPromocao = valorPromocional > 0 && valorPromocional < valorOriginal
+                const badge = plano.badge || plano.label || null
+                const featured = plano.featured || plano.destaque || false
+                const acesso = plano.acesso || null
+                const isPlanoChat = acesso === 'chat' || nomePlano.toLowerCase().includes('chat')
+                
+                // Formatar valores monetários
+                const formatarValor = (valor) => {
+                  return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  }).format(valor)
+                }
+                
+                // Formatar tokens
+                const formatarTokens = (tokens) => {
+                  const numTokens = parseInt(tokens) || 0
+                  if (numTokens >= 1000000) {
+                    return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
+                  } else if (numTokens >= 1000) {
+                    return `${(numTokens / 1000).toFixed(0)} mil`
+                  }
+                  return numTokens.toString()
+                }
+                
+                // Construir features baseadas nos dados do plano
+                const featuresList = []
+                
+                // Se for Plano Chat, mostrar apenas features específicas
+                if (isPlanoChat) {
+                  if (tokenChat && parseInt(tokenChat) > 0) {
+                    featuresList.push(`${formatarTokens(tokenChat)} de tokens no chat da NODON`)
+                  }
+                  featuresList.push('Suporte por email')
+                  featuresList.push('Armazenamento na nuvem')
+                } else {
+                  // Para outros planos, adicionar features padrão
+                  featuresList.push('Análise de radiografias')
+                  featuresList.push('Relatórios detalhados')
+                  
+                  // Usar descricao da API se disponível, senão construir baseado em limiteAnalises
+                  if (plano.descricao) {
+                    featuresList.push(plano.descricao)
+                  } else if (limiteAnalises > 0) {
+                    featuresList.push(`Até ${limiteAnalises} análises por mês`)
+                  } else {
+                    featuresList.push('Análises ilimitadas')
+                  }
+                  
+                  if (tokenChat && parseInt(tokenChat) > 0) {
+                    featuresList.push(`${formatarTokens(tokenChat)} de tokens no chat da NODON`)
+                  }
+                  
+                  featuresList.push('Suporte por email')
+                  featuresList.push('Armazenamento na nuvem')
+                  
+                  // Se houver features adicionais da API, adicionar
+                  if (plano.features && Array.isArray(plano.features)) {
+                    featuresList.push(...plano.features)
+                  } else if (plano.caracteristicas && Array.isArray(plano.caracteristicas)) {
+                    featuresList.push(...plano.caracteristicas)
+                  }
+                }
+                
+                return (
+                  <div key={planoId} className={`plan-card ${featured ? 'featured' : ''}`}>
+                    {badge && (
+                      <div className="plan-badge-new">{badge}</div>
+                    )}
+                    <div className="plan-header-card">
+                      <h3>{nomePlano}</h3>
+                      <div className="plan-price">
+                        {temPromocao ? (
+                          <>
+                            <span className="price-old">De: {formatarValor(valorOriginal)}/mês*</span>
+                            <span className="price-new">Por: {formatarValor(valorPromocional)}/mês*</span>
+                          </>
+                        ) : (
+                          <span className="price-single">{formatarValor(valorOriginal || valorPromocional)}/mês*</span>
+                        )}
+                      </div>
+                      <div className="plan-feature-count">
+                        {plano.descricao || (limiteAnalises > 0 ? `Até ${limiteAnalises} análises por mês` : 'Análises ilimitadas')}
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      className="plan-details-btn" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handlePlanToggle(planoId);
+                      }}
+                    >
+                      <FontAwesomeIcon 
+                        icon={faChevronDown} 
+                        className={`plan-chevron ${expandedPlan === planoId ? 'expanded' : ''}`}
+                      />
+                    </button>
+                    <div className={expandedPlan === planoId ? 'plan-details expanded' : 'plan-details'}>
+                      <ul className="plan-features">
+                        {featuresList.length > 0 ? (
+                          // Usar features da API
+                          featuresList.map((feature, idx) => (
+                            <li key={idx}>
+                              <FontAwesomeIcon icon={faCheckCircle} /> {feature}
+                            </li>
+                          ))
+                        ) : (
+                          // Fallback para features padrão se não houver dados da API
+                          <>
+                            <li><FontAwesomeIcon icon={faCheckCircle} /> Análise de radiografias</li>
+                            <li><FontAwesomeIcon icon={faCheckCircle} /> Relatórios detalhados</li>
+                            <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte por email</li>
+                            <li><FontAwesomeIcon icon={faCheckCircle} /> Armazenamento na nuvem</li>
+                            {tokenChat && (
+                              <li><FontAwesomeIcon icon={faCheckCircle} /> {formatarTokens(tokenChat)} de tokens no chat da NODON</li>
+                            )}
+                          </>
+                        )}
+                      </ul>
+                    </div>
+                    <button 
+                      className={`btn-plan ${featured ? 'featured' : ''}`} 
+                      onClick={() => navigate(`/checkout?plano=${encodeURIComponent(nomePlano)}&planoId=${planoId}`)}
+                    >
+                      Assine Agora
+                    </button>
+                    <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+                  </div>
+                )
+              })}
             </div>
-            <div className="plan-card">
-              <div className="plan-badge-new">Mais Vendido</div>
-              <div className="plan-header-card">
-                <h3>Plano Essencial</h3>
-                <div className="plan-price">
-                  <span className="price-single">R$ 399/mês*</span>
-                </div>
-                <div className="plan-feature-count">Até 120 análises por mês</div>
-              </div>
-              <button 
-                type="button"
-                className="plan-details-btn" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handlePlanToggle('essencial');
-                }}
-              >
-                <FontAwesomeIcon 
-                  icon={faChevronDown} 
-                  className={`plan-chevron ${expandedPlan === 'essencial' ? 'expanded' : ''}`}
-                />
-              </button>
-              <div className={expandedPlan === 'essencial' ? 'plan-details expanded' : 'plan-details'}>
-                <ul className="plan-features">
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Tudo do Plano Premium</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte 24/7</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Treinamento dedicado</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> 1.5 milhão de tokens no chat da NODON</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Gerente de Conta especializado</li>
-                </ul>
-              </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Essencial')}>
-                Assine Agora
-              </button>
-              <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
-            </div>
-            <div className="plan-card">
-              <div className="plan-header-card">
-                <h3>Plano Enterprise</h3>
-                <div className="plan-price">
-                  <span className="price-single">R$ 499/mês*</span>
-                </div>
-                <div className="plan-feature-count">Até 200 análises por mês</div>
-              </div>
-              <button 
-                type="button"
-                className="plan-details-btn" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handlePlanToggle('enterprise');
-                }}
-              >
-                <FontAwesomeIcon 
-                  icon={faChevronDown} 
-                  className={`plan-chevron ${expandedPlan === 'enterprise' ? 'expanded' : ''}`}
-                />
-              </button>
-              <div className={expandedPlan === 'enterprise' ? 'plan-details expanded' : 'plan-details'}>
-                <ul className="plan-features">
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Tudo do Plano Essencial</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte 24/7</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Treinamento dedicado</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> 1.5 milhão de tokens no chat da NODON</li>
-                  <li><FontAwesomeIcon icon={faCheckCircle} /> Gerente de Conta especializado</li>
-                </ul>
-              </div>
-              <button className="btn-plan" onClick={() => navigate('/checkout?plano=Plano Enterprise')}>
-                Assine Agora
-              </button>
-              <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
