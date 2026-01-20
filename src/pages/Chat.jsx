@@ -6,16 +6,18 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
+import { useAuth } from '../context/AuthContext'
 import nodoLogo from '../img/nodo.png'
 import './Chat.css'
 
 const Chat = () => {
+  const { selectedClinicData } = useAuth()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
-  const [conversations, setConversations] = useState([])
+  const [conversations, setConversations] = useState({})
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
@@ -35,7 +37,7 @@ const Chat = () => {
   useEffect(() => {
     loadConversations()
     checkTokens()
-  }, [])
+  }, [selectedClinicData])
 
   const checkTokens = async () => {
     try {
@@ -68,9 +70,18 @@ const Chat = () => {
     try {
       setLoadingHistory(true)
       
-      // Buscar histórico da API
-      const response = await api.get('/chat/history')
-      const data = response.data?.data || response.data
+      // Buscar conversas da API
+      const response = await api.get('/chat/conversations')
+      
+      // A API pode retornar data.data.data ou data.data ou data
+      let data = response.data
+      if (data?.data?.data) {
+        data = data.data.data
+      } else if (data?.data) {
+        data = data.data
+      }
+      
+      console.log('Histórico da API:', data)
       
       // A estrutura pode variar, então vamos tratar diferentes formatos
       let conversationsList = []
@@ -80,40 +91,77 @@ const Chat = () => {
         conversationsList = data.conversations
       } else if (data?.history) {
         conversationsList = data.history
+      } else if (data?.chats) {
+        conversationsList = data.chats
+      } else if (data?.conversationId || data?.id) {
+        // Se for um objeto único com conversationId, colocar em um array
+        conversationsList = [data]
+      }
+      
+      console.log('Lista de conversas:', conversationsList)
+      
+      if (conversationsList.length === 0) {
+        setConversations({})
+        return
       }
       
       // Agrupar conversas por data
       const grouped = conversationsList.reduce((acc, conv) => {
-        const date = new Date(conv.created_at || conv.createdAt || Date.now()).toLocaleDateString('pt-BR')
+        const dateStr = conv.created_at || conv.createdAt || conv.updatedAt || new Date().toISOString()
+        const date = new Date(dateStr).toLocaleDateString('pt-BR')
         if (!acc[date]) {
           acc[date] = []
         }
+        
+        // Extrair a primeira mensagem do usuário para preview
+        let mensagemPreview = ''
+        if (conv.title) {
+          mensagemPreview = conv.title
+        } else if (conv.mensagem) {
+          mensagemPreview = conv.mensagem
+        } else if (conv.message) {
+          mensagemPreview = conv.message
+        } else if (conv.userMessage) {
+          mensagemPreview = conv.userMessage
+        } else if (Array.isArray(conv.messages) && conv.messages.length > 0) {
+          const firstUserMsg = conv.messages.find(m => m.role === 'user')
+          mensagemPreview = firstUserMsg?.content || conv.messages[0]?.content || 'Conversa'
+        } else {
+          mensagemPreview = 'Conversa'
+        }
+        
         acc[date].push({
-          id: conv.id || conv.conversationId,
-          mensagem: conv.mensagem || conv.message || conv.userMessage || '',
+          id: conv.conversationId || conv.id || conv._id,
+          mensagem: mensagemPreview,
           resposta: conv.resposta || conv.response || conv.assistantMessage || '',
-          created_at: conv.created_at || conv.createdAt || new Date().toISOString()
+          created_at: dateStr
         })
         return acc
       }, {})
       
+      console.log('Conversas agrupadas:', grouped)
       setConversations(grouped)
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
       // Em caso de erro, tentar carregar do localStorage como fallback
       try {
         const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
-        const grouped = savedHistory.reduce((acc, conv) => {
-          const date = new Date(conv.created_at).toLocaleDateString('pt-BR')
-          if (!acc[date]) {
-            acc[date] = []
-          }
-          acc[date].push(conv)
-          return acc
-        }, {})
-        setConversations(grouped)
+        if (savedHistory.length > 0) {
+          const grouped = savedHistory.reduce((acc, conv) => {
+            const date = new Date(conv.created_at).toLocaleDateString('pt-BR')
+            if (!acc[date]) {
+              acc[date] = []
+            }
+            acc[date].push(conv)
+            return acc
+          }, {})
+          setConversations(grouped)
+        } else {
+          setConversations({})
+        }
       } catch (fallbackError) {
         console.error('Erro ao carregar histórico do localStorage:', fallbackError)
+        setConversations({})
       }
     } finally {
       setLoadingHistory(false)
@@ -122,22 +170,39 @@ const Chat = () => {
 
   const loadConversation = async (conversationId) => {
     try {
+      console.log('Carregando conversa:', conversationId)
+      
       // Buscar conversa específica da API
       const response = await api.get(`/chat/history/${conversationId}`)
-      const data = response.data?.data || response.data
+      
+      // A API pode retornar data.data.data ou data.data ou data
+      let data = response.data
+      if (data?.data?.data) {
+        data = data.data.data
+      } else if (data?.data) {
+        data = data.data
+      }
+      
+      console.log('Dados da conversa:', data)
       
       if (data) {
         // Mapear mensagens da API para o formato do componente
         const messagesList = []
         
-        // Se a API retornar mensagens individuais
-        if (Array.isArray(data.messages)) {
-          data.messages.forEach(msg => {
-            messagesList.push({
-              role: msg.role || (msg.tipo === 'user' ? 'user' : 'assistant'),
-              content: msg.content || msg.mensagem || msg.text || '',
-              isTyping: false
-            })
+        // Pegar as mensagens do objeto
+        let messages = data.messages || data
+        
+        // Se messages for um array de mensagens
+        if (Array.isArray(messages) && messages.length > 0) {
+          messages.forEach(msg => {
+            // Filtrar apenas mensagens de user e assistant
+            if (msg.role === 'user' || msg.role === 'assistant') {
+              messagesList.push({
+                role: msg.role,
+                content: msg.content || msg.mensagem || msg.text || '',
+                isTyping: false
+              })
+            }
           })
         } else {
           // Se a API retornar mensagem e resposta separadas
@@ -156,14 +221,19 @@ const Chat = () => {
           }
         }
         
+        console.log('Mensagens mapeadas:', messagesList)
+        
         if (messagesList.length > 0) {
           setMessages(messagesList)
           setCurrentConversationId(conversationId)
           setShowHistory(false)
+        } else {
+          console.warn('Nenhuma mensagem encontrada na conversa')
         }
       }
     } catch (error) {
       console.error('Erro ao carregar conversa:', error)
+      console.error('Detalhes:', error.response?.data || error.message)
       // Fallback para localStorage
       try {
         const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
@@ -233,9 +303,13 @@ const Chat = () => {
         content: msg.content
       }))
 
+      // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+
       // Montar payload da API
       const payload = {
-        message: messageToSend
+        message: messageToSend,
+        clienteMasterId: clienteMasterId
       }
 
       // Adicionar histórico apenas se houver mensagens anteriores
@@ -243,24 +317,17 @@ const Chat = () => {
         payload.history = history
       }
 
+      // Adicionar conversationId ao payload se existir
+      if (currentConversationId) {
+        payload.conversationId = currentConversationId
+      }
+
       // Obter token de autenticação
       const token = sessionStorage.getItem('token')
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
       setIsThinking(true)
       
-      // Enviar mensagem para a API
-      const response = await api.post('/chat', {
-        message: messageToSend,
-        conversationId: currentConversationId || null
-      })
-      
-      const data = response.data?.data || response.data
-      
-      // Extrair resposta da IA
-      const aiResponse = data.response || data.resposta || data.message || data.assistantMessage || ''
-      const conversationId = data.conversationId || data.id || data.conversation_id || null
-      
-      // Fazer requisição POST com streaming
+      // Fazer requisição POST com streaming (única chamada)
       const streamResponse = await fetch(`${baseURL}/chat/stream`, {
         method: 'POST',
         headers: {
@@ -275,15 +342,6 @@ const Chat = () => {
       }
 
       setIsThinking(false)
-      
-      // Se recebeu um conversationId, atualizar
-      if (conversationId && !currentConversationId) {
-        setCurrentConversationId(conversationId)
-      }
-      
-      // Simular digitação da IA palavra por palavra com velocidade variável
-      const words = aiResponse.split(' ')
-      let currentText = ''
       
       // Adicionar mensagem vazia inicial
       setMessages(prev => [...prev, {
@@ -343,6 +401,11 @@ const Chat = () => {
               // Resposta completa
               tokensUsed = data.tokensUsed || 0
               console.log('Tokens usados:', tokensUsed)
+              
+              // Capturar conversationId se retornado pelo stream
+              if (data.conversationId && !currentConversationId) {
+                setCurrentConversationId(data.conversationId)
+              }
               
               // Marcar mensagem como completa
               setMessages(prev => {

@@ -150,7 +150,11 @@ const getMockDetalhes = (diagnosticoId) => {
 const DiagnosticoDetalhes = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { selectedClinicData } = useAuth()
+  const { selectedClinicData, user, isClienteMaster, getRelacionamento } = useAuth()
+  
+  // Verificar se é cliente master
+  const relacionamento = getRelacionamento()
+  const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
   const [diagnostico, setDiagnostico] = useState(null)
   const [loading, setLoading] = useState(true)
   const [profissionalNome, setProfissionalNome] = useState('')
@@ -207,49 +211,43 @@ const DiagnosticoDetalhes = () => {
     }
   }
 
-  const loadProfissionalNome = async (responsavelId, clienteMasterId) => {
+  const loadProfissionalNome = async (responsavelId) => {
     if (!responsavelId) return
     
     try {
       // Primeiro tentar usar dados do contexto ou sessionStorage
       const userFromStorage = sessionStorage.getItem('user')
       if (userFromStorage) {
-        const user = JSON.parse(userFromStorage)
-        if (user.id === responsavelId) {
-          setProfissionalNome(user.nome || user.name || '')
+        const userParsed = JSON.parse(userFromStorage)
+        if (userParsed.id === responsavelId) {
+          setProfissionalNome(userParsed.nome || userParsed.name || '')
           return
         }
       }
       
       // Se o usuário do contexto corresponder
-      if (selectedClinicData?.user?.id === responsavelId) {
-        setProfissionalNome(selectedClinicData.user.nome || '')
-        return
-      }
-      
-      // Buscar users e usuarios em paralelo
-      const [usersResponse, usuariosResponse] = await Promise.all([
-        api.get('/users').catch(() => ({ data: [] })),
-        clienteMasterId 
-          ? api.get(`/users/usuarios-comum/listar?cliente_master_id=${clienteMasterId}`).catch(() => ({ data: [] }))
-          : Promise.resolve({ data: [] })
-      ])
-
-      const users = usersResponse.data?.data || usersResponse.data || []
-      const usuarios = usuariosResponse.data?.data || usuariosResponse.data || []
-
-      // Procurar na lista de users
-      const userEncontrado = (Array.isArray(users) ? users : []).find(u => u.id === responsavelId)
-      if (userEncontrado) {
-        setProfissionalNome(userEncontrado.nome || userEncontrado.name || userEncontrado.email || '')
+      if (user?.id === responsavelId) {
+        setProfissionalNome(user.nome || user.name || '')
         return
       }
 
-      // Procurar na lista de usuarios
-      const usuarioEncontrado = (Array.isArray(usuarios) ? usuarios : []).find(u => u.id === responsavelId)
-      if (usuarioEncontrado) {
-        setProfissionalNome(usuarioEncontrado.nome || usuarioEncontrado.name || usuarioEncontrado.email || '')
+      // Verificar se o perfil no selectedClinicData corresponde
+      if (selectedClinicData?.perfil?.id === responsavelId) {
+        setProfissionalNome(selectedClinicData.perfil.nome || '')
         return
+      }
+
+      // Buscar usuário pelo ID usando a rota /users/base/{id}
+      try {
+        const userResponse = await api.get(`/users/base/${responsavelId}`)
+        const userData = userResponse.data?.data || userResponse.data
+        
+        if (userData && (userData.nome || userData.name || userData.email)) {
+          setProfissionalNome(userData.nome || userData.name || userData.email || '')
+          return
+        }
+      } catch (userError) {
+        console.log('Erro ao buscar usuário pelo ID:', userError)
       }
 
       console.log('Responsável não encontrado com ID:', responsavelId)
@@ -366,23 +364,52 @@ const DiagnosticoDetalhes = () => {
           const radiografia = response.data?.data || response.data
           
           if (radiografia) {
-            // Buscar nome do profissional responsável usando responsavelId
+            // Buscar nome do profissional responsável
             let nomeProfissional = ''
-            const responsavelId = radiografia.responsavelId || radiografia.masterClient?.userId
+            // O responsavel pode ser um ID (string) ou um objeto
+            const responsavelId = radiografia.responsavelId || 
+              (typeof radiografia.responsavel === 'string' ? radiografia.responsavel : radiografia.responsavel?.id) || 
+              radiografia.masterClient?.userId
             
-            if (responsavelId) {
+            // Primeiro verificar se a API já retorna o nome do responsável diretamente
+            // Pode vir em vários campos diferentes dependendo da estrutura da API
+            if (radiografia.nomeResponsavel) {
+              nomeProfissional = radiografia.nomeResponsavel
+            } else if (radiografia.responsavelNome) {
+              nomeProfissional = radiografia.responsavelNome
+            } else if (radiografia.nomeUsuario) {
+              nomeProfissional = radiografia.nomeUsuario
+            } else if (radiografia.responsavelData?.nome) {
+              nomeProfissional = radiografia.responsavelData.nome
+            } else if (radiografia.usuario?.nome) {
+              nomeProfissional = radiografia.usuario.nome
+            } else if (radiografia.user?.nome) {
+              nomeProfissional = radiografia.user.nome
+            } else if (typeof radiografia.responsavel === 'object' && radiografia.responsavel?.nome) {
+              nomeProfissional = radiografia.responsavel.nome
+            }
+            
+            if (!nomeProfissional && responsavelId) {
               try {
-                // Tentar buscar o usuário pela API ou usar dados do contexto
-                if (selectedClinicData?.user?.id === responsavelId) {
+                // Verificar se o user do contexto é o responsável
+                if (user?.id === responsavelId) {
+                  nomeProfissional = user.nome || user.name || ''
+                }
+                // Verificar se o perfil no selectedClinicData é o responsável
+                else if (selectedClinicData?.perfil?.id === responsavelId) {
+                  nomeProfissional = selectedClinicData.perfil.nome || ''
+                }
+                // Verificar selectedClinicData.user
+                else if (selectedClinicData?.user?.id === responsavelId) {
                   nomeProfissional = selectedClinicData.user.nome || ''
-                } else {
-                  // Se não estiver no contexto, tentar buscar pela API
-                  // Por enquanto, usar o nome do usuário logado se o ID corresponder
+                } 
+                // Tentar do sessionStorage
+                else {
                   const userFromStorage = sessionStorage.getItem('user')
                   if (userFromStorage) {
-                    const user = JSON.parse(userFromStorage)
-                    if (user.id === responsavelId) {
-                      nomeProfissional = user.nome || ''
+                    const userParsed = JSON.parse(userFromStorage)
+                    if (userParsed.id === responsavelId) {
+                      nomeProfissional = userParsed.nome || ''
                     }
                   }
                 }
@@ -448,12 +475,11 @@ const DiagnosticoDetalhes = () => {
             // Buscar ID do paciente pelo nome ou email
             await buscarPacienteId(radiografia.nome, radiografia.emailPaciente, radiografia.masterClient?.id || radiografia.clienteMasterId)
             
-            // Se não encontrou o nome ainda, tentar buscar pela API
-            const clienteMasterId = radiografia.masterClient?.id || radiografia.clienteMasterId
-            if (!nomeProfissional && responsavelId) {
-              loadProfissionalNome(responsavelId, clienteMasterId)
-            } else if (nomeProfissional) {
+            if (nomeProfissional) {
               setProfissionalNome(nomeProfissional)
+            } else if (responsavelId) {
+              // Sempre tentar buscar o nome do responsável se tiver o ID
+              loadProfissionalNome(responsavelId)
             }
           } else {
             // Se não encontrar, usar dados mockados como fallback
@@ -771,20 +797,21 @@ const DiagnosticoDetalhes = () => {
           </h1>
         </div>
         <div className="header-right-detalhes">
-
-          <button 
-            className="btn-desenho-detalhes"
-            onClick={() => {
-              if (diagnostico?.imagens && diagnostico.imagens.length > 1) {
-                setShowImageSelector(true)
-              } else {
-                const imagemUrl = diagnostico?.imagens?.[0] || diagnostico?.imagem || ''
-                navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl } })
-              }
-            }}
-          >
-            <FontAwesomeIcon icon={faPencil} /> Ir para Desenho
-          </button>
+          {(isMaster || diagnostico?.responsavelId === user?.id) && (
+            <button 
+              className="btn-desenho-detalhes"
+              onClick={() => {
+                if (diagnostico?.imagens && diagnostico.imagens.length > 1) {
+                  setShowImageSelector(true)
+                } else {
+                  const imagemUrl = diagnostico?.imagens?.[0] || diagnostico?.imagem || ''
+                  navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl } })
+                }
+              }}
+            >
+              <FontAwesomeIcon icon={faPencil} /> Ir para Desenho
+            </button>
+          )}
         </div>
       </div>
 
@@ -920,13 +947,15 @@ const DiagnosticoDetalhes = () => {
                   className="detalhamento-card"
                   onClick={() => handleViewDesenho(desenho.id)}
                 >
-                  <button 
-                    className="detalhamento-card-delete-btn"
-                    onClick={(e) => handleDeleteDesenhoClick(desenho.id, e)}
-                    title="Excluir detalhamento"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
+                  {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                    <button 
+                      className="detalhamento-card-delete-btn"
+                      onClick={(e) => handleDeleteDesenhoClick(desenho.id, e)}
+                      title="Excluir detalhamento"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  )}
                   <div className="detalhamento-card-image">
                     <img 
                       src={desenho.imagemDesenhada?.url || exameImage}
@@ -957,13 +986,18 @@ const DiagnosticoDetalhes = () => {
             </div>
           ) : (
             <p className="detalhes-empty-message">
-              Nenhum detalhamento profissional registrado. 
-              <button 
-                className="btn-link-desenho"
-                onClick={() => navigate(`/app/diagnosticos/${id}/desenho`)}
-              >
-                Clique aqui para adicionar desenhos e observações
-              </button>
+              Nenhum detalhamento profissional registrado.
+              {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                <>
+                  {' '}
+                  <button 
+                    className="btn-link-desenho"
+                    onClick={() => navigate(`/app/diagnosticos/${id}/desenho`)}
+                  >
+                    Clique aqui para adicionar desenhos e observações
+                  </button>
+                </>
+              )}
             </p>
           )}
         </div>
@@ -974,20 +1008,22 @@ const DiagnosticoDetalhes = () => {
             <h3>
               <FontAwesomeIcon icon={faFileAlt} /> Descrição do Exame
             </h3>
-            {isEditingDescricao ? (
-              <button 
-                className="btn-save-section"
-                onClick={handleSave}
-              >
-                <FontAwesomeIcon icon={faSave} /> Salvar
-              </button>
-            ) : (
-              <button 
-                className="btn-edit-section"
-                onClick={() => setIsEditingDescricao(true)}
-              >
-                <FontAwesomeIcon icon={faEdit} /> Editar
-              </button>
+            {(isMaster || diagnostico?.responsavelId === user?.id) && (
+              isEditingDescricao ? (
+                <button 
+                  className="btn-save-section"
+                  onClick={handleSave}
+                >
+                  <FontAwesomeIcon icon={faSave} /> Salvar
+                </button>
+              ) : (
+                <button 
+                  className="btn-edit-section"
+                  onClick={() => setIsEditingDescricao(true)}
+                >
+                  <FontAwesomeIcon icon={faEdit} /> Editar
+                </button>
+              )
             )}
           </div>
           {isEditingDescricao ? (
@@ -1018,29 +1054,31 @@ const DiagnosticoDetalhes = () => {
               <FontAwesomeIcon icon={faCheck} /> Achados Radiográficos
             </h3>
             <div className="section-header-actions">
-              {isEditingAchados ? (
-                <>
+              {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                isEditingAchados ? (
+                  <>
+                    <button 
+                      className="btn-add-achado"
+                      onClick={handleAddAchado}
+                      title="Adicionar achado"
+                    >
+                      <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    </button>
+                    <button 
+                      className="btn-save-section"
+                      onClick={handleSaveAchados}
+                    >
+                      <FontAwesomeIcon icon={faSave} /> Salvar
+                    </button>
+                  </>
+                ) : (
                   <button 
-                    className="btn-add-achado"
-                    onClick={handleAddAchado}
-                    title="Adicionar achado"
+                    className="btn-edit-section"
+                    onClick={() => setIsEditingAchados(true)}
                   >
-                    <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    <FontAwesomeIcon icon={faEdit} /> Editar
                   </button>
-                  <button 
-                    className="btn-save-section"
-                    onClick={handleSaveAchados}
-                  >
-                    <FontAwesomeIcon icon={faSave} /> Salvar
-                  </button>
-                </>
-              ) : (
-                <button 
-                  className="btn-edit-section"
-                  onClick={() => setIsEditingAchados(true)}
-                >
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
+                )
               )}
             </div>
           </div>
@@ -1093,29 +1131,31 @@ const DiagnosticoDetalhes = () => {
               <FontAwesomeIcon icon={faStethoscope} /> Necessidades
             </h3>
             <div className="section-header-actions">
-              {isEditingNecessidades ? (
-                <>
+              {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                isEditingNecessidades ? (
+                  <>
+                    <button 
+                      className="btn-add-achado"
+                      onClick={handleAddNecessidade}
+                      title="Adicionar necessidade"
+                    >
+                      <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    </button>
+                    <button 
+                      className="btn-save-section"
+                      onClick={handleSaveNecessidades}
+                    >
+                      <FontAwesomeIcon icon={faSave} /> Salvar
+                    </button>
+                  </>
+                ) : (
                   <button 
-                    className="btn-add-achado"
-                    onClick={handleAddNecessidade}
-                    title="Adicionar necessidade"
+                    className="btn-edit-section"
+                    onClick={() => setIsEditingNecessidades(true)}
                   >
-                    <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    <FontAwesomeIcon icon={faEdit} /> Editar
                   </button>
-                  <button 
-                    className="btn-save-section"
-                    onClick={handleSaveNecessidades}
-                  >
-                    <FontAwesomeIcon icon={faSave} /> Salvar
-                  </button>
-                </>
-              ) : (
-                <button 
-                  className="btn-edit-section"
-                  onClick={() => setIsEditingNecessidades(true)}
-                >
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
+                )
               )}
             </div>
           </div>

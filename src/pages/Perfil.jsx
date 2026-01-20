@@ -208,7 +208,8 @@ const Perfil = () => {
       </div>
 
       <div className="perfil-content">
-        {/* Uso de Tokens */}
+        {/* Uso de Tokens - Apenas para ClienteMaster */}
+        {isMaster && (
         <div className="perfil-card token-card">
           <div className="card-header">
             <h2>
@@ -266,9 +267,10 @@ const Perfil = () => {
             </div>
           </div>
         </div>
+        )}
 
-        {/* Análises - Não mostrar se o acesso do plano for "chat" */}
-        {!isPlanoChat && (
+        {/* Análises - Apenas para ClienteMaster e quando acesso não for "chat" */}
+        {isMaster && !isPlanoChat && (
           <div className="perfil-card analises-card">
             <div className="card-header">
               <h2>

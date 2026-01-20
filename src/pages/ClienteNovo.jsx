@@ -214,9 +214,9 @@ const ClienteNovo = () => {
         return
       }
 
-      // Obter dados do clienteMaster e user do contexto
-      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
-      const userId = selectedClinicData?.user?.id
+      // Obter dados do clienteMaster do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      const userId = selectedClinicData?.usuarioId || selectedClinicData?.user?.id
       
       if (!clienteMasterId) {
         alert('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')

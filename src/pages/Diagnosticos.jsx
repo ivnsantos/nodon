@@ -57,7 +57,11 @@ const getMockDiagnosticos = () => {
 
 const Diagnosticos = () => {
   const navigate = useNavigate()
-  const { selectedClinicData, user } = useAuth()
+  const { selectedClinicData, user, isClienteMaster, getRelacionamento } = useAuth()
+  
+  // Verificar se é cliente master
+  const relacionamento = getRelacionamento()
+  const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
   const [diagnosticos, setDiagnosticos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -100,71 +104,50 @@ const Diagnosticos = () => {
     telefone: ''
   })
 
-  // Carregar responsáveis (users e usuarios)
+  // Carregar responsáveis (usuarios do clienteMaster)
   const loadResponsaveis = async () => {
     try {
       setLoadingResponsaveis(true)
-      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      if (!clienteMasterId) {
-        console.error('clienteMasterId não encontrado')
-        setResponsaveis([])
-        return
+      let todosResponsaveis = []
+
+      // Buscar usuarios do clienteMaster
+      if (clienteMasterId) {
+        try {
+          const response = await api.get(`/users?clienteMasterId=${clienteMasterId}`)
+          // A resposta pode estar aninhada: data.data.data ou data.data ou data
+          const usuarios = response.data?.data?.data || response.data?.data || response.data || []
+          
+          // Normalizar usuarios
+          const usuariosNormalizados = (Array.isArray(usuarios) ? usuarios : []).map(usuario => ({
+            id: usuario.id,
+            nome: usuario.nome || usuario.name || usuario.email,
+            email: usuario.email || '',
+            tipo: usuario.tipo || 'usuario',
+            label: usuario.tipo === 'master' ? 'Cliente Master' : 'Usuário'
+          }))
+
+          todosResponsaveis = usuariosNormalizados
+        } catch (usuariosError) {
+          console.log('Erro ao buscar usuarios:', usuariosError)
+        }
       }
 
-      // Buscar users e usuarios em paralelo usando as rotas corretas
-      const [usersResponse, usuariosResponse] = await Promise.all([
-        api.get('/users').catch((err) => {
-          console.log('Erro ao buscar users:', err)
-          return { data: [] }
-        }),
-        api.get(`/users/usuarios-comum/listar?cliente_master_id=${clienteMasterId}`).catch((err) => {
-          console.log('Erro ao buscar usuarios:', err)
-          return { data: [] }
-        })
-      ])
-
-      console.log('Response users:', usersResponse.data)
-      console.log('Response usuarios:', usuariosResponse.data)
-
-      const users = usersResponse.data?.data || usersResponse.data || []
-      const usuarios = usuariosResponse.data?.data || usuariosResponse.data || []
-
-      // Normalizar e combinar as listas
-      const usersNormalizados = (Array.isArray(users) ? users : []).map(u => ({
-        id: u.id,
-        nome: u.nome || u.name || u.email,
-        email: u.email || '',
-        tipo: 'user',
-        label: 'Usuário Master'
-      }))
-
-      const usuariosNormalizados = (Array.isArray(usuarios) ? usuarios : []).map(usuario => ({
-        id: usuario.id,
-        nome: usuario.nome || usuario.name || usuario.email,
-        email: usuario.email || '',
-        tipo: 'usuario',
-        label: 'Usuário Comum'
-      }))
-
-      // Combinar todas as listas
-      let todosResponsaveis = [...usersNormalizados, ...usuariosNormalizados]
-
-      // Se o usuário logado não está na lista, adicionar
-      if (user && user.id) {
-        const usuarioLogadoJaNaLista = todosResponsaveis.some(r => r.id === user.id)
-        if (!usuarioLogadoJaNaLista) {
-          todosResponsaveis.unshift({
-            id: user.id,
-            nome: user.nome || user.name || user.email,
-            email: user.email || '',
+      // Se não conseguiu carregar nenhum, adicionar pelo menos o usuário logado
+      if (todosResponsaveis.length === 0) {
+        const usuarioLogado = user || selectedClinicData?.perfil
+        if (usuarioLogado && usuarioLogado.id) {
+          todosResponsaveis.push({
+            id: usuarioLogado.id,
+            nome: usuarioLogado.nome || usuarioLogado.name || usuarioLogado.email,
+            email: usuarioLogado.email || '',
             tipo: 'user',
             label: 'Usuário Logado'
           })
         }
       }
 
-      console.log('Responsáveis encontrados:', todosResponsaveis)
       setResponsaveis(todosResponsaveis)
     } catch (error) {
       console.error('Erro ao carregar responsáveis:', error)
@@ -177,7 +160,7 @@ const Diagnosticos = () => {
   // Carregar todos os pacientes do clienteMasterId
   const loadPacientes = async () => {
     try {
-      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
         console.error('clienteMasterId não encontrado')
@@ -273,8 +256,8 @@ const Diagnosticos = () => {
     try {
       setLoading(true)
       
-      // Obter clienteMasterId do contexto
-      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
         console.error('clienteMasterId não encontrado')
@@ -303,6 +286,7 @@ const Diagnosticos = () => {
         cliente_id: radiografia.pacienteId || null,
         cliente_nome: radiografia.nome || '',
         cliente_email: radiografia.emailPaciente || '',
+        responsavel: radiografia.responsavel || radiografia.responsavelId || null,
         created_at: radiografia.createdAt || new Date().toISOString()
       }))
       
@@ -450,8 +434,8 @@ const Diagnosticos = () => {
     setShowResponsavelModal(false)
 
     try {
-      // Obter clienteMasterId do contexto
-      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
         showAlert('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')
@@ -980,13 +964,15 @@ const Diagnosticos = () => {
         ) : (
           diagnosticos.map((diagnostico) => (
             <div key={diagnostico.id} className="diagnostico-card">
-              <button 
-                className="diagnostico-delete-btn"
-                onClick={(e) => handleDeleteClick(diagnostico, e)}
-                title="Excluir radiografia"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
+              {(isMaster || diagnostico.responsavel === user?.id || diagnostico.responsavel === selectedClinicData?.usuarioId || diagnostico.responsavel === selectedClinicData?.perfil?.id) && (
+                <button 
+                  className="diagnostico-delete-btn"
+                  onClick={(e) => handleDeleteClick(diagnostico, e)}
+                  title="Excluir radiografia"
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                </button>
+              )}
               <div className={`diagnostico-image-container ${diagnostico.imagens && diagnostico.imagens.length === 4 ? 'has-four-images' : ''}`} onClick={() => handleViewDetails(diagnostico)}>
                 {diagnostico.imagens && diagnostico.imagens.length > 0 ? (
                   <div className={`diagnostico-images-grid ${

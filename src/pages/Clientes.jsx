@@ -12,7 +12,11 @@ import './Clientes.css'
 
 const Clientes = () => {
   const navigate = useNavigate()
-  const { selectedClinicData } = useAuth()
+  const { selectedClinicData, isClienteMaster, getRelacionamento } = useAuth()
+  
+  // Verificar se é cliente master
+  const relacionamento = getRelacionamento()
+  const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,8 +32,8 @@ const Clientes = () => {
 
   const loadClientes = async () => {
     try {
-      // Obter clienteMasterId do contexto
-      const clienteMasterId = selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
         console.error('clienteMasterId não encontrado')
@@ -287,19 +291,23 @@ const Clientes = () => {
                   <FontAwesomeIcon icon={faEye} />
                   Ver Ficha
                 </button>
-                <button
-                  className="btn-edit"
-                  onClick={() => navigate(`/app/clientes/${cliente.id}/editar`)}
-                >
-                  <FontAwesomeIcon icon={faEdit} />
-                  Editar
-                </button>
-                <button
-                  className="btn-delete"
-                  onClick={() => handleDeleteClick(cliente)}
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
+                {isMaster && (
+                  <button
+                    className="btn-edit"
+                    onClick={() => navigate(`/app/clientes/${cliente.id}/editar`)}
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                    Editar
+                  </button>
+                )}
+                {isMaster && (
+                  <button
+                    className="btn-delete"
+                    onClick={() => handleDeleteClick(cliente)}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                )}
               </div>
             </div>
           ))
