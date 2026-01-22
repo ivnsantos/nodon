@@ -287,10 +287,32 @@ const Diagnosticos = () => {
         cliente_nome: radiografia.nome || '',
         cliente_email: radiografia.emailPaciente || '',
         responsavel: radiografia.responsavel || radiografia.responsavelId || null,
+        nomeResponsavel: null,
         created_at: radiografia.createdAt || new Date().toISOString()
       }))
       
-      setDiagnosticos(diagnosticosNormalizados)
+      // Buscar nomes dos responsáveis
+      const responsaveisIds = [...new Set(diagnosticosNormalizados.map(d => d.responsavel).filter(Boolean))]
+      const nomesResponsaveis = {}
+      
+      await Promise.all(responsaveisIds.map(async (responsavelId) => {
+        try {
+          const res = await api.get(`/users/base/${responsavelId}`)
+          const userData = res.data?.data || res.data
+          nomesResponsaveis[responsavelId] = userData?.nome || userData?.name || 'Responsável'
+        } catch (err) {
+          console.error(`Erro ao buscar nome do responsável ${responsavelId}:`, err)
+          nomesResponsaveis[responsavelId] = 'Responsável'
+        }
+      }))
+      
+      // Atribuir nomes dos responsáveis
+      const diagnosticosComNomes = diagnosticosNormalizados.map(d => ({
+        ...d,
+        nomeResponsavel: d.responsavel ? nomesResponsaveis[d.responsavel] : null
+      }))
+      
+      setDiagnosticos(diagnosticosComNomes)
     } catch (error) {
       console.error('Erro ao buscar radiografias:', error)
       setDiagnosticos([])
@@ -954,7 +976,7 @@ const Diagnosticos = () => {
         </div>
       )}
 
-      <div className="diagnosticos-grid">
+      <div className={`diagnosticos-grid ${showForm ? 'form-open' : ''}`}>
         {diagnosticos.length === 0 ? (
           <div className="empty-state-diagnosticos">
             <FontAwesomeIcon icon={faXRay} size="4x" />
@@ -1011,6 +1033,12 @@ const Diagnosticos = () => {
                 <h4>
                   {diagnostico.paciente}
                 </h4>
+                {diagnostico.nomeResponsavel && (
+                  <p className="diagnostico-responsavel">
+                    <FontAwesomeIcon icon={faUserMd} />
+                    {diagnostico.nomeResponsavel}
+                  </p>
+                )}
               </div>
             </div>
           ))

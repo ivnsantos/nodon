@@ -1,21 +1,17 @@
 .cliente-novo-page {
   padding: 2rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
 }
 
 .cliente-novo-header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .cliente-novo-header h1 {
-  color: #ffffff;
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
+  display: none;
 }
 
 .btn-back {
@@ -298,6 +294,32 @@
     padding: 1rem;
   }
 
+  .cliente-novo-header {
+    margin-bottom: 1rem;
+  }
+
+  .cliente-novo-header h1 {
+    display: none;
+  }
+
+  .btn-back {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .cliente-novo-form {
+    padding: 1.25rem;
+  }
+
+  .form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .form-section h2 {
+    font-size: 1.125rem;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -310,6 +332,46 @@
   .btn-save {
     width: 100%;
     justify-content: center;
+  }
+
+  .btn-add-necessidade {
+    padding: 0 !important;
+    gap: 0 !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    justify-content: center !important;
+    flex-shrink: 0;
+  }
+
+  .btn-add-necessidade span {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cliente-novo-page {
+    padding: 0.75rem;
+  }
+
+  .cliente-novo-form {
+    padding: 1rem;
+    border-radius: 0.75rem;
+  }
+
+  .form-section h2 {
+    font-size: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.8125rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
   }
 }
 

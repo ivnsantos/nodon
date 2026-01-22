@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
-  faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock
+  faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock, faStop,
+  faMicrophone, faImage, faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
@@ -23,8 +24,16 @@ const Chat = () => {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [tokensInfo, setTokensInfo] = useState(null)
   const [tokensBlocked, setTokensBlocked] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioBlob, setAudioBlob] = useState(null)
+  const [attachedImages, setAttachedImages] = useState([])
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
+  const abortControllerRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const fileInputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -197,11 +206,18 @@ const Chat = () => {
           messages.forEach(msg => {
             // Filtrar apenas mensagens de user e assistant
             if (msg.role === 'user' || msg.role === 'assistant') {
-              messagesList.push({
+              const messageObj = {
                 role: msg.role,
                 content: msg.content || msg.mensagem || msg.text || '',
                 isTyping: false
-              })
+              }
+              
+              // Incluir imagens se existirem
+              if (msg.imageUrls && Array.isArray(msg.imageUrls) && msg.imageUrls.length > 0) {
+                messageObj.images = msg.imageUrls
+              }
+              
+              messagesList.push(messageObj)
             }
           })
         } else {
@@ -274,23 +290,160 @@ const Chat = () => {
     }, 1000)
   }
 
+  const handleStopResponse = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setLoading(false)
+    setIsThinking(false)
+    setIsStreaming(false)
+    
+    // Marcar a última mensagem como completa
+    setMessages(prev => {
+      const newMessages = [...prev]
+      const lastMessage = newMessages[newMessages.length - 1]
+      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isTyping) {
+        newMessages[newMessages.length - 1] = {
+          ...lastMessage,
+          content: lastMessage.content + ' [Resposta interrompida]',
+          isTyping: false
+        }
+      }
+      return newMessages
+    })
+  }
+
+  // Funções para gravação de áudio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error)
+      alert('Não foi possível acessar o microfone. Verifique as permissões.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+    setAudioBlob(null)
+    audioChunksRef.current = []
+  }
+
+  // Funções para anexar imagens
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files)
+    processImageFiles(files)
+    e.target.value = '' // Reset input
+  }
+
+  const processImageFiles = (files) => {
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          setAttachedImages(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            data: e.target.result,
+            name: file.name
+          }])
+        }
+        reader.readAsDataURL(file)
+      }
+    })
+  }
+
+  const removeImage = (imageId) => {
+    setAttachedImages(prev => prev.filter(img => img.id !== imageId))
+  }
+
+  // Handler para colar imagem (Ctrl+V)
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (file) {
+          processImageFiles([file])
+        }
+        break
+      }
+    }
+  }
+
+  // Converter blob para base64
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  }
+
   const handleSend = async (e) => {
     e.preventDefault()
-    if (!input.trim() || loading || tokensBlocked) return
+    
+    // Verificar se há conteúdo para enviar (texto, áudio ou imagens)
+    const hasContent = input.trim() || audioBlob || attachedImages.length > 0
+    if (!hasContent || loading || tokensBlocked) return
 
     setIsTyping(false)
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
     }
 
+    // Preparar mensagem do usuário para exibição
+    const userMessageContent = []
+    if (input.trim()) userMessageContent.push(input)
+    if (audioBlob) userMessageContent.push('🎤 Áudio enviado')
+
     const userMessage = {
       role: 'user',
-      content: input
+      content: userMessageContent.join('\n'),
+      images: attachedImages.map(img => img.data),
+      hasAudio: !!audioBlob
     }
 
     setMessages(prev => [...prev, userMessage])
     const messageToSend = input
+    const imagesToSend = [...attachedImages]
+    const audioToSend = audioBlob
+    
+    // Limpar inputs
     setInput('')
+    setAttachedImages([])
+    setAudioBlob(null)
     setLoading(true)
     setIsThinking(true)
 
@@ -308,8 +461,22 @@ const Chat = () => {
 
       // Montar payload da API
       const payload = {
-        message: messageToSend,
         clienteMasterId: clienteMasterId
+      }
+
+      // Adicionar mensagem de texto se houver
+      if (messageToSend.trim()) {
+        payload.message = messageToSend
+      }
+
+      // Adicionar áudio se houver
+      if (audioToSend) {
+        payload.audio = await blobToBase64(audioToSend)
+      }
+
+      // Adicionar imagens se houver
+      if (imagesToSend.length > 0) {
+        payload.images = imagesToSend.map(img => img.data)
       }
 
       // Adicionar histórico apenas se houver mensagens anteriores
@@ -327,6 +494,9 @@ const Chat = () => {
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
       setIsThinking(true)
       
+      // Criar AbortController para permitir cancelar a requisição
+      abortControllerRef.current = new AbortController()
+      
       // Fazer requisição POST com streaming (única chamada)
       const streamResponse = await fetch(`${baseURL}/chat/stream`, {
         method: 'POST',
@@ -334,7 +504,8 @@ const Chat = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: abortControllerRef.current.signal
       })
 
       if (!streamResponse.ok) {
@@ -342,6 +513,7 @@ const Chat = () => {
       }
 
       setIsThinking(false)
+      setIsStreaming(true)
       
       // Adicionar mensagem vazia inicial
       setMessages(prev => [...prev, {
@@ -377,6 +549,11 @@ const Chat = () => {
           try {
             const data = JSON.parse(dataLine)
             
+            // Capturar conversationId se presente
+            if (data.conversationId && !currentConversationId) {
+              setCurrentConversationId(data.conversationId)
+            }
+            
             if (data.type === 'chunk') {
               // Adicionar chunk ao texto visível
               chatText += data.content
@@ -402,9 +579,9 @@ const Chat = () => {
               tokensUsed = data.tokensUsed || 0
               console.log('Tokens usados:', tokensUsed)
               
-              // Capturar conversationId se retornado pelo stream
-              if (data.conversationId && !currentConversationId) {
-                setCurrentConversationId(data.conversationId)
+              // Se a resposta veio junto com o done, usar ela
+              if (data.response) {
+                chatText = data.response
               }
               
               // Marcar mensagem como completa
@@ -425,6 +602,26 @@ const Chat = () => {
             } else if (data.type === 'error') {
               console.error('Erro:', data.message)
               throw new Error(data.message || 'Erro ao processar resposta')
+            } else if (data.response) {
+              // Formato alternativo: resposta direta (sem streaming)
+              chatText = data.response
+              tokensUsed = data.tokensUsed || 0
+              
+              // Atualizar UI com a resposta completa
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: chatText,
+                    isTyping: false
+                  }
+                }
+                return newMessages
+              })
+              
+              scrollToBottom()
             }
           } catch (parseError) {
             // Ignorar erros de parsing de linhas incompletas
@@ -432,6 +629,36 @@ const Chat = () => {
               console.warn('Erro ao parsear linha:', dataLine, parseError)
             }
           }
+        }
+      }
+      
+      // Processar buffer restante se houver dados
+      if (buffer.trim()) {
+        try {
+          const dataLine = buffer.startsWith('data: ') ? buffer.slice(6) : buffer
+          const data = JSON.parse(dataLine)
+          
+          if (data.conversationId && !currentConversationId) {
+            setCurrentConversationId(data.conversationId)
+          }
+          
+          if (data.response) {
+            chatText = data.response
+            setMessages(prev => {
+              const newMessages = [...prev]
+              const lastMessage = newMessages[newMessages.length - 1]
+              if (lastMessage && lastMessage.role === 'assistant') {
+                newMessages[newMessages.length - 1] = {
+                  ...lastMessage,
+                  content: chatText,
+                  isTyping: false
+                }
+              }
+              return newMessages
+            })
+          }
+        } catch (e) {
+          console.warn('Erro ao processar buffer final:', e)
         }
       }
       
@@ -467,6 +694,12 @@ const Chat = () => {
       // Verificar tokens após enviar mensagem
       await checkTokens()
     } catch (error) {
+      // Se foi abortado pelo usuário, não mostrar erro
+      if (error.name === 'AbortError') {
+        console.log('Resposta interrompida pelo usuário')
+        return
+      }
+      
       console.error('Erro ao enviar mensagem:', error)
       setIsThinking(false)
       
@@ -561,6 +794,8 @@ const Chat = () => {
       }
     } finally {
       setLoading(false)
+      setIsStreaming(false)
+      abortControllerRef.current = null
     }
   }
 
@@ -741,7 +976,16 @@ const Chat = () => {
                     {msg.role === 'assistant' ? (
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     ) : (
-                      msg.content
+                      <>
+                        {msg.content}
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="message-images">
+                            {msg.images.map((img, imgIndex) => (
+                              <img key={imgIndex} src={img} alt={`Anexo ${imgIndex + 1}`} />
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                     {msg.isTyping && (
                       <span className="typing-cursor">|</span>
@@ -791,7 +1035,60 @@ const Chat = () => {
         </div>
 
         <form onSubmit={handleSend} className="chat-input-modern">
-          {isTyping && (
+          {/* Preview de imagens anexadas */}
+          {attachedImages.length > 0 && (
+            <div className="attached-images-preview">
+              {attachedImages.map(img => (
+                <div key={img.id} className="attached-image-item">
+                  <img src={img.data} alt={img.name} />
+                  <button 
+                    type="button" 
+                    className="remove-image-btn"
+                    onClick={() => removeImage(img.id)}
+                    title="Remover imagem"
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Preview de áudio gravado */}
+          {audioBlob && (
+            <div className="audio-preview">
+              <div className="audio-preview-content">
+                <FontAwesomeIcon icon={faMicrophone} className="audio-icon" />
+                <span>Áudio gravado</span>
+                <audio controls src={URL.createObjectURL(audioBlob)} />
+              </div>
+              <button 
+                type="button" 
+                className="remove-audio-btn"
+                onClick={cancelRecording}
+                title="Remover áudio"
+              >
+                <FontAwesomeIcon icon={faTrash} />
+              </button>
+            </div>
+          )}
+
+          {/* Indicador de gravação */}
+          {isRecording && (
+            <div className="recording-indicator">
+              <div className="recording-pulse"></div>
+              <span>Gravando...</span>
+              <button 
+                type="button" 
+                className="stop-recording-btn"
+                onClick={stopRecording}
+              >
+                Parar
+              </button>
+            </div>
+          )}
+
+          {isTyping && !isRecording && (
             <div className="user-typing-indicator">
               <div className="typing-dots">
                 <span></span>
@@ -800,22 +1097,67 @@ const Chat = () => {
               </div>
             </div>
           )}
+
           <div className="input-wrapper">
+            {/* Input de arquivo oculto */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+            />
+
+            {/* Botão anexar imagem */}
+            <button
+              type="button"
+              className="chat-action-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || tokensBlocked}
+              title="Anexar imagem"
+            >
+              <FontAwesomeIcon icon={faImage} />
+            </button>
+
+            {/* Botão gravar áudio */}
+            <button
+              type="button"
+              className={`chat-action-btn ${isRecording ? 'recording' : ''}`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={loading || tokensBlocked || audioBlob}
+              title={isRecording ? "Parar gravação" : "Gravar áudio"}
+            >
+              <FontAwesomeIcon icon={faMicrophone} />
+            </button>
+
             <input
               type="text"
               value={input}
               onChange={handleInputChange}
-              placeholder={tokensBlocked ? "Limite de tokens atingido" : "Digite sua mensagem..."}
+              onPaste={handlePaste}
+              placeholder={tokensBlocked ? "Limite de tokens atingido" : (loading ? "Aguarde a resposta..." : "Digite sua mensagem ou cole uma imagem...")}
               className="chat-input-field"
-              disabled={loading || tokensBlocked}
+              disabled={loading || tokensBlocked || isRecording}
             />
-            <button 
-              type="submit" 
-              className="chat-send-btn-modern" 
-              disabled={loading || !input.trim() || tokensBlocked}
-            >
-              <FontAwesomeIcon icon={faPaperPlane} />
-            </button>
+            {isStreaming ? (
+              <button 
+                type="button" 
+                className="chat-stop-btn" 
+                onClick={handleStopResponse}
+                title="Parar resposta"
+              >
+                <FontAwesomeIcon icon={faStop} />
+              </button>
+            ) : (
+              <button 
+                type="submit" 
+                className="chat-send-btn-modern" 
+                disabled={loading || tokensBlocked || isRecording || (!input.trim() && !audioBlob && attachedImages.length === 0)}
+              >
+                <FontAwesomeIcon icon={faPaperPlane} />
+              </button>
+            )}
           </div>
         </form>
       </div>

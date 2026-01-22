@@ -9,6 +9,8 @@ import {
   faEye
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
 import './DiagnosticoDetalhes.css'
 
@@ -155,6 +157,10 @@ const DiagnosticoDetalhes = () => {
   // Verificar se é cliente master
   const relacionamento = getRelacionamento()
   const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, hideAlert } = useAlert()
+  
   const [diagnostico, setDiagnostico] = useState(null)
   const [loading, setLoading] = useState(true)
   const [profissionalNome, setProfissionalNome] = useState('')
@@ -699,7 +705,7 @@ const DiagnosticoDetalhes = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar desenho:', error)
-      alert('Erro ao carregar desenho. Tente novamente.')
+      showError('Erro ao carregar desenho. Tente novamente.')
     }
   }
 
@@ -1009,21 +1015,34 @@ const DiagnosticoDetalhes = () => {
               <FontAwesomeIcon icon={faFileAlt} /> Descrição do Exame
             </h3>
             {(isMaster || diagnostico?.responsavelId === user?.id) && (
-              isEditingDescricao ? (
-                <button 
-                  className="btn-save-section"
-                  onClick={handleSave}
-                >
-                  <FontAwesomeIcon icon={faSave} /> Salvar
-                </button>
-              ) : (
-                <button 
-                  className="btn-edit-section"
-                  onClick={() => setIsEditingDescricao(true)}
-                >
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
-              )
+              <div className="section-header-actions">
+                {isEditingDescricao ? (
+                  <>
+                    <button 
+                      className="btn-cancel-section"
+                      onClick={() => {
+                        setIsEditingDescricao(false)
+                        setEditedDescricao(diagnostico.descricao || '')
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Cancelar
+                    </button>
+                    <button 
+                      className="btn-save-section"
+                      onClick={handleSave}
+                    >
+                      <FontAwesomeIcon icon={faSave} /> Salvar
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="btn-edit-section"
+                    onClick={() => setIsEditingDescricao(true)}
+                  >
+                    <FontAwesomeIcon icon={faEdit} /> Editar
+                  </button>
+                )}
+              </div>
             )}
           </div>
           {isEditingDescricao ? (
@@ -1063,6 +1082,15 @@ const DiagnosticoDetalhes = () => {
                       title="Adicionar achado"
                     >
                       <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    </button>
+                    <button 
+                      className="btn-cancel-section"
+                      onClick={() => {
+                        setIsEditingAchados(false)
+                        setEditedAchados(diagnostico.achados || [])
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Cancelar
                     </button>
                     <button 
                       className="btn-save-section"
@@ -1140,6 +1168,15 @@ const DiagnosticoDetalhes = () => {
                       title="Adicionar necessidade"
                     >
                       <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    </button>
+                    <button 
+                      className="btn-cancel-section"
+                      onClick={() => {
+                        setIsEditingNecessidades(false)
+                        setEditedNecessidades(diagnostico.necessidades || [])
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Cancelar
                     </button>
                     <button 
                       className="btn-save-section"
@@ -1294,6 +1331,15 @@ const DiagnosticoDetalhes = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

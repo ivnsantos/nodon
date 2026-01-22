@@ -8,12 +8,15 @@ import {
   faStethoscope, faCheckCircle, faPlus, faTimes
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './ClienteNovo.css'
 
 const ClienteNovo = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { selectedClinicData } = useAuth()
+  const { alertConfig, showError, showWarning, hideAlert } = useAlert()
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
   const isEditMode = !!id
@@ -132,7 +135,7 @@ const ClienteNovo = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar dados do paciente:', error)
-      alert('Erro ao carregar dados do paciente. Tente novamente.')
+      showError('Erro ao carregar dados do paciente. Tente novamente.')
     } finally {
       setLoadingData(false)
     }
@@ -171,7 +174,7 @@ const ClienteNovo = () => {
         const data = await response.json()
         
         if (data.erro) {
-          alert('CEP não encontrado. Por favor, verifique o CEP digitado.')
+          showWarning('CEP não encontrado. Por favor, verifique o CEP digitado.')
           return
         }
 
@@ -185,7 +188,7 @@ const ClienteNovo = () => {
         }))
       } catch (error) {
         console.error('Erro ao buscar CEP:', error)
-        alert('Erro ao buscar CEP. Tente novamente.')
+        showError('Erro ao buscar CEP. Tente novamente.')
       }
     }
   }
@@ -197,19 +200,19 @@ const ClienteNovo = () => {
     try {
       // Validação básica dos campos obrigatórios
       if (!formData.nome || !formData.nome.trim()) {
-        alert('Por favor, preencha o nome do paciente.')
+        showWarning('Por favor, preencha o nome do paciente.')
         setLoading(false)
         return
       }
 
       if (!formData.email || !formData.email.trim()) {
-        alert('Por favor, preencha o e-mail do paciente.')
+        showWarning('Por favor, preencha o e-mail do paciente.')
         setLoading(false)
         return
       }
 
       if (!formData.telefone || !formData.telefone.replace(/\D/g, '')) {
-        alert('Por favor, preencha o telefone do paciente.')
+        showWarning('Por favor, preencha o telefone do paciente.')
         setLoading(false)
         return
       }
@@ -219,7 +222,7 @@ const ClienteNovo = () => {
       const userId = selectedClinicData?.usuarioId || selectedClinicData?.user?.id
       
       if (!clienteMasterId) {
-        alert('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')
+        showError('Erro: Dados do cliente master não encontrados. Por favor, selecione um consultório.')
         setLoading(false)
         return
       }
@@ -548,7 +551,7 @@ const ClienteNovo = () => {
                     onClick={handleAddNecessidade}
                   >
                     <FontAwesomeIcon icon={faPlus} />
-                    Adicionar
+                    <span>Adicionar</span>
                   </button>
                 </div>
               </div>
@@ -603,6 +606,15 @@ const ClienteNovo = () => {
           </button>
         </div>
       </form>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

@@ -5,6 +5,8 @@ import { faEnvelope, faArrowRight, faSpinner, faCheckCircle, faXRay, faFileMedic
 import nodoLogo from '../img/nodo.png'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './Auth.css'
 
 const VerifyEmail = () => {
@@ -18,6 +20,7 @@ const VerifyEmail = () => {
   const location = useLocation()
   const inputRefs = useRef([])
   const { verifyEmail, resendVerificationCode, logout } = useAuth()
+  const { alertConfig, showSuccess, hideAlert } = useAlert()
 
   const handleLogout = async () => {
     await logout()
@@ -159,7 +162,7 @@ const VerifyEmail = () => {
 
       if (result.success) {
         setError('')
-        alert('Código reenviado com sucesso! Verifique seu e-mail.')
+        showSuccess('Código reenviado com sucesso! Verifique seu e-mail.')
         setCode(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       } else {
@@ -357,6 +360,15 @@ const VerifyEmail = () => {
           )}
         </div>
       </div>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

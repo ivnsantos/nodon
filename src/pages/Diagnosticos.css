@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  padding: 1.5rem;
 }
 
 .diagnosticos-header {
@@ -1086,16 +1087,37 @@
 .diagnostico-image-container {
   position: relative;
   width: 100%;
-  height: 250px;
+  height: 280px;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+  background: linear-gradient(180deg, #0a0e1a 0%, #151d2e 100%);
+  border-radius: 1.5rem 1.5rem 0 0;
+  box-shadow: 
+    inset 0 4px 12px rgba(0, 0, 0, 0.5),
+    0 -2px 0 rgba(255, 255, 255, 0.05);
 }
 
 .diagnostico-images-grid {
   width: 100%;
   height: 100%;
   display: grid;
-  gap: 2px;
+  gap: 4px;
+  background: linear-gradient(180deg, #080c14 0%, #0f1520 100%);
+  padding: 4px;
+  border-radius: 1.25rem 1.25rem 0 0;
+  margin: 3px;
+  margin-bottom: 0;
+  width: calc(100% - 6px);
+  height: calc(100% - 3px);
+  overflow: hidden;
+  box-shadow: 
+    inset 0 3px 10px rgba(0, 0, 0, 0.6),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.4),
+    inset 3px 0 8px rgba(0, 0, 0, 0.4),
+    inset -3px 0 8px rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-top-color: rgba(0, 0, 0, 0.5);
+  border-bottom-color: rgba(50, 60, 80, 0.2);
 }
 
 .diagnostico-images-grid.single {
@@ -1109,7 +1131,7 @@
 .diagnostico-images-grid.three-grid {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 3px;
+  gap: 4px;
 }
 
 .diagnostico-images-grid.three-grid .diagnostico-image-item:nth-child(3) {
@@ -1119,11 +1141,11 @@
 .diagnostico-images-grid.four-grid {
   grid-template-columns: 1fr 1fr !important;
   grid-template-rows: 1fr 1fr !important;
-  gap: 3px;
+  gap: 4px;
 }
 
 .diagnostico-image-container.has-four-images {
-  height: 250px !important;
+  height: 280px !important;
 }
 
 .diagnostico-image-container.has-four-images .diagnostico-images-grid.four-grid {
@@ -1137,6 +1159,53 @@
   height: 100%;
   overflow: hidden;
   position: relative;
+  border-radius: 1rem;
+  background: #0a0e1a;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(30, 40, 60, 0.8);
+  border-top-color: rgba(60, 80, 100, 0.4);
+  border-bottom-color: rgba(0, 0, 0, 0.6);
+  transform: translateZ(0);
+}
+
+.diagnostico-image-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+  border-radius: 1rem 1rem 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.diagnostico-image-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0%, transparent 100%);
+  border-radius: 0 0 1rem 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.diagnostico-image-item:hover {
+  transform: translateY(-4px) scale(1.02);
+  z-index: 2;
+  box-shadow: 
+    0 12px 25px rgba(0, 0, 0, 0.6),
+    0 6px 10px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(14, 165, 233, 0.2);
+  border-color: rgba(14, 165, 233, 0.4);
 }
 
 .diagnostico-image-item img {
@@ -1144,7 +1213,16 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  background: rgba(255, 255, 255, 0.05);
+  background: #0a0e1a;
+  border-radius: 1rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: 2px solid rgba(255, 255, 255, 0.15);
+  outline-offset: -2px;
+}
+
+.diagnostico-image-item:hover img {
+  filter: brightness(1.15) contrast(1.05);
+  outline-color: rgba(14, 165, 233, 0.5);
 }
 
 .diagnostico-image-placeholder {
@@ -1239,10 +1317,24 @@ button.view-btn {
   font-size: 1.125rem;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.diagnostico-responsavel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.75rem;
+}
+
+.diagnostico-responsavel svg {
+  color: #0ea5e9;
+  font-size: 0.75rem;
 }
 
 .diagnostico-date {
@@ -1286,6 +1378,11 @@ button.view-btn {
   padding: 4rem 2rem;
   text-align: center;
   color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
 }
 
 .empty-state-diagnosticos svg {
@@ -1325,31 +1422,115 @@ button.view-btn {
 }
 
 @media (max-width: 768px) {
+  .diagnosticos-modern {
+    gap: 1.25rem;
+  }
+
   .diagnosticos-header {
     flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .diagnosticos-header h2 {
+    font-size: 1.375rem;
+  }
+
+  .diagnosticos-header p {
+    font-size: 0.875rem;
+  }
+
+  .btn-diagnosticos-primary {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1.25rem;
+  }
+
+  .form-card-modern {
+    padding: 1.25rem;
+    border-radius: 1rem;
+  }
+
+  .form-card-modern h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
   }
 
   .form-grid-modern {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .diagnosticos-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .diagnosticos-grid.form-open {
+    display: none;
+  }
+
+  .diagnostico-card {
+    border-radius: 1rem;
+  }
+
+  .diagnostico-image-container,
+  .diagnostico-image {
+    height: 200px;
+  }
+
+  .diagnostico-info {
+    padding: 1rem;
+  }
+
+  .diagnostico-info h4 {
+    font-size: 1rem;
+  }
+
+  .diagnostico-desc {
+    font-size: 0.875rem;
   }
 
   .form-grid-quick {
     grid-template-columns: 1fr;
   }
 
-  .custom-alert {
-    top: 1rem;
-    right: 1rem;
-    left: 1rem;
-    max-width: none;
+  .form-actions-radiografia {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
-  .alert-content {
-    padding: 0.875rem 1rem;
+  .form-actions-radiografia .btn-submit-modern,
+  .btn-cancel-radiografia {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .custom-alert {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 5rem !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    max-width: none;
+    z-index: 99999 !important;
+    animation: slideInUp 0.3s ease-out;
+  }
+
+  @keyframes slideInUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .custom-alert .alert-content {
+    padding: 1rem;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
   }
 
   .modal-content-detalhes {
@@ -1359,7 +1540,7 @@ button.view-btn {
   }
 
   .modal-body-detalhes {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 
   .detalhes-info-grid {
@@ -1367,7 +1548,7 @@ button.view-btn {
   }
 
   .modal-header-detalhes {
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.25rem;
   }
 
   .modal-header-detalhes h2 {
@@ -1375,7 +1556,148 @@ button.view-btn {
   }
 
   .modal-footer-detalhes {
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .cliente-search-section {
+    padding: 1rem;
+  }
+
+  .cliente-search-section h4 {
+    font-size: 1rem;
+  }
+
+  .selected-cliente-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .btn-change-cliente {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .images-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .image-preview-item img {
+    height: 140px;
+  }
+
+  .images-upload-container .upload-label {
+    padding: 1.5rem 1rem;
+  }
+
+  .upload-label svg {
+    font-size: 2rem !important;
+  }
+
+  .empty-state-diagnosticos {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .empty-state-diagnosticos h3 {
+    font-size: 1.25rem;
+  }
+
+  .empty-state-diagnosticos svg {
+    font-size: 3rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagnosticos-modern {
+    gap: 1rem;
+  }
+
+  .diagnosticos-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .diagnosticos-header p {
+    font-size: 0.8125rem;
+  }
+
+  .btn-diagnosticos-primary {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .form-card-modern {
+    padding: 1rem;
+  }
+
+  .form-card-modern h3 {
+    font-size: 1.125rem;
+  }
+
+  .form-group-modern label {
+    font-size: 0.875rem;
+  }
+
+  .form-group-modern input,
+  .form-group-modern textarea {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .diagnostico-image-container,
+  .diagnostico-image {
+    height: 180px;
+  }
+
+  .diagnostico-info {
+    padding: 0.875rem;
+  }
+
+  .diagnostico-info h4 {
+    font-size: 0.9375rem;
+  }
+
+  .diagnostico-date {
+    font-size: 0.8125rem;
+  }
+
+  .diagnostico-desc {
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tag {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  .images-preview-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .image-preview-item img {
+    height: 100px;
+  }
+
+  .cliente-search-section {
+    padding: 0.875rem;
+  }
+
+  .cliente-search-input {
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    font-size: 0.875rem;
+  }
+
+  .search-result-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .result-name {
+    font-size: 0.875rem;
+  }
+
+  .result-details {
+    font-size: 0.75rem;
   }
 }
 
@@ -1535,6 +1857,36 @@ button.view-btn {
 
   .modal-confirm-delete .modal-actions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagnostico-image-container.has-four-images {
+    height: 160px !important;
+  }
+
+  .modal-confirm-delete {
+    padding: 1.5rem 1rem;
+  }
+
+  .modal-confirm-delete h3 {
+    font-size: 1.125rem;
+  }
+
+  .modal-confirm-delete p {
+    font-size: 0.875rem;
+  }
+
+  .diagnosticos-modern .modal-confirm-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+
+  .btn-modal-cancel,
+  .btn-modal-delete {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
   }
 }
 
@@ -1791,9 +2143,37 @@ button.view-btn {
     padding: 1.5rem;
   }
 
+  .modal-responsavel-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .modal-responsavel-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+
   .modal-responsavel-content {
     padding: 1rem;
     max-height: 50vh;
+  }
+
+  .responsavel-item {
+    padding: 0.875rem;
+  }
+
+  .responsavel-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .responsavel-nome {
+    font-size: 0.9375rem;
+  }
+
+  .responsavel-email {
+    font-size: 0.75rem;
   }
 
   .modal-responsavel-actions {
@@ -1804,5 +2184,73 @@ button.view-btn {
   .modal-responsavel-actions button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-responsavel {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 1rem 1rem 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .modal-responsavel-header {
+    padding: 1.25rem;
+  }
+
+  .modal-responsavel-header h3 {
+    font-size: 1.125rem;
+  }
+
+  .modal-responsavel-header p {
+    font-size: 0.8125rem;
+  }
+
+  .modal-responsavel-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .modal-responsavel-content {
+    max-height: 45vh;
+    padding: 0.75rem;
+  }
+
+  .responsavel-item {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .responsavel-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
+  }
+
+  .responsavel-nome {
+    font-size: 0.875rem;
+  }
+
+  .responsavel-check {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+
+  .modal-responsavel-actions {
+    padding: 0.875rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .modal-responsavel-actions .btn-modal-cancel,
+  .modal-responsavel-actions .btn-modal-confirm {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
   }
 }

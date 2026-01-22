@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUserPlus, faSearch, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faEdit,
-  faEye, faTrash, faFilter
+  faEye, faTrash, faFilter, faChevronDown
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './Clientes.css'
 
 const Clientes = () => {
@@ -17,12 +19,38 @@ const Clientes = () => {
   // Verificar se é cliente master
   const relacionamento = getRelacionamento()
   const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, hideAlert } = useAlert()
+  
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [clienteToDelete, setClienteToDelete] = useState(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  const statusOptions = [
+    { value: 'all', label: 'Todos os Status' },
+    { value: 'avaliacao-realizada', label: 'Avaliação Realizada' },
+    { value: 'em-andamento', label: 'Em Andamento' },
+    { value: 'aprovado', label: 'Aprovado' },
+    { value: 'tratamento-concluido', label: 'Tratamento Concluído' },
+    { value: 'perdido', label: 'Perdido' }
+  ]
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (selectedClinicData) {
@@ -145,7 +173,7 @@ const Clientes = () => {
     } catch (error) {
       console.error('Erro ao excluir paciente:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao excluir paciente. Tente novamente.'
-      alert(errorMessage)
+      showError(errorMessage)
     }
   }
 
@@ -174,45 +202,53 @@ const Clientes = () => {
 
   return (
     <div className="clientes-page">
-      <div className="clientes-header">
-        <div className="header-content">
-          <h1>
-            <FontAwesomeIcon icon={faUser} /> Clientes
-          </h1>
-          <button 
-            className="btn-new-client"
-            onClick={() => navigate('/app/clientes/novo')}
-          >
-            <FontAwesomeIcon icon={faUserPlus} />
-            Novo Cliente
-          </button>
+      <div className="clientes-toolbar">
+        <div className="clientes-filters">
+          <div className="search-box">
+            <FontAwesomeIcon icon={faSearch} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar por nome, email ou telefone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="filter-box custom-dropdown" ref={dropdownRef}>
+            <button 
+              className="dropdown-trigger"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              type="button"
+            >
+              <FontAwesomeIcon icon={faFilter} className="filter-icon" />
+              <span>{statusOptions.find(opt => opt.value === statusFilter)?.label}</span>
+              <FontAwesomeIcon icon={faChevronDown} className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`} />
+            </button>
+            {dropdownOpen && (
+              <div className="dropdown-menu">
+                {statusOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
+                    onClick={() => {
+                      setStatusFilter(option.value)
+                      setDropdownOpen(false)
+                    }}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="clientes-filters">
-        <div className="search-box">
-          <FontAwesomeIcon icon={faSearch} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Buscar por nome, email ou telefone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="filter-box">
-          <FontAwesomeIcon icon={faFilter} className="filter-icon" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">Todos os Status</option>
-            <option value="avaliacao-realizada">Avaliação Realizada</option>
-            <option value="em-andamento">Em Andamento</option>
-            <option value="aprovado">Aprovado</option>
-            <option value="tratamento-concluido">Tratamento Concluído</option>
-            <option value="perdido">Perdido</option>
-          </select>
-        </div>
+        <button 
+          className="btn-new-client"
+          onClick={() => navigate('/app/clientes/novo')}
+        >
+          <FontAwesomeIcon icon={faUserPlus} />
+          Novo Cliente
+        </button>
       </div>
 
       <div className="clientes-grid">
@@ -346,6 +382,15 @@ const Clientes = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

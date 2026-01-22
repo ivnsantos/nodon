@@ -57,13 +57,7 @@
 }
 
 .detalhes-header h1 {
-  color: #ffffff;
-  font-size: 2rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0;
+  display: none;
 }
 
 .btn-detalhamento-detalhes {
@@ -111,7 +105,7 @@
 .detalhes-content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .detalhes-imagem-section {
@@ -126,8 +120,8 @@
 }
 
 .detalhes-imagem-section.has-four-images {
-  height: 300px;
-  max-height: 300px;
+  height: 400px;
+  max-height: 400px;
 }
 
 .detalhes-imagem-section .detalhes-imagens-grid {
@@ -135,7 +129,7 @@
 }
 
 .detalhes-imagem-section.has-four-images .detalhes-imagens-grid {
-  height: 100%;
+  height: 400px;
 }
 
 .detalhes-imagem {
@@ -218,16 +212,18 @@
 .detalhes-info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
+  gap: 1rem;
+  margin: 0;
 }
 
 .detalhes-info-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1.25rem;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  margin: 0;
 }
 
 .detalhes-info-card.clickable {
@@ -327,8 +323,9 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1.25rem;
   backdrop-filter: blur(10px);
+  margin: 0;
 }
 
 .detalhes-section h3 {
@@ -414,18 +411,48 @@
     padding: 1rem;
   }
 
-  .detalhes-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .detalhes-content {
     gap: 1rem;
   }
 
+  .detalhes-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .header-left-detalhes {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .btn-back-detalhes {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
   .detalhes-header h1 {
-    font-size: 1.5rem;
+    display: none;
+  }
+
+  .header-right-detalhes {
+    width: 100%;
+  }
+
+  .btn-desenho-detalhes {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
   }
 
   .detalhes-info-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .detalhes-info-card-header {
@@ -445,6 +472,11 @@
 
   .detalhes-section {
     padding: 1rem;
+    margin-bottom: 0;
+  }
+
+  .detalhes-info-card {
+    padding: 1rem;
   }
 }
 
@@ -457,7 +489,8 @@
 }
 
 .btn-edit-section,
-.btn-save-section {
+.btn-save-section,
+.btn-cancel-section {
   padding: 0.5rem 1rem;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
@@ -478,6 +511,12 @@
   box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
 }
 
+.btn-cancel-section {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
 .btn-edit-section:hover,
 .btn-save-section:hover {
   transform: translateY(-1px);
@@ -486,6 +525,11 @@
 
 .btn-save-section:hover {
   box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+.btn-cancel-section:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .detalhes-textarea {
@@ -737,7 +781,7 @@
 /* Card de Detalhamento Profissional */
 .detalhamento-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(400px, 100%), 1fr));
   gap: 1.5rem;
 }
 
@@ -970,20 +1014,31 @@
 }
 
 @media (max-width: 768px) {
-  .header-right-detalhes {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
   .detalhes-section-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .section-header-actions {
+    width: 100%;
+  }
+
+  .btn-edit-section,
+  .btn-save-section,
+  .btn-cancel-section {
+    width: 100%;
+    justify-content: center;
   }
 
   .btn-add-achado {
     width: 100%;
     justify-content: center;
+  }
+
+  .detalhamento-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .detalhamento-card {
@@ -995,24 +1050,35 @@
 
   .detalhamento-card-image {
     width: 100%;
-    height: 180px;
+    height: auto;
+    aspect-ratio: 16/10;
+    max-height: 220px;
+  }
+
+  .detalhamento-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.3);
   }
 
   .detalhamento-card-delete-btn {
-    top: auto;
-    bottom: 1rem;
-    right: 1rem;
-    width: 40px;
-    height: 40px;
+    top: 0.75rem;
+    right: 0.75rem;
+    bottom: auto;
+    width: 36px;
+    height: 36px;
     position: absolute;
   }
 
   .detalhamento-card-content {
     gap: 0.75rem;
+    padding-bottom: 0.5rem;
   }
 
   .detalhamento-card-title {
-    font-size: 1.125rem;
+    font-size: 1rem;
+    padding-right: 0;
   }
 
   .detalhamento-card-subtitle {
@@ -1199,29 +1265,50 @@
 }
 
 @media (max-width: 768px) {
+  /* 2 imagens: uma embaixo da outra */
   .detalhes-imagens-grid.two-columns {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: 400px;
   }
 
+  /* 3 imagens: 2 em cima, 1 embaixo centralizada */
   .detalhes-imagens-grid.three-grid {
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 3px;
+    height: 400px;
   }
 
+  .detalhes-imagens-grid.three-grid .detalhes-imagem-item:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  /* 4 imagens: grid 2x2 */
   .detalhes-imagens-grid.four-grid {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 3px;
+    height: 280px;
   }
 
   .detalhes-imagem-section {
-    height: 300px;
-    max-height: 300px;
+    height: auto;
+    max-height: none;
   }
 
   .detalhes-imagem-section.has-four-images {
-    height: 300px;
-    max-height: 300px;
+    height: auto;
+    max-height: none;
+  }
+
+  .detalhes-imagem-item {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .detalhes-imagens-grid.two-columns .detalhes-imagem-item {
+    min-height: 0;
   }
 
   .custom-alert {
@@ -1353,6 +1440,9 @@
   .modal-image-selector {
     padding: 1.5rem;
     max-width: 95%;
+    max-height: 75vh;
+    margin: auto;
+    align-self: center;
   }
 
   .modal-image-selector-grid {

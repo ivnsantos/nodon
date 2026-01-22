@@ -7,10 +7,15 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './Calendario.css'
 
 const Calendario = () => {
   const { user, selectedClinicId, isClienteMaster, isUsuario, userComumId, selectedClinicData } = useAuth()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, showWarning, hideAlert } = useAlert()
   
   // Verificar se as funções existem (fallback caso não estejam disponíveis)
   const checkIsClienteMaster = () => {
@@ -319,16 +324,16 @@ const Calendario = () => {
       if (error.response?.status >= 500) {
         const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Erro interno do servidor'
         console.error('Erro 500 - Mensagem do servidor:', errorMessage)
-        alert(`Erro ao carregar consultas: ${errorMessage}\n\nVerifique o console para mais detalhes.`)
+        showError(`Erro ao carregar consultas: ${errorMessage}. Verifique o console para mais detalhes.`)
       } else if (error.response?.status === 404) {
         console.log('Endpoint não encontrado - pode ser que ainda não esteja implementado no backend')
-        alert('Endpoint não encontrado. Verifique se a rota está implementada no backend.')
+        showWarning('Endpoint não encontrado. Verifique se a rota está implementada no backend.')
       } else if (error.response?.status === 401) {
-        alert('Não autorizado. Faça login novamente.')
+        showError('Não autorizado. Faça login novamente.')
       } else if (error.response?.status === 403) {
-        alert('Acesso negado. Verifique suas permissões.')
+        showError('Acesso negado. Verifique suas permissões.')
       } else if (error.response?.data?.message) {
-        alert(`Erro: ${error.response.data.message}`)
+        showError(`Erro: ${error.response.data.message}`)
       }
     } finally {
       setLoadingEvents(false)
@@ -454,7 +459,7 @@ const Calendario = () => {
     } catch (error) {
       console.error('Erro ao criar tipo de consulta:', error)
       console.error('Detalhes do erro:', error.response?.data)
-      alert('Erro ao criar tipo de consulta. Tente novamente.')
+      showError('Erro ao criar tipo de consulta. Tente novamente.')
     }
   }
 
@@ -476,7 +481,7 @@ const Calendario = () => {
       }
     } catch (error) {
       console.error('Erro ao atualizar tipo de consulta:', error)
-      alert('Erro ao atualizar tipo de consulta. Tente novamente.')
+      showError('Erro ao atualizar tipo de consulta. Tente novamente.')
     }
   }
 
@@ -493,9 +498,9 @@ const Calendario = () => {
     } catch (error) {
       console.error('Erro ao excluir tipo de consulta:', error)
       if (error.response?.data?.message) {
-        alert(error.response.data.message)
+        showError(error.response.data.message)
       } else {
-        alert('Erro ao excluir tipo de consulta. Tente novamente.')
+        showError('Erro ao excluir tipo de consulta. Tente novamente.')
       }
     }
   }
@@ -598,9 +603,9 @@ const Calendario = () => {
     } catch (error) {
       console.error('Erro ao excluir consulta:', error)
       if (error.response?.data?.message) {
-        alert(error.response.data.message)
+        showError(error.response.data.message)
       } else {
-        alert('Erro ao excluir consulta. Tente novamente.')
+        showError('Erro ao excluir consulta. Tente novamente.')
       }
     }
   }
@@ -868,6 +873,15 @@ const Calendario = () => {
           onDelete={handleDeleteEvent}
         />
       )}
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

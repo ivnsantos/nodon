@@ -11,6 +11,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import nodoLogo from '../img/nodo.png'
 import nodoImage from '../img/nodo.png'
 import exameImage from '../img/exame.jpg'
@@ -18,6 +20,7 @@ import './Home.css'
 
 const Home = () => {
   const navigate = useNavigate()
+  const { alertConfig, showSuccess, hideAlert } = useAlert()
   const [showContactForm, setShowContactForm] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [expandedFaq, setExpandedFaq] = useState(null)
@@ -229,7 +232,7 @@ const Home = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    alert('Obrigado! Nossa equipe entrará em contato em breve.')
+    showSuccess('Obrigado! Nossa equipe entrará em contato em breve.')
     setShowContactForm(false)
     setFormData({
       email: '',
@@ -1131,6 +1134,15 @@ const Home = () => {
           </div>
         </div>
       </footer>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

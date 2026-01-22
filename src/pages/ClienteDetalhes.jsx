@@ -10,6 +10,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
 import './ClienteDetalhes.css'
 
@@ -21,6 +23,10 @@ const ClienteDetalhes = () => {
   // Verificar se é cliente master
   const relacionamento = getRelacionamento()
   const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, hideAlert } = useAlert()
+  
   const [cliente, setCliente] = useState(null)
   const [historico, setHistorico] = useState([])
   const [radiografias, setRadiografias] = useState([])
@@ -120,13 +126,13 @@ const ClienteDetalhes = () => {
         
         setCliente(clienteNormalizado)
       } else {
-        alert('Paciente não encontrado')
+        showError('Paciente não encontrado')
         navigate('/app/clientes')
       }
     } catch (error) {
       console.error('Erro ao carregar paciente:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao carregar dados do paciente.'
-      alert(errorMessage)
+      showError(errorMessage)
       navigate('/app/clientes')
     } finally {
       setLoading(false)
@@ -513,7 +519,7 @@ const ClienteDetalhes = () => {
     } catch (error) {
       console.error('Erro ao salvar necessidades:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao salvar necessidades. Tente novamente.'
-      alert(errorMessage)
+      showError(errorMessage)
     }
   }
 
@@ -544,7 +550,7 @@ const ClienteDetalhes = () => {
     } catch (error) {
       console.error('Erro ao adicionar necessidade:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao adicionar necessidade. Tente novamente.'
-      alert(errorMessage)
+      showError(errorMessage)
     }
   }
 
@@ -582,7 +588,7 @@ const ClienteDetalhes = () => {
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao atualizar status. Tente novamente.'
-      alert(errorMessage)
+      showError(errorMessage)
     }
   }
 
@@ -1022,6 +1028,15 @@ const ClienteDetalhes = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

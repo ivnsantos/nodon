@@ -6,6 +6,8 @@ import {
   faDownload, faStethoscope
 } from '@fortawesome/free-solid-svg-icons'
 // jsPDF será importado dinamicamente
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
 import nodoLogo from '../img/nodo.png'
 import './DetalhamentoProfissional.css'
@@ -96,6 +98,7 @@ const DetalhamentoProfissional = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const { alertConfig, showError, hideAlert } = useAlert()
   const [detalhamento, setDetalhamento] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -534,7 +537,7 @@ const DetalhamentoProfissional = () => {
       pdf.save(`detalhamento_profissional_${id}_${Date.now()}.pdf`)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar PDF. Tente novamente.')
+      showError('Erro ao gerar PDF. Tente novamente.')
     }
   }
 
@@ -678,6 +681,15 @@ const DetalhamentoProfissional = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

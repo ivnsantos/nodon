@@ -7,6 +7,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import { 
   faArrowLeft, faPalette, faUndo, faRedo,
   faSave, faFilter, faPencil, faSearchPlus,
@@ -90,8 +92,14 @@ const DiagnosticoDesenho = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { selectedClinicData } = useAuth()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, hideAlert } = useAlert()
+  
   const boardRef = useRef(null)
   const canvasRef = useRef(null)
+  const dentesUpperRef = useRef(null)
+  const dentesLowerRef = useRef(null)
   const [radiografia, setRadiografia] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -99,6 +107,7 @@ const DiagnosticoDesenho = () => {
   const selectedImageUrl = location.state?.imagemUrl
   const [observacoes, setObservacoes] = useState('')
   const [editedTitulo, setEditedTitulo] = useState('')
+  const [tituloError, setTituloError] = useState(false)
   const [necessidades, setNecessidades] = useState([])
   const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
   const [editedNecessidades, setEditedNecessidades] = useState([])
@@ -411,6 +420,20 @@ const DiagnosticoDesenho = () => {
     e.preventDefault()
     e.stopPropagation()
     
+    // Salvar estado inicial se o histórico estiver vazio (primeira ação)
+    if (drawingHistory.length === 0) {
+      const canvas = canvasRef.current
+      if (canvas) {
+        try {
+          const imageData = canvas.toDataURL()
+          setDrawingHistory([imageData])
+          setHistoryIndex(0)
+        } catch (err) {
+          console.warn('Não foi possível salvar estado inicial:', err)
+        }
+      }
+    }
+    
     const { x, y } = getCanvasCoordinates(e)
     
     if (['circle', 'rectangle', 'line', 'arrow', 'cross'].includes(currentTool)) {
@@ -429,7 +452,7 @@ const DiagnosticoDesenho = () => {
     ctx.lineWidth = lineWidth
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-  }, [imageLoaded, currentTool, currentColor, lineWidth, getCanvasCoordinates])
+  }, [imageLoaded, currentTool, currentColor, lineWidth, getCanvasCoordinates, drawingHistory.length])
 
   /**
    * Desenha no canvas
@@ -927,33 +950,24 @@ const DiagnosticoDesenho = () => {
       clientY = e.clientY
     }
     
-    // Obter o wrapper e o container
-    const wrapper = document.querySelector('.canvas-wrapper')
-    const container = document.querySelector('.canvas-content-wrapper')
+    // Obter rect do board (inclui transformações CSS aplicadas)
+    const boardRect = boardRef.current.getBoundingClientRect()
     
-    if (!wrapper || !container || zoom === 1 && pan.x === 0 && pan.y === 0) {
-      // Fallback: coordenadas relativas ao board sem transformação
-      const rect = boardRef.current.getBoundingClientRect()
+    // Coordenadas relativas ao board visual
+    const relX = clientX - boardRect.left
+    const relY = clientY - boardRect.top
+    
+    // Se não há zoom aplicado (zoom === 1), usar coordenadas diretas
+    if (zoom === 1 && pan.x === 0 && pan.y === 0) {
       return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
+        x: relX,
+        y: relY
       }
     }
     
-    // O board está dentro do wrapper que tem transform: translate(pan) scale(zoom)
-    // com transformOrigin: center center
-    // getBoundingClientRect() do board já considera o transform aplicado
-    const boardRect = boardRef.current.getBoundingClientRect()
-    
-    // Coordenadas do mouse relativas ao board (já transformado visualmente)
-    const boardX = clientX - boardRect.left
-    const boardY = clientY - boardRect.top
-    
-    // Tamanho original do board (sem transform)
+    // Com zoom/pan: calcular coordenadas considerando transformOrigin: center
     const originalBoardWidth = boardRef.current.offsetWidth
     const originalBoardHeight = boardRef.current.offsetHeight
-    
-    // Tamanho visual do board (com zoom aplicado)
     const visualBoardWidth = boardRect.width
     const visualBoardHeight = boardRect.height
     
@@ -961,9 +975,9 @@ const DiagnosticoDesenho = () => {
     const visualBoardCenterX = visualBoardWidth / 2
     const visualBoardCenterY = visualBoardHeight / 2
     
-    // Distância do mouse ao centro visual
-    const offsetFromVisualCenterX = boardX - visualBoardCenterX
-    const offsetFromVisualCenterY = boardY - visualBoardCenterY
+    // Distância do toque ao centro visual
+    const offsetFromVisualCenterX = relX - visualBoardCenterX
+    const offsetFromVisualCenterY = relY - visualBoardCenterY
     
     // Inverter o zoom para obter offset no espaço original
     const originalOffsetX = offsetFromVisualCenterX / zoom
@@ -1437,6 +1451,19 @@ const DiagnosticoDesenho = () => {
   }
 
   /**
+   * Scroll horizontal nos dentes
+   */
+  const scrollDentes = (ref, direction) => {
+    if (ref.current) {
+      const scrollAmount = 150
+      ref.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  /**
    * Verifica se um dente está selecionado
    */
   const isDenteSelected = (numero) => {
@@ -1828,7 +1855,7 @@ const DiagnosticoDesenho = () => {
       pdf.save(`detalhamento_profissional_${id}_${Date.now()}.pdf`)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar PDF. Tente novamente.')
+      showError('Erro ao gerar PDF. Tente novamente.')
     }
   }
 
@@ -1966,6 +1993,21 @@ const DiagnosticoDesenho = () => {
    * Salva o desenho na API
    */
   const saveDrawing = async () => {
+    // Validar título obrigatório
+    if (!editedTitulo.trim()) {
+      setTituloError(true)
+      setCustomAlert({ show: true, message: 'Por favor, preencha o título do desenho antes de salvar.', type: 'error' })
+      setTimeout(() => {
+        setCustomAlert({ show: false, message: '', type: 'error' })
+      }, 4000)
+      // Focar no campo de título
+      const tituloInput = document.querySelector('.paciente-name-input')
+      if (tituloInput) {
+        tituloInput.focus()
+      }
+      return
+    }
+    
     try {
       setSaving(true)
       
@@ -2004,7 +2046,7 @@ const DiagnosticoDesenho = () => {
 
       // Preparar dados para enviar
       const payload = {
-        tituloDesenho: editedTitulo.trim() || 'Desenho Profissional',
+        tituloDesenho: editedTitulo.trim(),
         imagemDesenhada: {
           url: imagemDesenhadaBase64
         },
@@ -2093,23 +2135,26 @@ const DiagnosticoDesenho = () => {
           <button className="btn-back-desenho" onClick={() => navigate(`/app/diagnosticos/${id}`)}>
             <FontAwesomeIcon icon={faArrowLeft} /> Voltar
           </button>
-          <h1 className="desenho-title">
-            <FontAwesomeIcon icon={faPencil} /> Desenho Profissional
-          </h1>
-          <div className="paciente-name-edit">
+          <div className="desenho-title-input">
+            <FontAwesomeIcon icon={faPencil} className="title-icon" />
             <input
               type="text"
-              className="paciente-name-input"
+              className={`paciente-name-input ${tituloError ? 'input-error' : ''}`}
               value={editedTitulo}
-              onChange={(e) => setEditedTitulo(e.target.value)}
+              onChange={(e) => {
+                setEditedTitulo(e.target.value)
+                if (tituloError && e.target.value.trim()) {
+                  setTituloError(false)
+                }
+              }}
               onBlur={handleSaveTitulo}
-              placeholder="Digite o título da radiografia..."
+              placeholder="Digite o título ..."
             />
           </div>
         </div>
         <div className="header-right">
-          <button className="btn-download-header" onClick={downloadDrawing} title="Download">
-            <FontAwesomeIcon icon={faDownload} /> Download
+          <button className="btn-download-header" onClick={downloadDrawing} title="Download da imagem">
+            <FontAwesomeIcon icon={faDownload} /> Download da imagem
           </button>
           <button 
             className="btn-salvar-header" 
@@ -2135,16 +2180,6 @@ const DiagnosticoDesenho = () => {
         
         {/* Div das Ferramentas - Esquerda */}
         <div className={`desenho-tools-panel ${toolsPanelVisible ? 'visible' : 'hidden'}`}>
-          {/* Botão de minimizar dentro do painel */}
-          {toolsPanelVisible && (
-            <button 
-              className="tools-panel-minimize-internal"
-              onClick={() => setToolsPanelVisible(false)}
-              title="Minimizar ferramentas"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-          )}
       <div className="desenho-toolbar">
         {/* Ferramentas de Desenho */}
         <div className="toolbar-section">
@@ -2216,8 +2251,8 @@ const DiagnosticoDesenho = () => {
           </button>
         </div>
 
-        {/* Seletor de Cor */}
-        <div className="toolbar-section">
+        {/* Seletor de Cor + Espessura */}
+        <div className="toolbar-section toolbar-color-thickness">
           <div className="color-picker-container">
             <button
               className={`tool-btn color-picker-btn ${showColorPicker ? 'active' : ''}`}
@@ -2273,10 +2308,6 @@ const DiagnosticoDesenho = () => {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Espessura */}
-        <div className="toolbar-section">
           <label className="line-width-label">
             <span>Espessura:</span>
             <input
@@ -2287,12 +2318,12 @@ const DiagnosticoDesenho = () => {
               onChange={(e) => setLineWidth(Number(e.target.value))}
               className="line-width-slider"
             />
-            <span>{lineWidth}px</span>
+            <span className="line-width-value">{lineWidth}px</span>
           </label>
         </div>
 
-        {/* Undo/Redo */}
-        <div className="toolbar-section">
+        {/* Undo/Redo + Zoom */}
+        <div className="toolbar-section toolbar-undo-zoom">
           <button 
             className="tool-btn"
             onClick={undo}
@@ -2309,10 +2340,6 @@ const DiagnosticoDesenho = () => {
           >
             <FontAwesomeIcon icon={faRedo} />
           </button>
-        </div>
-
-        {/* Zoom */}
-        <div className="toolbar-section">
           <button 
             className={`tool-btn ${zoomMode === 'out' ? 'active' : ''}`}
             onClick={handleZoomOut}
@@ -2520,7 +2547,15 @@ const DiagnosticoDesenho = () => {
         </div>
         <div className="dentes-list-container">
           {/* Arco Superior */}
-          <div className="dentes-arch dentes-arch-upper">
+          <div className="dentes-arch-wrapper">
+            <button 
+              className="dentes-scroll-btn dentes-scroll-left"
+              onClick={() => scrollDentes(dentesUpperRef, 'left')}
+              title="Scroll esquerda"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+            <div className="dentes-arch dentes-arch-upper" ref={dentesUpperRef}>
             {/* Quadrante 1 (Superior Direito) - da direita para esquerda */}
             {[18, 17, 16, 15, 14, 13, 12, 11].map(numero => {
               const svgSrc = dentesSVGs[numero]
@@ -2574,9 +2609,25 @@ const DiagnosticoDesenho = () => {
               )
             })}
             </div>
+            <button 
+              className="dentes-scroll-btn dentes-scroll-right"
+              onClick={() => scrollDentes(dentesUpperRef, 'right')}
+              title="Scroll direita"
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          </div>
           
           {/* Arco Inferior */}
-          <div className="dentes-arch dentes-arch-lower">
+          <div className="dentes-arch-wrapper">
+            <button 
+              className="dentes-scroll-btn dentes-scroll-left"
+              onClick={() => scrollDentes(dentesLowerRef, 'left')}
+              title="Scroll esquerda"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+            <div className="dentes-arch dentes-arch-lower" ref={dentesLowerRef}>
             {/* Quadrante 4 (Inferior Direito) - da direita para esquerda */}
             {[48, 47, 46, 45, 44, 43, 42, 41].map(numero => {
               const svgSrc = dentesSVGs[numero]
@@ -2629,6 +2680,14 @@ const DiagnosticoDesenho = () => {
                 </button>
               )
             })}
+            </div>
+            <button 
+              className="dentes-scroll-btn dentes-scroll-right"
+              onClick={() => scrollDentes(dentesLowerRef, 'right')}
+              title="Scroll direita"
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
           </div>
         </div>
       </div>
@@ -2692,6 +2751,15 @@ const DiagnosticoDesenho = () => {
                   title="Adicionar linha"
                 >
                   <FontAwesomeIcon icon={faPlus} /> Adicionar
+                </button>
+                <button 
+                  className="btn-cancel-necessidades"
+                  onClick={() => {
+                    setEditedNecessidades([...necessidades])
+                    setIsEditingNecessidades(false)
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTimes} /> Cancelar
                 </button>
                 <button 
                   className="btn-save-necessidades"
@@ -2866,6 +2934,15 @@ const DiagnosticoDesenho = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }
