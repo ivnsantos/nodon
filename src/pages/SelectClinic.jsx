@@ -28,6 +28,7 @@ const SelectClinic = () => {
   const [submitting, setSubmitting] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [showEditProfile, setShowEditProfile] = useState(false)
+  const [userPhoto, setUserPhoto] = useState(null)
   const [editFormData, setEditFormData] = useState({
     nome: '',
     telefone: '',
@@ -48,13 +49,22 @@ const SelectClinic = () => {
   const { user, getClinicsByEmail, setSelectedClinicId, logout, setUser, refreshUser, clearUserComumId } = useAuth()
   const hasFetchedRef = useRef(false)
 
-  // Limpar relacionamento quando entrar na página de seleção de clínicas
+  // Buscar foto do perfil do usuário
   useEffect(() => {
-    // Limpar relacionamento e userComumId ao entrar na página
-    sessionStorage.removeItem('relacionamento')
-    sessionStorage.removeItem('userComumId')
-    clearUserComumId()
-  }, [clearUserComumId])
+    const fetchUserProfile = async () => {
+      try {
+        const response = await api.get('/auth/me')
+        const userData = response.data?.data || response.data
+        if (userData?.foto) {
+          setUserPhoto(userData.foto)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar perfil do usuário:', error)
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
 
   useEffect(() => {
     // Evitar múltiplas chamadas
@@ -277,7 +287,20 @@ const SelectClinic = () => {
 
           <div className="user-profile-section">
             <div className="user-avatar-large">
-              {user?.nome?.charAt(0).toUpperCase() || 'U'}
+              {userPhoto ? (
+                <img 
+                  src={userPhoto} 
+                  alt={user?.nome || 'Usuário'} 
+                  className="user-avatar-img"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                    e.target.nextSibling.style.display = 'flex'
+                  }}
+                />
+              ) : null}
+              <span className="user-avatar-initial" style={{ display: userPhoto ? 'none' : 'flex' }}>
+                {user?.nome?.charAt(0).toUpperCase() || 'U'}
+              </span>
             </div>
             <h2 className="user-name">{user?.nome || 'Usuário'}</h2>
             <p className="user-email">
