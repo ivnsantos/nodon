@@ -46,6 +46,7 @@ const Layout = () => {
   // Usar APENAS os atributos: nomeEmpresa, logo, cor, documento
   const clinicLogo = (selectedClinicData?.logo && selectedClinicData.logo !== null) ? selectedClinicData.logo : nodoLogo
   const clinicName = (selectedClinicData?.nomeEmpresa && selectedClinicData.nomeEmpresa !== null) ? selectedClinicData.nomeEmpresa : 'NODON'
+  const userName = (user?.nome || 'Usuário').split(' ')[0]
   const clinicColor = (selectedClinicData?.cor && selectedClinicData.cor !== null) ? selectedClinicData.cor : '#0ea5e9'
   const clinicDocumento = (selectedClinicData?.documento && selectedClinicData.documento !== null) ? selectedClinicData.documento : null
   
@@ -98,6 +99,21 @@ const Layout = () => {
     setSidebarMinimized(!sidebarMinimized)
   }
 
+  // Função para obter o título da página atual
+  const getPageTitle = () => {
+    const path = location.pathname
+    
+    // Verificar rotas específicas primeiro
+    if (path === '/app/clientes/novo') return 'Novo Cliente'
+    if (path.startsWith('/app/clientes/') && path.includes('/editar')) return 'Editar Cliente'
+    if (path.startsWith('/app/clientes/') && path !== '/app/clientes') return 'Detalhes do Cliente'
+    if (path.startsWith('/app/diagnosticos/') && path.includes('/desenho')) return 'Desenho Profissional'
+    if (path.startsWith('/app/diagnosticos/') && path !== '/app/diagnosticos') return 'Detalhes da Radiografia'
+    
+    // Procurar no menu
+    return menuItems.find(item => item.path === path)?.label || 'Dashboard'
+  }
+
   // Carregar dados do cliente master quando o Layout carregar (apenas se necessário)
   // Este useEffect foi removido pois já temos outro que faz isso de forma mais eficiente
 
@@ -120,10 +136,13 @@ const Layout = () => {
         <div className="sidebar-overlay" onClick={closeSidebar}></div>
       )}
 
-      {/* Botão hambúrguer para mobile */}
-      <button className="mobile-menu-toggle" onClick={toggleSidebar}>
-        <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} />
-      </button>
+      {/* Header mobile com menu e título */}
+      <div className="mobile-header">
+        <button className="mobile-menu-toggle" onClick={toggleSidebar}>
+          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} />
+        </button>
+        <h2 className="mobile-page-title">{getPageTitle()}</h2>
+      </div>
 
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarMinimized ? 'minimized' : ''}`}>
         <div className="sidebar-header">
@@ -181,10 +200,10 @@ const Layout = () => {
           {!sidebarMinimized && (
             <div className="user-info">
               <div className="user-avatar">
-                {clinicName.charAt(0).toUpperCase()}
+                {userName.charAt(0).toUpperCase()}
               </div>
               <div className="user-details">
-                <p className="user-name">{clinicName}</p>
+                <p className="user-name">{userName}</p>
                 {clinicDocumento && (
                   <p className="user-role">{clinicDocumento}</p>
                 )}
@@ -193,7 +212,7 @@ const Layout = () => {
           )}
           {sidebarMinimized && (
             <div className="user-avatar-minimized">
-              {clinicName.charAt(0).toUpperCase()}
+              {userName.charAt(0).toUpperCase()}
             </div>
           )}
           <button 
@@ -221,9 +240,7 @@ const Layout = () => {
 
       <main className={`main-content ${sidebarMinimized ? 'sidebar-minimized' : ''}`}>
         <header className="topbar">
-          <h2 className="page-title">
-            {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
-          </h2>
+          <h2 className="page-title">{getPageTitle()}</h2>
         </header>
         <div className="content-area">
           <Outlet />

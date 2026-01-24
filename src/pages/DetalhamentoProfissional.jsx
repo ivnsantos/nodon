@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faArrowLeft, faFileMedical, faCheck, faFileAlt, faTooth,
-  faDownload
+  faDownload, faStethoscope
 } from '@fortawesome/free-solid-svg-icons'
 // jsPDF será importado dinamicamente
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
 import nodoLogo from '../img/nodo.png'
 import './DetalhamentoProfissional.css'
@@ -95,15 +97,39 @@ const getMockDetalhamento = (diagnosticoId) => {
 const DetalhamentoProfissional = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { alertConfig, showError, hideAlert } = useAlert()
   const [detalhamento, setDetalhamento] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadDetalhamento()
-  }, [id])
+  }, [id, location.state])
 
   const loadDetalhamento = async () => {
     try {
+      // Verificar se há dados do desenho no state da navegação
+      const desenhoData = location.state?.desenhoData
+      
+      if (desenhoData) {
+        // Usar dados do desenho da API
+        const data = {
+          id: parseInt(id),
+          radiografia: desenhoData.imagemDesenhada || exameImage,
+          observacoes: desenhoData.observacoes || '',
+          dentes: desenhoData.dentesAnotacoes ? desenhoData.dentesAnotacoes.map(d => ({
+            numero: parseInt(d.dente) || d.dente,
+            descricao: d.descricao || `Dente ${d.dente} selecionado`,
+            posicao: { top: '50%', left: '50%' } // Posição padrão
+          })) : [],
+          necessidades: desenhoData.necessidades || [],
+          tituloDesenho: desenhoData.tituloDesenho || ''
+        }
+        setDetalhamento(data)
+        setLoading(false)
+        return
+      }
+      
       // Simular delay de API
       await new Promise(resolve => setTimeout(resolve, 300))
       
@@ -511,7 +537,7 @@ const DetalhamentoProfissional = () => {
       pdf.save(`detalhamento_profissional_${id}_${Date.now()}.pdf`)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar PDF. Tente novamente.')
+      showError('Erro ao gerar PDF. Tente novamente.')
     }
   }
 
@@ -560,21 +586,6 @@ const DetalhamentoProfissional = () => {
               alt="Radiografia"
               className="radiografia-image"
             />
-            {/* Marcadores dos dentes */}
-            {detalhamento.dentes.map((dente, index) => (
-              <div
-                key={index}
-                className="dente-marcador"
-                style={{
-                  top: dente.posicao?.top || '50%',
-                  left: dente.posicao?.left || '50%'
-                }}
-                title={`Dente ${dente.numero}`}
-              >
-                <div className="marcador-ponto"></div>
-                <div className="marcador-numero">{dente.numero}</div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -614,6 +625,38 @@ const DetalhamentoProfissional = () => {
           </div>
         )}
 
+        {/* Necessidades */}
+        {detalhamento.necessidades && Array.isArray(detalhamento.necessidades) && detalhamento.necessidades.length > 0 && (
+          <div className="detalhamento-necessidades-section">
+            <h2>
+              <FontAwesomeIcon icon={faStethoscope} /> Necessidades
+            </h2>
+            <ul className="necessidades-list">
+              {detalhamento.necessidades.map((necessidade, index) => {
+                let necessidadeValue = ''
+                if (typeof necessidade === 'object' && necessidade !== null) {
+                  // Mostrar procedimento primeiro, depois anotação
+                  const partes = []
+                  if (necessidade.procedimento) partes.push(necessidade.procedimento)
+                  if (necessidade.anotacoes) partes.push(necessidade.anotacoes)
+                  necessidadeValue = partes.join(' - ') || 'Nenhuma informação'
+                } else if (typeof necessidade === 'string') {
+                  necessidadeValue = necessidade || 'Nenhuma informação'
+                } else {
+                  necessidadeValue = 'Nenhuma informação'
+                }
+                
+                return (
+                  <li key={index}>
+                    <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                    {necessidadeValue}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
+
         {/* Observações Gerais */}
         {detalhamento.observacoes && (
           <div className="detalhamento-observacoes-section">
@@ -638,6 +681,15 @@ const DetalhamentoProfissional = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

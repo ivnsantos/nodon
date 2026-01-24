@@ -6,14 +6,27 @@ import {
   faPhone, faEnvelope, faMapMarkerAlt, faIdCard,
   faStethoscope, faHistory, faPlus, faFileMedical,
   faCheckCircle, faClock, faTimesCircle, faExclamationTriangle,
-  faXRay, faEye
+  faXRay, faEye, faCheck, faTrash, faSave, faTimes
 } from '@fortawesome/free-solid-svg-icons'
-// Removido import de axios - usando dados mockados
+import api from '../utils/api'
+import { useAuth } from '../context/AuthContext'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
+import exameImage from '../img/exame.jpg'
 import './ClienteDetalhes.css'
 
 const ClienteDetalhes = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user, selectedClinicData, isClienteMaster, getRelacionamento } = useAuth()
+  
+  // Verificar se é cliente master
+  const relacionamento = getRelacionamento()
+  const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, hideAlert } = useAlert()
+  
   const [cliente, setCliente] = useState(null)
   const [historico, setHistorico] = useState([])
   const [radiografias, setRadiografias] = useState([])
@@ -22,6 +35,10 @@ const ClienteDetalhes = () => {
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [novaNecessidade, setNovaNecessidade] = useState('')
   const [novoStatus, setNovoStatus] = useState('')
+  const [necessidadesRadiografias, setNecessidadesRadiografias] = useState([])
+  const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
+  const [editedNecessidades, setEditedNecessidades] = useState([])
+  const [radiografiasCompletas, setRadiografiasCompletas] = useState({})
 
   useEffect(() => {
     loadCliente()
@@ -40,131 +57,326 @@ const ClienteDetalhes = () => {
 
   const loadCliente = async () => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Fazer GET para buscar dados do paciente
+      const response = await api.get(`/pacientes/${id}`)
+      const paciente = response.data?.data || response.data
       
-      // Buscar cliente do localStorage
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      const cliente = savedClientes.find(c => c.id === parseInt(id))
-      
-      if (cliente) {
-        // Garantir que necessidades seja sempre um array
-        const clienteComNecessidades = {
-          ...cliente,
-          necessidades: Array.isArray(cliente.necessidades) 
-            ? cliente.necessidades 
-            : (cliente.necessidades ? [cliente.necessidades] : [])
-        }
-        setCliente(clienteComNecessidades)
-      } else {
-        // Dados mockados padrão
-        setCliente({
-          id: parseInt(id),
-          nome: 'João Silva',
-          email: 'joao@email.com',
-          telefone: '(11) 99999-9999',
-          cpf: '123.456.789-00',
-          dataNascimento: '1985-05-15',
+      if (paciente) {
+        // Normalizar dados do paciente para o formato esperado
+        // A API retorna os dados diretamente no objeto, não aninhados
+        const clienteNormalizado = {
+          id: paciente.id,
+          nome: paciente.nome || '',
+          email: paciente.email || '',
+          telefone: paciente.telefone || '',
+          cpf: paciente.cpf || '',
+          dataNascimento: paciente.dataNascimento || '',
           endereco: {
-            rua: 'Rua das Flores, 123',
-            bairro: 'Centro',
-            cidade: 'São Paulo',
-            estado: 'SP',
-            cep: '01234-567'
+            rua: paciente.rua || '',
+            numero: paciente.numero || '',
+            complemento: paciente.complemento || '',
+            bairro: paciente.bairro || '',
+            cidade: paciente.cidade || '',
+            estado: paciente.estado || '',
+            cep: paciente.cep || ''
           },
-          status: 'em-andamento',
-          necessidades: [
-            'Tratamento de canal no dente 36',
-            'Limpeza e profilaxia',
-            'Avaliação ortodôntica'
-          ],
-          observacoes: 'Paciente com histórico de sensibilidade dentária.',
-          createdAt: '2024-01-10'
-        })
+          status: paciente.status || 'avaliacao-realizada',
+          necessidades: (() => {
+            // Verificar se necessidades está em informacoesClinicas ou diretamente no paciente
+            const necessidadesRaw = paciente.informacoesClinicas?.necessidades || paciente.necessidades
+            
+            if (!necessidadesRaw) return []
+            
+            // Se for array, normalizar cada item para string
+            if (Array.isArray(necessidadesRaw)) {
+              return necessidadesRaw.map(nec => {
+                // Se o item já é uma string, retornar
+                if (typeof nec === 'string') return nec
+                // Se for um array, juntar com vírgula
+                if (Array.isArray(nec)) return nec.join(', ')
+                // Se for objeto, tentar converter para string
+                if (typeof nec === 'object' && nec !== null) {
+                  return JSON.stringify(nec)
+                }
+                // Caso contrário, converter para string
+                return String(nec)
+              })
+            }
+            
+            // Se for string, retornar como array
+            if (typeof necessidadesRaw === 'string' && necessidadesRaw.trim()) {
+              // Tentar fazer parse se for JSON
+              try {
+                const parsed = JSON.parse(necessidadesRaw)
+                if (Array.isArray(parsed)) {
+                  return parsed.map(nec => typeof nec === 'string' ? nec : String(nec))
+                }
+              } catch (e) {
+                // Não é JSON, retornar como string única
+                return [necessidadesRaw]
+              }
+              return [necessidadesRaw]
+            }
+            
+            return []
+          })(),
+          observacoes: paciente.observacoes || '',
+          createdAt: paciente.createdAt || new Date().toISOString()
+        }
+        
+        setCliente(clienteNormalizado)
+      } else {
+        showError('Paciente não encontrado')
+        navigate('/app/clientes')
       }
     } catch (error) {
-      console.error('Erro ao carregar cliente:', error)
+      console.error('Erro ao carregar paciente:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao carregar dados do paciente.'
+      showError(errorMessage)
+      navigate('/app/clientes')
     } finally {
       setLoading(false)
     }
   }
 
+  const mapCampoAlteradoToTipo = (campoAlterado) => {
+    const campoMap = {
+      'status': 'status',
+      'necessidades': 'necessidade',
+      'informacoesClinicas.necessidades': 'necessidade',
+      'observacoes': 'observacao',
+      'informacoesClinicas.observacoes': 'observacao',
+      'email': 'observacao',
+      'telefone': 'observacao',
+      'cpf': 'observacao',
+      'dataNascimento': 'observacao',
+      'nome': 'observacao',
+      'endereco': 'observacao'
+    }
+    return campoMap[campoAlterado] || 'observacao'
+  }
+
+  // Função para limpar valores JSON e formatar de forma legível
+  const limparValorJson = (valor) => {
+    if (!valor) return ''
+    
+    // Se for string que parece JSON array, converter para lista legível
+    let valorLimpo = valor.toString()
+    
+    // Remover aspas extras e colchetes de JSON
+    valorLimpo = valorLimpo.replace(/^\[|\]$/g, '') // Remove [ e ] do início e fim
+    valorLimpo = valorLimpo.replace(/^"|"$/g, '') // Remove aspas do início e fim
+    valorLimpo = valorLimpo.replace(/","/g, ', ') // Substitui "," por ", "
+    valorLimpo = valorLimpo.replace(/"/g, '') // Remove aspas restantes
+    
+    return valorLimpo.trim()
+  }
+
+  const formatarDescricaoHistorico = (item, clienteAtual) => {
+    const descricao = item.descricaoAlteracao || ''
+    const campoAlterado = item.campoAlterado || ''
+    
+    // Mapear nome do campo para português
+    const nomeCampo = {
+      'nome': 'Nome do paciente',
+      'email': 'Email',
+      'telefone': 'Telefone',
+      'cpf': 'CPF',
+      'status': 'Status',
+      'necessidades': 'Necessidades',
+      'informacoesClinicas.necessidades': 'Necessidades',
+      'informacoesClinicas.observacoes': 'Observações',
+      'dataNascimento': 'Data de nascimento',
+      'endereco': 'Endereço'
+    }[campoAlterado] || campoAlterado
+    
+    // Verificar se a descrição contém "alterado de" e "para"
+    if (descricao.toLowerCase().includes('alterado de') && descricao.toLowerCase().includes('para')) {
+      // Extrair valores antigo e novo
+      const match = descricao.match(/alterado de\s+["']?(.+?)["']?\s+para\s+["']?(.+?)["']?$/i)
+      if (match) {
+        const valorAntigo = limparValorJson(match[1])
+        const valorNovo = limparValorJson(match[2])
+        
+        // Se for necessidades, verificar se foi adição
+        if (campoAlterado === 'necessidades' || campoAlterado === 'informacoesClinicas.necessidades') {
+          const itensAntigos = valorAntigo.split(',').map(s => s.trim()).filter(s => s)
+          const itensNovos = valorNovo.split(',').map(s => s.trim()).filter(s => s)
+          
+          if (itensNovos.length > itensAntigos.length) {
+            const itensAdicionados = itensNovos.filter(itemNovo => 
+              !itensAntigos.some(itemAntigo => itemAntigo === itemNovo)
+            )
+            if (itensAdicionados.length > 0) {
+              return `Necessidade adicionada: "${itensAdicionados.join(', ')}"`
+            }
+          } else if (itensNovos.length < itensAntigos.length) {
+            const itensRemovidos = itensAntigos.filter(itemAntigo => 
+              !itensNovos.some(itemNovo => itemNovo === itemAntigo)
+            )
+            if (itensRemovidos.length > 0) {
+              return `Necessidade removida: "${itensRemovidos.join(', ')}"`
+            }
+          }
+        }
+        
+        // Formato padrão: "Campo alterado de X para Y"
+        if (valorAntigo && valorNovo) {
+          return `${nomeCampo} alterado de "${valorAntigo}" para "${valorNovo}"`
+        } else if (valorNovo) {
+          return `${nomeCampo} definido como "${valorNovo}"`
+        }
+      }
+    }
+    
+    // Limpar a descrição original de possíveis JSONs
+    return limparValorJson(descricao) || `${nomeCampo} atualizado`
+  }
+
   const loadHistorico = async () => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Fazer GET para buscar histórico do paciente
+      const response = await api.get(`/pacientes/${id}/historico`)
+      // A API pode retornar diretamente um array ou dentro de response.data
+      const historicoData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.data || [])
       
-      // Buscar histórico do localStorage
-      const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
-      if (savedHistorico.length > 0) {
-        setHistorico(savedHistorico)
+      if (historicoData.length > 0) {
+        // Mapear dados da API para o formato esperado pelo componente
+        const historicoMapeado = historicoData.map(item => ({
+          id: item.id,
+          tipo: mapCampoAlteradoToTipo(item.campoAlterado),
+          descricao: formatarDescricaoHistorico(item, cliente),
+          data: item.dataFormatada || item.createdAt, // Usar dataFormatada se disponível
+          dataOriginal: item.createdAt, // Manter createdAt para ordenação se necessário
+          usuario: item.nomeAlterador || 'Usuário'
+        }))
+        
+        setHistorico(historicoMapeado)
       } else {
-        // Dados mockados padrão
-        const mockHistorico = [
-          {
-            id: 1,
-            tipo: 'status',
-            descricao: 'Status alterado para Em Andamento',
-            data: '2024-01-15T10:30:00',
-            usuario: 'Dr. Silva'
-          },
-          {
-            id: 2,
-            tipo: 'necessidade',
-            descricao: 'Necessidade adicionada: Tratamento de canal no dente 36',
-            data: '2024-01-12T14:20:00',
-            usuario: 'Dr. Silva'
-          },
-          {
-            id: 3,
-            tipo: 'avaliacao',
-            descricao: 'Avaliação realizada',
-            data: '2024-01-10T09:00:00',
-            usuario: 'Dr. Silva'
-          }
-        ]
-        setHistorico(mockHistorico)
-        localStorage.setItem(`mockHistorico_${id}`, JSON.stringify(mockHistorico))
+        // Se não houver histórico, definir array vazio
+        setHistorico([])
       }
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
+      // Em caso de erro, definir array vazio
+      setHistorico([])
     }
   }
 
   const loadRadiografias = async (clienteData = null) => {
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
-      // Buscar radiografias do localStorage filtradas por cliente_id
-      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-      const clienteId = parseInt(id)
-      const clienteInfo = clienteData || cliente
-      
-      // Filtrar radiografias do cliente
-      let radiografiasCliente = []
-      
-      if (clienteInfo) {
-        radiografiasCliente = savedDiagnosticos.filter(d => 
-          d.cliente_id === clienteId || 
-          (d.cliente_nome && d.cliente_nome === clienteInfo.nome)
-        )
-      } else {
-        // Se não tiver cliente, buscar por ID apenas
-        radiografiasCliente = savedDiagnosticos.filter(d => d.cliente_id === clienteId)
+      if (!clienteMasterId) {
+        console.log('clienteMasterId não encontrado')
+        setRadiografias([])
+        return
       }
+
+      // Buscar radiografias da API filtrando por pacienteId
+      const pacienteId = id // O ID do paciente vem da URL
+      const response = await api.get(`/radiografias?clienteMasterId=${clienteMasterId}&pacienteId=${pacienteId}`)
+      
+      const radiografiasData = response.data?.data || response.data || []
+      
+      // Filtrar radiografias que pertencem ao paciente atual (caso a API não filtre corretamente)
+      const radiografiasFiltradas = (Array.isArray(radiografiasData) ? radiografiasData : []).filter(rad => {
+        // Verificar se a radiografia pertence ao paciente atual
+        const radPacienteId = rad.pacienteId || rad.paciente_id || rad.cliente_id
+        // Se não tem pacienteId na radiografia, não mostrar (evitar mostrar radiografias de outros pacientes)
+        if (!radPacienteId) return false
+        return radPacienteId === pacienteId
+      })
+      
+      // Normalizar dados das radiografias
+      const radiografiasNormalizadas = radiografiasFiltradas.map(rad => ({
+        id: rad.id,
+        radiografia: rad.radiografia || rad.nome || '',
+        data: rad.data || '',
+        tipoExame: rad.tipoExame || '',
+        imagem: rad.imagens?.[0]?.url || exameImage
+      }))
       
       // Ordenar por data mais recente primeiro
-      radiografiasCliente.sort((a, b) => {
-        const dateA = new Date(a.data || a.created_at || 0)
-        const dateB = new Date(b.data || b.created_at || 0)
+      radiografiasNormalizadas.sort((a, b) => {
+        const dateA = new Date(a.data || 0)
+        const dateB = new Date(b.data || 0)
         return dateB - dateA
       })
       
-      setRadiografias(radiografiasCliente)
+      setRadiografias(radiografiasNormalizadas)
+      
+      // Buscar necessidades de cada radiografia
+      const todasNecessidades = []
+      const radiografiasDetalhes = {}
+      
+      for (const rad of radiografiasNormalizadas) {
+        try {
+          const radResponse = await api.get(`/radiografias/${rad.id}`)
+          const radData = radResponse.data?.data || radResponse.data
+          
+          // Guardar dados completos da radiografia
+          radiografiasDetalhes[rad.id] = radData
+          
+          if (radData?.necessidades && Array.isArray(radData.necessidades)) {
+            radData.necessidades.forEach((nec, index) => {
+              if (nec && typeof nec === 'string' && nec.trim()) {
+                // Adicionar com referência à radiografia, índice e responsável
+                todasNecessidades.push({
+                  texto: nec.trim(),
+                  origem: 'radiografia',
+                  radiografiaId: rad.id,
+                  radiografiaNome: rad.radiografia || 'Radiografia',
+                  indexOriginal: index,
+                  responsavelId: radData.responsavel || radData.responsavelId || null
+                })
+              }
+            })
+          }
+        } catch (radError) {
+          console.error(`Erro ao buscar detalhes da radiografia ${rad.id}:`, radError)
+        }
+      }
+      
+      setRadiografiasCompletas(radiografiasDetalhes)
+      setNecessidadesRadiografias(todasNecessidades)
     } catch (error) {
       console.error('Erro ao carregar radiografias:', error)
+      setRadiografias([])
+      setNecessidadesRadiografias([])
     }
+  }
+
+  const formatTelefone = (telefone) => {
+    if (!telefone) return ''
+    const cleaned = telefone.replace(/\D/g, '')
+    if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    } else if (cleaned.length === 10) {
+      return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+    }
+    return telefone
+  }
+
+  const formatCPF = (cpf) => {
+    if (!cpf) return ''
+    const cleaned = cpf.replace(/\D/g, '')
+    if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+    }
+    return cpf
+  }
+
+  const formatCEP = (cep) => {
+    if (!cep) return ''
+    const cleaned = cep.replace(/\D/g, '')
+    if (cleaned.length === 8) {
+      return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2')
+    }
+    return cep
   }
 
   const getStatusLabel = (status) => {
@@ -200,40 +412,145 @@ const ClienteDetalhes = () => {
     return iconMap[status] || faExclamationTriangle
   }
 
+  // Iniciar edição de necessidades
+  const handleStartEditNecessidades = () => {
+    // Criar lista de objetos com origem de cada necessidade
+    const necessidadesPaciente = Array.isArray(cliente.necessidades) 
+      ? cliente.necessidades.map((n, index) => ({
+          texto: typeof n === 'string' ? n : String(n),
+          origem: 'paciente',
+          indexOriginal: index
+        }))
+      : []
+    
+    // Filtrar necessidades de radiografia que não estão no paciente
+    const textosJaExistentes = new Set(necessidadesPaciente.map(n => n.texto.toLowerCase().trim()))
+    
+    const necessidadesRad = necessidadesRadiografias
+      .filter(n => !textosJaExistentes.has(n.texto.toLowerCase().trim()))
+      .map(n => ({
+        texto: n.texto,
+        origem: 'radiografia',
+        radiografiaId: n.radiografiaId,
+        radiografiaNome: n.radiografiaNome,
+        indexOriginal: n.indexOriginal,
+        responsavelId: n.responsavelId
+      }))
+    
+    // Combinar todas as necessidades (sem duplicatas)
+    setEditedNecessidades([...necessidadesPaciente, ...necessidadesRad])
+    setIsEditingNecessidades(true)
+  }
+
+  // Cancelar edição de necessidades
+  const handleCancelEditNecessidades = () => {
+    setEditedNecessidades([])
+    setIsEditingNecessidades(false)
+  }
+
+  // Adicionar nova necessidade (sempre do paciente)
+  const handleAddNecessidadeInline = () => {
+    setEditedNecessidades([...editedNecessidades, { texto: '', origem: 'paciente', indexOriginal: -1 }])
+  }
+
+  // Remover necessidade
+  const handleRemoveNecessidade = (index) => {
+    setEditedNecessidades(editedNecessidades.filter((_, i) => i !== index))
+  }
+
+  // Atualizar texto da necessidade
+  const handleUpdateNecessidade = (index, value) => {
+    const updated = [...editedNecessidades]
+    updated[index] = { ...updated[index], texto: value }
+    setEditedNecessidades(updated)
+  }
+
+  // Salvar necessidades
+  const handleSaveNecessidades = async () => {
+    try {
+      // Separar necessidades por origem
+      const necessidadesPaciente = editedNecessidades
+        .filter(n => n.origem === 'paciente' && n.texto && n.texto.trim() !== '')
+        .map(n => n.texto.trim())
+      
+      const necessidadesRadiografia = editedNecessidades
+        .filter(n => n.origem === 'radiografia')
+      
+      // Atualizar necessidades do paciente
+      const payload = {
+        informacoesClinicas: {
+          necessidades: necessidadesPaciente
+        }
+      }
+      await api.put(`/pacientes/${id}`, payload)
+      
+      // Agrupar necessidades por radiografia
+      const necessidadesPorRadiografia = {}
+      necessidadesRadiografia.forEach(n => {
+        if (!necessidadesPorRadiografia[n.radiografiaId]) {
+          necessidadesPorRadiografia[n.radiografiaId] = []
+        }
+        if (n.texto && n.texto.trim() !== '') {
+          necessidadesPorRadiografia[n.radiografiaId].push(n.texto.trim())
+        }
+      })
+      
+      // Atualizar cada radiografia que teve necessidades editadas
+      for (const radiografiaId of Object.keys(necessidadesPorRadiografia)) {
+        try {
+          await api.put(`/radiografias/${radiografiaId}`, {
+            necessidades: necessidadesPorRadiografia[radiografiaId]
+          })
+        } catch (radError) {
+          console.error(`Erro ao atualizar radiografia ${radiografiaId}:`, radError)
+        }
+      }
+      
+      // Atualizar estado local
+      setCliente({ ...cliente, necessidades: necessidadesPaciente })
+      
+      // Recarregar radiografias para atualizar necessidades
+      await loadRadiografias()
+      
+      // Recarregar histórico
+      await loadHistorico()
+      
+      setIsEditingNecessidades(false)
+    } catch (error) {
+      console.error('Erro ao salvar necessidades:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao salvar necessidades. Tente novamente.'
+      showError(errorMessage)
+    }
+  }
+
+  // Função antiga para modal (mantida para compatibilidade)
   const handleAddNecessidade = async () => {
     if (!novaNecessidade.trim()) return
 
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
+      const necessidadesAtuais = Array.isArray(cliente.necessidades) 
+        ? cliente.necessidades 
+        : (cliente.necessidades ? [cliente.necessidades] : [])
       
-      // Atualizar cliente no localStorage
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      const clienteIndex = savedClientes.findIndex(c => c.id === parseInt(id))
+      const updatedNecessidades = [...necessidadesAtuais, novaNecessidade.trim()]
       
-      if (clienteIndex !== -1) {
-        const updatedNecessidades = [...(savedClientes[clienteIndex].necessidades || []), novaNecessidade]
-        savedClientes[clienteIndex].necessidades = updatedNecessidades
-        localStorage.setItem('mockClientesCompletos', JSON.stringify(savedClientes))
-        setCliente({ ...cliente, necessidades: updatedNecessidades })
+      const payload = {
+        informacoesClinicas: {
+          necessidades: updatedNecessidades
+        }
       }
+
+      await api.put(`/pacientes/${id}`, payload)
       
-      // Adicionar ao histórico
-      const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
-      savedHistorico.unshift({
-        id: Date.now(),
-        tipo: 'necessidade',
-        descricao: `Necessidade adicionada: ${novaNecessidade}`,
-        data: new Date().toISOString(),
-        usuario: 'Dr. Usuário'
-      })
-      localStorage.setItem(`mockHistorico_${id}`, JSON.stringify(savedHistorico))
+      setCliente({ ...cliente, necessidades: updatedNecessidades })
+      await loadHistorico()
       
       setNovaNecessidade('')
       setShowNecessidadesModal(false)
-      loadHistorico()
     } catch (error) {
       console.error('Erro ao adicionar necessidade:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao adicionar necessidade. Tente novamente.'
+      showError(errorMessage)
     }
   }
 
@@ -241,18 +558,18 @@ const ClienteDetalhes = () => {
     if (!novoStatus) return
 
     try {
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      // Atualizar cliente no localStorage
-      const savedClientes = JSON.parse(localStorage.getItem('mockClientesCompletos') || '[]')
-      const clienteIndex = savedClientes.findIndex(c => c.id === parseInt(id))
-      
-      if (clienteIndex !== -1) {
-        savedClientes[clienteIndex].status = novoStatus
-        localStorage.setItem('mockClientesCompletos', JSON.stringify(savedClientes))
-        setCliente({ ...cliente, status: novoStatus })
+      // Preparar payload para a API - status deve estar dentro de dadosPessoais
+      const payload = {
+        dadosPessoais: {
+          status: novoStatus
+        }
       }
+
+      // Fazer PUT para atualizar o status do paciente
+      await api.put(`/pacientes/${id}`, payload)
+      
+      // Atualizar estado local
+      setCliente({ ...cliente, status: novoStatus })
       
       // Adicionar ao histórico
       const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
@@ -270,6 +587,8 @@ const ClienteDetalhes = () => {
       loadHistorico()
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao atualizar status. Tente novamente.'
+      showError(errorMessage)
     }
   }
 
@@ -320,15 +639,17 @@ const ClienteDetalhes = () => {
           <FontAwesomeIcon icon={faArrowLeft} />
           Voltar
         </button>
-        <div className="header-actions">
-          <button
-            className="btn-edit-header"
-            onClick={() => navigate(`/app/clientes/${id}/editar`)}
-          >
-            <FontAwesomeIcon icon={faEdit} />
-            Editar Cliente
-          </button>
-        </div>
+        {isMaster && (
+          <div className="header-actions">
+            <button
+              className="btn-edit-header"
+              onClick={() => navigate(`/app/clientes/${id}/editar`)}
+            >
+              <FontAwesomeIcon icon={faEdit} />
+              Editar Cliente
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="cliente-detalhes-content">
@@ -362,7 +683,7 @@ const ClienteDetalhes = () => {
                     <label>
                       <FontAwesomeIcon icon={faIdCard} /> CPF
                     </label>
-                    <p>{cliente.cpf}</p>
+                    <p>{formatCPF(cliente.cpf)}</p>
                   </div>
                 )}
                 {cliente.dataNascimento && (
@@ -383,7 +704,7 @@ const ClienteDetalhes = () => {
                   <label>
                     <FontAwesomeIcon icon={faPhone} /> Telefone
                   </label>
-                  <p>{cliente.telefone}</p>
+                  <p>{formatTelefone(cliente.telefone)}</p>
                 </div>
               </div>
             </div>
@@ -397,7 +718,11 @@ const ClienteDetalhes = () => {
                 <div className="ficha-grid">
                   <div className="ficha-item">
                     <label>Rua</label>
-                    <p>{cliente.endereco.rua}</p>
+                    <p>
+                      {cliente.endereco.rua}
+                      {cliente.endereco.numero && `, ${cliente.endereco.numero}`}
+                      {cliente.endereco.complemento && ` - ${cliente.endereco.complemento}`}
+                    </p>
                   </div>
                   {cliente.endereco.bairro && (
                     <div className="ficha-item">
@@ -412,38 +737,137 @@ const ClienteDetalhes = () => {
                   {cliente.endereco.cep && (
                     <div className="ficha-item">
                       <label>CEP</label>
-                      <p>{cliente.endereco.cep}</p>
+                      <p>{formatCEP(cliente.endereco.cep)}</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="ficha-section">
-              <div className="section-header-actions">
-                <h2>
-                  <FontAwesomeIcon icon={faStethoscope} />
-                  Necessidades
-                </h2>
-                <button
-                  className="btn-add"
-                  onClick={() => setShowNecessidadesModal(true)}
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                  Adicionar
-                </button>
+            <div className="ficha-section necessidades-section">
+              <div className="necessidades-section-header">
+                <h3>
+                  <FontAwesomeIcon icon={faStethoscope} /> Necessidades
+                </h3>
+                <div className="necessidades-header-actions">
+                  {isEditingNecessidades ? (
+                    <>
+                      <button
+                        className="btn-cancel-necessidades"
+                        onClick={handleCancelEditNecessidades}
+                      >
+                        <FontAwesomeIcon icon={faTimes} /> Cancelar
+                      </button>
+                      <button
+                        className="btn-add-necessidade"
+                        onClick={handleAddNecessidadeInline}
+                      >
+                        <FontAwesomeIcon icon={faPlus} /> Adicionar
+                      </button>
+                      <button
+                        className="btn-save-necessidades"
+                        onClick={handleSaveNecessidades}
+                      >
+                        <FontAwesomeIcon icon={faSave} /> Salvar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn-edit-necessidades"
+                      onClick={handleStartEditNecessidades}
+                    >
+                      <FontAwesomeIcon icon={faEdit} /> Editar
+                    </button>
+                  )}
+                </div>
               </div>
-              {Array.isArray(cliente.necessidades) && cliente.necessidades.length > 0 ? (
-                <ul className="necessidades-list">
-                  {cliente.necessidades.map((necessidade, index) => (
-                    <li key={index}>
-                      <FontAwesomeIcon icon={faStethoscope} />
-                      {necessidade}
-                    </li>
-                  ))}
-                </ul>
+              
+              {isEditingNecessidades ? (
+                <div className="necessidades-edit-list">
+                  {editedNecessidades.length > 0 ? (
+                    editedNecessidades.map((necessidade, index) => {
+                      // Verificar se pode editar essa necessidade específica
+                      // Necessidades do paciente: qualquer usuário pode editar
+                      // Necessidades de radiografia: pode editar se for master OU se for o responsável da radiografia
+                      const usuarioLogadoId = user?.id || selectedClinicData?.usuarioId || selectedClinicData?.perfil?.id
+                      const podeEditarNecessidade = necessidade.origem === 'paciente' 
+                        ? true 
+                        : (isMaster || necessidade.responsavelId === usuarioLogadoId)
+                      
+                      return (
+                        <div key={index} className={`necessidade-edit-item ${necessidade.origem === 'radiografia' ? 'necessidade-radiografia-item' : ''}`}>
+                          <input
+                            type="text"
+                            className="necessidade-input"
+                            value={necessidade.texto}
+                            onChange={(e) => handleUpdateNecessidade(index, e.target.value)}
+                            placeholder="Digite a necessidade..."
+                            disabled={!podeEditarNecessidade}
+                            style={!podeEditarNecessidade ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                          />
+                          {necessidade.origem === 'radiografia' && (
+                            <span className="necessidade-origem-badge" title={`Radiografia: ${necessidade.radiografiaNome}`}>
+                              <FontAwesomeIcon icon={faXRay} />
+                            </span>
+                          )}
+                          {podeEditarNecessidade && (
+                            <button
+                              className="btn-remove-necessidade"
+                              onClick={() => handleRemoveNecessidade(index)}
+                              title="Remover necessidade"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <p className="empty-text-necessidades">Nenhuma necessidade. Clique em "Adicionar" para incluir.</p>
+                  )}
+                </div>
               ) : (
-                <p className="empty-text">Nenhuma necessidade registrada</p>
+                (() => {
+                  // Filtrar duplicatas - necessidades de radiografia que não estão no paciente
+                  const necessidadesPacienteTextos = new Set(
+                    (Array.isArray(cliente.necessidades) ? cliente.necessidades : [])
+                      .map(n => (typeof n === 'string' ? n : String(n)).toLowerCase().trim())
+                  )
+                  const necessidadesRadFiltradas = necessidadesRadiografias.filter(
+                    n => !necessidadesPacienteTextos.has(n.texto.toLowerCase().trim())
+                  )
+                  
+                  const temNecessidades = (Array.isArray(cliente.necessidades) && cliente.necessidades.length > 0) || necessidadesRadFiltradas.length > 0
+                  
+                  return temNecessidades ? (
+                    <ul className="necessidades-detalhes-list">
+                      {/* Necessidades do cadastro do paciente */}
+                      {Array.isArray(cliente.necessidades) && cliente.necessidades.map((necessidade, index) => {
+                        const necessidadeTexto = typeof necessidade === 'string' 
+                          ? necessidade 
+                          : (Array.isArray(necessidade) 
+                              ? necessidade.join(', ') 
+                              : String(necessidade))
+                        
+                        return (
+                          <li key={`paciente-${index}`}>
+                            <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                            {necessidadeTexto}
+                          </li>
+                        )
+                      })}
+                      {/* Necessidades das radiografias (sem duplicatas) */}
+                      {necessidadesRadFiltradas.map((nec, index) => (
+                        <li key={`radiografia-${index}`}>
+                          <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                          {nec.texto}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="empty-text-necessidades">Nenhuma necessidade registrada.</p>
+                  )
+                })()
               )}
             </div>
 
@@ -455,7 +879,10 @@ const ClienteDetalhes = () => {
                 </h2>
                 <button
                   className="btn-change-status"
-                  onClick={() => setShowStatusModal(true)}
+                  onClick={() => {
+                    setNovoStatus(cliente.status)
+                    setShowStatusModal(true)
+                  }}
                 >
                   <FontAwesomeIcon icon={faEdit} />
                   Alterar Status
@@ -488,38 +915,20 @@ const ClienteDetalhes = () => {
                 Radiografias
               </h2>
               {radiografias.length > 0 ? (
-                <div className="radiografias-grid">
+                <div className="radiografias-list">
                   {radiografias.map((radiografia) => (
                     <div 
                       key={radiografia.id} 
-                      className="radiografia-card"
+                      className="radiografia-item"
                       onClick={() => navigate(`/app/diagnosticos/${radiografia.id}`)}
                     >
-                      <div className="radiografia-card-image">
-                        <img 
-                          src={radiografia.imagem && radiografia.imagem.startsWith('data:image') 
-                            ? radiografia.imagem 
-                            : exameImage} 
-                          alt={radiografia.paciente}
-                          onError={(e) => {
-                            e.target.src = exameImage
-                          }}
-                        />
-                        <div className="radiografia-card-overlay">
-                          <button className="btn-view-radiografia">
-                            <FontAwesomeIcon icon={faEye} /> Ver Detalhes
-                          </button>
-                        </div>
+                      <div className="radiografia-item-content">
+                        <FontAwesomeIcon icon={faXRay} className="radiografia-item-icon" />
+                        <span className="radiografia-item-nome">{radiografia.radiografia || 'Radiografia'}</span>
                       </div>
-                      <div className="radiografia-card-info">
-                        <h3>{radiografia.paciente || 'Radiografia'}</h3>
-                        <p className="radiografia-card-date">
-                          {new Date(radiografia.data || radiografia.created_at).toLocaleDateString('pt-BR')}
-                        </p>
-                        {radiografia.tipoExame && (
-                          <p className="radiografia-card-type">{radiografia.tipoExame}</p>
-                        )}
-                      </div>
+                      <button className="btn-view-radiografia-small">
+                        <FontAwesomeIcon icon={faEye} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -550,7 +959,7 @@ const ClienteDetalhes = () => {
                     <div className="historico-meta">
                       <span className="historico-usuario">{item.usuario}</span>
                       <span className="historico-data">
-                        {new Date(item.data).toLocaleString('pt-BR')}
+                        {item.data}
                       </span>
                     </div>
                   </div>
@@ -558,7 +967,13 @@ const ClienteDetalhes = () => {
               ))}
             </div>
           ) : (
-            <p className="empty-text">Nenhum histórico registrado</p>
+            <div className="historico-empty-state">
+              <div className="historico-empty-icon">
+                <FontAwesomeIcon icon={faHistory} />
+              </div>
+              <h3>Nenhum histórico registrado</h3>
+              <p>As alterações feitas neste paciente aparecerão aqui.</p>
+            </div>
           )}
         </div>
       </div>
@@ -613,6 +1028,15 @@ const ClienteDetalhes = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }
