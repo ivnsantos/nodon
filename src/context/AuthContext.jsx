@@ -1,7 +1,7 @@
 import { createContext, useState, useContext, useEffect } from 'react'
 import api from '../utils/api'
 
-const AuthContext = createContext()
+export const AuthContext = createContext()
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -16,6 +16,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [selectedClinicId, setSelectedClinicIdState] = useState(null)
   const [selectedClinicData, setSelectedClinicData] = useState(null)
+  const [userComumId, setUserComumId] = useState(null)
+  const [planoAcesso, setPlanoAcesso] = useState(null) // 'chat' ou 'all'
 
   useEffect(() => {
     const token = sessionStorage.getItem('token')
@@ -41,13 +43,69 @@ export const AuthProvider = ({ children }) => {
         try {
           const clinicData = JSON.parse(savedClinicData)
           setSelectedClinicData(clinicData)
+          
+          // Restaurar acesso do plano
+          const savedAcesso = sessionStorage.getItem('planoAcesso')
+          if (savedAcesso) {
+            setPlanoAcesso(savedAcesso)
+          } else {
+            // Tentar extrair do relacionamento ou plano
+            const acesso = clinicData.relacionamento?.acesso || clinicData.plano?.acesso || 'all'
+            setPlanoAcesso(acesso)
+            sessionStorage.setItem('planoAcesso', acesso)
+          }
+          
           // Restaurar relacionamento se existir
           if (clinicData.relacionamento) {
             sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+            // Extrair userComumId do relacionamento apenas se for tipo "usuario"
+            const relacionamento = clinicData.relacionamento
+            if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+              setUserComumId(relacionamento.id)
+              sessionStorage.setItem('userComumId', relacionamento.id)
+            } else {
+              // Se for clienteMaster ou outro tipo, limpar userComumId
+              setUserComumId(null)
+              sessionStorage.removeItem('userComumId')
+            }
+          } else {
+            // Se não houver relacionamento, limpar userComumId
+            setUserComumId(null)
+            sessionStorage.removeItem('userComumId')
           }
         } catch (error) {
           console.error('Erro ao restaurar dados do cliente master:', error)
         }
+      }
+      
+      // Restaurar acesso do plano se não foi restaurado acima
+      const savedAcesso = sessionStorage.getItem('planoAcesso')
+      if (savedAcesso) {
+        setPlanoAcesso(savedAcesso)
+      }
+      
+      // Restaurar userComumId apenas se o relacionamento for tipo "usuario"
+      const relacionamentoStr = sessionStorage.getItem('relacionamento')
+      if (relacionamentoStr) {
+        try {
+          const relacionamento = JSON.parse(relacionamentoStr)
+          if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+            const savedUserComumId = sessionStorage.getItem('userComumId')
+            if (savedUserComumId) {
+              setUserComumId(savedUserComumId)
+            }
+          } else {
+            // Se for clienteMaster, limpar userComumId
+            setUserComumId(null)
+            sessionStorage.removeItem('userComumId')
+          }
+        } catch (error) {
+          console.error('Erro ao parsear relacionamento:', error)
+        }
+      } else {
+        // Se não houver relacionamento, limpar userComumId
+        setUserComumId(null)
+        sessionStorage.removeItem('userComumId')
       }
     }
     
@@ -121,9 +179,16 @@ export const AuthProvider = ({ children }) => {
       console.error('Erro ao fazer logout na API:', error)
     } finally {
       // Sempre limpar dados locais
+      setUser(null)
+      setSelectedClinicIdState(null)
+      setSelectedClinicData(null)
+      setUserComumId(null)
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
-      setUser(null)
+      sessionStorage.removeItem('selectedClinicId')
+      sessionStorage.removeItem('selectedClinicData')
+      sessionStorage.removeItem('relacionamento')
+      sessionStorage.removeItem('userComumId')
     }
   }
 
@@ -288,30 +353,102 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const setSelectedClinicId = async (clinicId) => {
+  const setSelectedClinicId = async (clinicId, clinicData = null) => {
     // Limpar dados antigos antes de buscar novos
     setSelectedClinicData(null)
+    setUserComumId(null)
+    setPlanoAcesso(null)
     sessionStorage.removeItem('selectedClinicData')
     sessionStorage.removeItem('relacionamento')
+    sessionStorage.removeItem('userComumId')
+    sessionStorage.removeItem('planoAcesso')
     
     // Atualizar o ID do consultório selecionado
     setSelectedClinicIdState(clinicId)
     sessionStorage.setItem('selectedClinicId', clinicId)
     
+    // Se os dados já foram fornecidos, usar eles diretamente sem chamar a API
+    if (clinicData) {
+      setSelectedClinicData(clinicData)
+      sessionStorage.setItem('selectedClinicData', JSON.stringify(clinicData))
+      
+      // Salvar também o relacionamento separadamente para fácil acesso
+      if (clinicData.relacionamento) {
+        sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+        
+        // Extrair e salvar userComumId do relacionamento apenas se for tipo "usuario"
+        // Se for clienteMaster, o ID é do cliente master, não do userComum
+        // Se for usuario, o ID é do UserComum vinculado
+        const relacionamento = clinicData.relacionamento
+        if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+          setUserComumId(relacionamento.id)
+          sessionStorage.setItem('userComumId', relacionamento.id)
+        } else {
+          // Se for clienteMaster ou outro tipo, limpar userComumId
+          setUserComumId(null)
+          sessionStorage.removeItem('userComumId')
+        }
+        
+        // Extrair e salvar acesso do plano
+        const acesso = relacionamento.acesso || clinicData.plano?.acesso || 'all'
+        setPlanoAcesso(acesso)
+        sessionStorage.setItem('planoAcesso', acesso)
+      } else {
+        // Se não houver relacionamento, limpar userComumId
+        setUserComumId(null)
+        sessionStorage.removeItem('userComumId')
+        // Definir acesso padrão como 'all'
+        setPlanoAcesso('all')
+        sessionStorage.setItem('planoAcesso', 'all')
+      }
+      return
+    }
+    
     // Buscar dados completos do cliente master selecionado usando a rota /complete
     try {
-      const response = await api.get(`/clientes-master/${clinicId}/complete`)
-      const clinicData = response.data?.data || response.data
+      // Chamar API via GET com o ID no header
+      const response = await api.get('/clientes-master/complete', {
+        headers: {
+          'X-Cliente-Master-Id': clinicId
+        }
+      })
       
-      if (clinicData) {
+      // A estrutura pode ser: response.data.data ou response.data
+      const data = response.data?.data || response.data
+      
+      if (data) {
         // Garantir que o relacionamento seja salvo
-        // A estrutura já vem com relacionamento: { tipo: "clienteMaster", id: "..." }
-        setSelectedClinicData(clinicData)
-        sessionStorage.setItem('selectedClinicData', JSON.stringify(clinicData))
+        // A estrutura já vem com relacionamento: { tipo: "clienteMaster", id: "...", acesso: "all" ou "chat" }
+        setSelectedClinicData(data)
+        sessionStorage.setItem('selectedClinicData', JSON.stringify(data))
+        
+        // Extrair e salvar o acesso do plano
+        // O acesso pode vir de: data.relacionamento.acesso ou data.plano.acesso
+        const acesso = data.relacionamento?.acesso || data.plano?.acesso || 'all'
+        setPlanoAcesso(acesso)
+        sessionStorage.setItem('planoAcesso', acesso)
+        console.log('Acesso do plano:', acesso)
         
         // Salvar também o relacionamento separadamente para fácil acesso
-        if (clinicData.relacionamento) {
-          sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+        if (data.relacionamento) {
+          sessionStorage.setItem('relacionamento', JSON.stringify(data.relacionamento))
+          
+          // Extrair e salvar userComumId do relacionamento apenas se for tipo "usuario"
+          // Se for clienteMaster, o ID é do cliente master, não do userComum
+          // Se for usuario, o ID é do UserComum vinculado
+          const relacionamento = data.relacionamento
+          if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+            setUserComumId(relacionamento.id)
+            sessionStorage.setItem('userComumId', relacionamento.id)
+          } else {
+            // Se for clienteMaster ou outro tipo, limpar userComumId
+            setUserComumId(null)
+            sessionStorage.removeItem('userComumId')
+          }
+        } else {
+          // Se não houver relacionamento, limpar userComumId
+          setUserComumId(null)
+          sessionStorage.removeItem('userComumId')
         }
       }
     } catch (error) {
@@ -333,6 +470,12 @@ export const AuthProvider = ({ children }) => {
         console.error('Erro ao buscar dados do cliente master (fallback):', fallbackError)
       }
     }
+  }
+
+  // Função para limpar userComumId quando voltar para clínicas
+  const clearUserComumId = () => {
+    setUserComumId(null)
+    sessionStorage.removeItem('userComumId')
   }
 
   // Função helper para verificar se o usuário é ClienteMaster
@@ -371,6 +514,9 @@ export const AuthProvider = ({ children }) => {
     isClienteMaster,
     isUsuario,
     getRelacionamento,
+    userComumId,
+    clearUserComumId,
+    planoAcesso,
     loading
   }
 

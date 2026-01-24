@@ -3,7 +3,8 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
-  faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding
+  faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding,
+  faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -12,19 +13,18 @@ import './Layout.css'
 const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario } = useAuth()
+  const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario, clearUserComumId, planoAcesso } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   
-  // Sempre recarregar dados do cliente master ao entrar no app para garantir dados atualizados
+  // Recarregar dados do cliente master ao entrar no app apenas se não houver dados carregados
   useEffect(() => {
     let isMounted = true
     
     const loadClinicData = async () => {
-      if (selectedClinicId && location.pathname.startsWith('/app')) {
+      if (selectedClinicId && location.pathname.startsWith('/app') && !selectedClinicData) {
         try {
-          // Sempre buscar dados completos usando a rota /complete para garantir dados atualizados
-          // Isso remove dados antigos e adiciona os novos
+          // Buscar dados apenas se não estiverem carregados
           if (isMounted) {
             await setSelectedClinicId(selectedClinicId)
           }
@@ -34,7 +34,7 @@ const Layout = () => {
       }
     }
     
-    // Executar apenas quando entrar na rota /app
+    // Executar apenas quando entrar na rota /app e não houver dados
     loadClinicData()
     
     return () => {
@@ -46,6 +46,7 @@ const Layout = () => {
   // Usar APENAS os atributos: nomeEmpresa, logo, cor, documento
   const clinicLogo = (selectedClinicData?.logo && selectedClinicData.logo !== null) ? selectedClinicData.logo : nodoLogo
   const clinicName = (selectedClinicData?.nomeEmpresa && selectedClinicData.nomeEmpresa !== null) ? selectedClinicData.nomeEmpresa : 'NODON'
+  const userName = (user?.nome || 'Usuário').split(' ')[0]
   const clinicColor = (selectedClinicData?.cor && selectedClinicData.cor !== null) ? selectedClinicData.cor : '#0ea5e9'
   const clinicDocumento = (selectedClinicData?.documento && selectedClinicData.documento !== null) ? selectedClinicData.documento : null
   
@@ -54,16 +55,32 @@ const Layout = () => {
     { path: '/app', label: 'Dashboard', icon: faChartBar },
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
+    { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/chat', label: 'Chat IA', icon: faComments },
     { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
   ]
 
-  // Filtrar menu items baseado no tipo de relacionamento
+  // Filtrar menu items baseado no tipo de relacionamento e acesso do plano
+  let menuItems = allMenuItems
+  
   // Se for tipo "usuario", não mostrar a aba "Usuário"
-  const menuItems = isUsuario() 
-    ? allMenuItems.filter(item => item.path !== '/app/dentistas')
-    : allMenuItems
+  if (isUsuario()) {
+    menuItems = menuItems.filter(item => item.path !== '/app/dentistas')
+  }
+  
+  // Filtrar baseado no acesso do plano
+  if (planoAcesso === 'chat') {
+    // Se acesso for "chat", mostrar apenas Chat e Perfil
+    menuItems = menuItems.filter(item => 
+      item.path === '/app/chat' || 
+      item.path === '/app/perfil'
+    )
+  } else if (planoAcesso === 'all') {
+    // Se acesso for "all", mostrar todos (já filtrado acima se for usuário comum)
+    // Não precisa fazer nada, já tem todos os itens
+  }
+  // Se planoAcesso for null ou undefined, mostrar todos (compatibilidade)
 
   const handleLogout = async () => {
     await logout()
@@ -82,21 +99,23 @@ const Layout = () => {
     setSidebarMinimized(!sidebarMinimized)
   }
 
-  // Carregar dados do cliente master quando o Layout carregar
-  useEffect(() => {
-    const loadClinicData = async () => {
-      if (selectedClinicId && !selectedClinicData) {
-        try {
-          // Buscar dados completos usando a rota /complete
-          await setSelectedClinicId(selectedClinicId)
-        } catch (error) {
-          console.error('Erro ao carregar dados do cliente master:', error)
-        }
-      }
-    }
+  // Função para obter o título da página atual
+  const getPageTitle = () => {
+    const path = location.pathname
     
-    loadClinicData()
-  }, [selectedClinicId, selectedClinicData, setSelectedClinicId])
+    // Verificar rotas específicas primeiro
+    if (path === '/app/clientes/novo') return 'Novo Cliente'
+    if (path.startsWith('/app/clientes/') && path.includes('/editar')) return 'Editar Cliente'
+    if (path.startsWith('/app/clientes/') && path !== '/app/clientes') return 'Detalhes do Cliente'
+    if (path.startsWith('/app/diagnosticos/') && path.includes('/desenho')) return 'Desenho Profissional'
+    if (path.startsWith('/app/diagnosticos/') && path !== '/app/diagnosticos') return 'Detalhes da Radiografia'
+    
+    // Procurar no menu
+    return menuItems.find(item => item.path === path)?.label || 'Dashboard'
+  }
+
+  // Carregar dados do cliente master quando o Layout carregar (apenas se necessário)
+  // Este useEffect foi removido pois já temos outro que faz isso de forma mais eficiente
 
   // Fechar sidebar ao mudar de rota em mobile
   useEffect(() => {
@@ -117,10 +136,13 @@ const Layout = () => {
         <div className="sidebar-overlay" onClick={closeSidebar}></div>
       )}
 
-      {/* Botão hambúrguer para mobile */}
-      <button className="mobile-menu-toggle" onClick={toggleSidebar}>
-        <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} />
-      </button>
+      {/* Header mobile com menu e título */}
+      <div className="mobile-header">
+        <button className="mobile-menu-toggle" onClick={toggleSidebar}>
+          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} />
+        </button>
+        <h2 className="mobile-page-title">{getPageTitle()}</h2>
+      </div>
 
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarMinimized ? 'minimized' : ''}`}>
         <div className="sidebar-header">
@@ -178,10 +200,10 @@ const Layout = () => {
           {!sidebarMinimized && (
             <div className="user-info">
               <div className="user-avatar">
-                {clinicName.charAt(0).toUpperCase()}
+                {userName.charAt(0).toUpperCase()}
               </div>
               <div className="user-details">
-                <p className="user-name">{clinicName}</p>
+                <p className="user-name">{userName}</p>
                 {clinicDocumento && (
                   <p className="user-role">{clinicDocumento}</p>
                 )}
@@ -190,12 +212,13 @@ const Layout = () => {
           )}
           {sidebarMinimized && (
             <div className="user-avatar-minimized">
-              {clinicName.charAt(0).toUpperCase()}
+              {userName.charAt(0).toUpperCase()}
             </div>
           )}
           <button 
             className="clinic-btn" 
             onClick={() => {
+              clearUserComumId()
               navigate('/select-clinic')
               closeSidebar()
             }}
@@ -217,9 +240,7 @@ const Layout = () => {
 
       <main className={`main-content ${sidebarMinimized ? 'sidebar-minimized' : ''}`}>
         <header className="topbar">
-          <h2 className="page-title">
-            {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
-          </h2>
+          <h2 className="page-title">{getPageTitle()}</h2>
         </header>
         <div className="content-area">
           <Outlet />

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faXRay, faArrowLeft, faFileMedical, faCalendar, faUser,
@@ -7,6 +8,9 @@ import {
   faEdit, faSave, faTrash, faPlus, faTimes, faExclamationTriangle,
   faEye
 } from '@fortawesome/free-solid-svg-icons'
+import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
 import './DiagnosticoDetalhes.css'
 
@@ -148,8 +152,19 @@ const getMockDetalhes = (diagnosticoId) => {
 const DiagnosticoDetalhes = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { selectedClinicData, user, isClienteMaster, getRelacionamento } = useAuth()
+  
+  // Verificar se é cliente master
+  const relacionamento = getRelacionamento()
+  const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
+  
+  // Hook para modal de alerta
+  const { alertConfig, showError, hideAlert } = useAlert()
+  
   const [diagnostico, setDiagnostico] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profissionalNome, setProfissionalNome] = useState('')
+  const [pacienteId, setPacienteId] = useState(null)
   const [isEditingDescricao, setIsEditingDescricao] = useState(false)
   const [isEditingAchados, setIsEditingAchados] = useState(false)
   const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
@@ -160,160 +175,407 @@ const DiagnosticoDetalhes = () => {
   const [editedNecessidades, setEditedNecessidades] = useState([])
   const [editedTitulo, setEditedTitulo] = useState('')
   const [editedTituloCard, setEditedTituloCard] = useState('Detalhamento Profissional')
-  const [drawingData, setDrawingData] = useState(null)
+  const [desenhosProfissionais, setDesenhosProfissionais] = useState([])
+  const [loadingDesenhos, setLoadingDesenhos] = useState(false)
   const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showImageSelector, setShowImageSelector] = useState(false)
+  const [showDeleteDesenhoModal, setShowDeleteDesenhoModal] = useState(false)
+  const [desenhoToDelete, setDesenhoToDelete] = useState(null)
 
   useEffect(() => {
     loadDiagnostico()
-    loadDrawingData()
   }, [id])
 
-  const loadDrawingData = () => {
+  useEffect(() => {
+    if (id && diagnostico) {
+      loadDesenhosProfissionais()
+    }
+  }, [id, diagnostico])
+
+  const buscarPacienteId = async (nome, emailPaciente, clienteMasterId) => {
+    if ((!nome && !emailPaciente) || !clienteMasterId) {
+      return
+    }
+
     try {
-      const saved = localStorage.getItem(`drawing_${id}`)
-      if (saved) {
-        setDrawingData(JSON.parse(saved))
-      } else {
-        // Dados mockados para exemplo
-        setDrawingData({
-          observacoes: 'Radiografia panorâmica apresentando arcada dentária completa. Observa-se presença de restaurações em alguns elementos dentários. Estruturas ósseas preservadas, sem evidências de lesões periapicais ou outras patologias aparentes.',
-          selectedDentes: [
-            {
-              numero: 36,
-              descricao: 'Dente 36 (primeiro molar inferior direito) - Presença de restauração em resina composta na face oclusal. Raiz completa, espaço periodontal preservado.'
-            }
-          ]
-        })
+      // Buscar lista de pacientes do clienteMasterId
+      const response = await api.get(`/pacientes?clienteMasterId=${clienteMasterId}`)
+      const pacientes = response.data?.data || response.data || []
+      
+      // Procurar paciente pelo nome ou email
+      const paciente = pacientes.find(p => {
+        const nomeMatch = nome && p.nome === nome
+        const emailMatch = emailPaciente && p.emailPaciente === emailPaciente
+        return nomeMatch || emailMatch
+      })
+      
+      if (paciente && paciente.id) {
+        setPacienteId(paciente.id)
       }
     } catch (error) {
-      console.error('Erro ao carregar dados do desenho:', error)
-      // Em caso de erro, usar dados mockados
-      setDrawingData({
-        observacoes: 'Radiografia panorâmica apresentando arcada dentária completa. Observa-se presença de restaurações em alguns elementos dentários. Estruturas ósseas preservadas, sem evidências de lesões periapicais ou outras patologias aparentes.',
-        selectedDentes: [
-          {
-            numero: 36,
-            descricao: 'Dente 36 (primeiro molar inferior direito) - Presença de restauração em resina composta na face oclusal. Raiz completa, espaço periodontal preservado.'
-          }
-        ]
-      })
+      console.error('Erro ao buscar ID do paciente:', error)
     }
   }
 
+  const loadProfissionalNome = async (responsavelId) => {
+    if (!responsavelId) return
+    
+    try {
+      // Primeiro tentar usar dados do contexto ou sessionStorage
+      const userFromStorage = sessionStorage.getItem('user')
+      if (userFromStorage) {
+        const userParsed = JSON.parse(userFromStorage)
+        if (userParsed.id === responsavelId) {
+          setProfissionalNome(userParsed.nome || userParsed.name || '')
+          return
+        }
+      }
+      
+      // Se o usuário do contexto corresponder
+      if (user?.id === responsavelId) {
+        setProfissionalNome(user.nome || user.name || '')
+        return
+      }
+
+      // Verificar se o perfil no selectedClinicData corresponde
+      if (selectedClinicData?.perfil?.id === responsavelId) {
+        setProfissionalNome(selectedClinicData.perfil.nome || '')
+        return
+      }
+
+      // Buscar usuário pelo ID usando a rota /users/base/{id}
+      try {
+        const userResponse = await api.get(`/users/base/${responsavelId}`)
+        const userData = userResponse.data?.data || userResponse.data
+        
+        if (userData && (userData.nome || userData.name || userData.email)) {
+          setProfissionalNome(userData.nome || userData.name || userData.email || '')
+          return
+        }
+      } catch (userError) {
+        console.log('Erro ao buscar usuário pelo ID:', userError)
+      }
+
+      console.log('Responsável não encontrado com ID:', responsavelId)
+    } catch (error) {
+      console.error('Erro ao buscar nome do profissional:', error)
+    }
+  }
+
+  const loadDesenhosProfissionais = async () => {
+    try {
+      setLoadingDesenhos(true)
+      
+      if (!id) {
+        console.error('ID da radiografia não encontrado')
+        setLoadingDesenhos(false)
+        return
+      }
+
+      // Fazer GET para listar desenhos profissionais da radiografia
+      const response = await api.get(`/desenhos-profissionais?radiografiaId=${id}`)
+      const desenhos = response.data?.data || response.data || []
+      
+      setDesenhosProfissionais(desenhos)
+      
+      // Combinar necessidades dos desenhos profissionais com as necessidades da radiografia
+      const necessidadesDosDesenhos = []
+      desenhos.forEach(desenho => {
+        if (desenho.necessidades && Array.isArray(desenho.necessidades)) {
+          desenho.necessidades.forEach(nec => {
+            // Adicionar apenas se não for duplicado
+            const getNecValue = (n) => {
+              if (typeof n === 'object' && n !== null) {
+                const partes = []
+                if (n.procedimento) partes.push(n.procedimento)
+                if (n.anotacoes) partes.push(n.anotacoes)
+                return partes.join(' - ') || ''
+              }
+              return typeof n === 'string' ? n : ''
+            }
+            
+            const necValue = getNecValue(nec)
+            
+            if (necValue && !necessidadesDosDesenhos.some(n => {
+              const nValue = getNecValue(n)
+              return nValue === necValue
+            })) {
+              necessidadesDosDesenhos.push(nec)
+            }
+          })
+        }
+      })
+      
+      // Combinar com as necessidades da radiografia (usar o estado atual do diagnostico)
+      const necessidadesRadiografia = diagnostico?.necessidades || []
+      const todasNecessidades = [...necessidadesRadiografia, ...necessidadesDosDesenhos]
+      
+      // Remover duplicatas baseado no valor
+      const necessidadesUnicas = []
+      const valoresVistos = new Set()
+      
+      const getNecValue = (nec) => {
+        if (typeof nec === 'object' && nec !== null) {
+          const partes = []
+          if (nec.procedimento) partes.push(nec.procedimento)
+          if (nec.anotacoes) partes.push(nec.anotacoes)
+          return partes.join(' - ') || ''
+        }
+        return typeof nec === 'string' ? nec : ''
+      }
+      
+      todasNecessidades.forEach(nec => {
+        const necValue = getNecValue(nec)
+        
+        if (necValue && !valoresVistos.has(necValue)) {
+          valoresVistos.add(necValue)
+          necessidadesUnicas.push(nec)
+        }
+      })
+      
+      // Atualizar apenas se houver mudanças para evitar loops infinitos
+      setEditedNecessidades(prev => {
+        // Comparar se as necessidades são diferentes
+        const getNecValue = (n) => {
+          if (typeof n === 'object' && n !== null) {
+            const partes = []
+            if (n.procedimento) partes.push(n.procedimento)
+            if (n.anotacoes) partes.push(n.anotacoes)
+            return partes.join(' - ') || ''
+          }
+          return typeof n === 'string' ? n : ''
+        }
+        
+        const prevValues = prev.map(n => getNecValue(n)).sort().join('|')
+        const newValues = necessidadesUnicas.map(n => getNecValue(n)).sort().join('|')
+        
+        if (prevValues !== newValues) {
+          return necessidadesUnicas
+        }
+        return prev
+      })
+    } catch (error) {
+      console.error('Erro ao carregar desenhos profissionais:', error)
+      setDesenhosProfissionais([])
+    } finally {
+      setLoadingDesenhos(false)
+    }
+  }
+
+
       const loadDiagnostico = async () => {
         try {
-          // Simular delay de API
-          await new Promise(resolve => setTimeout(resolve, 300))
+          // Fazer GET para buscar detalhes da radiografia
+          const response = await api.get(`/radiografias/${id}`)
+          const radiografia = response.data?.data || response.data
           
-          // Buscar diagnóstico do localStorage
-          const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-          const diagnostico = savedDiagnosticos.find(d => d.id === parseInt(id))
-          
-          if (diagnostico) {
-            // Adicionar dados mockados aos dados reais
-            const mockDetalhes = getMockDetalhes(parseInt(id))
-            const diagnosticoCompleto = {
-              ...mockDetalhes,
-              ...diagnostico,
-              // Manter dados reais se existirem, mas priorizar dados salvos
-              paciente: diagnostico.paciente || mockDetalhes.paciente,
-              descricao: diagnostico.descricao || mockDetalhes.descricao,
-              tratamento: diagnostico.tratamento || mockDetalhes.tratamento,
-              data: diagnostico.data || mockDetalhes.data,
-              cliente_id: diagnostico.cliente_id || mockDetalhes.cliente_id,
-              cliente_nome: diagnostico.cliente_nome || mockDetalhes.cliente_nome,
-              cliente_email: diagnostico.cliente_email || mockDetalhes.cliente_email,
-              // Sempre usar exameImage se não for base64 válido
-              imagem: (diagnostico.imagem && typeof diagnostico.imagem === 'string' && diagnostico.imagem.startsWith('data:image')) 
-                ? diagnostico.imagem 
-                : exameImage
+          if (radiografia) {
+            // Buscar nome do profissional responsável
+            let nomeProfissional = ''
+            // O responsavel pode ser um ID (string) ou um objeto
+            const responsavelId = radiografia.responsavelId || 
+              (typeof radiografia.responsavel === 'string' ? radiografia.responsavel : radiografia.responsavel?.id) || 
+              radiografia.masterClient?.userId
+            
+            // Primeiro verificar se a API já retorna o nome do responsável diretamente
+            // Pode vir em vários campos diferentes dependendo da estrutura da API
+            if (radiografia.nomeResponsavel) {
+              nomeProfissional = radiografia.nomeResponsavel
+            } else if (radiografia.responsavelNome) {
+              nomeProfissional = radiografia.responsavelNome
+            } else if (radiografia.nomeUsuario) {
+              nomeProfissional = radiografia.nomeUsuario
+            } else if (radiografia.responsavelData?.nome) {
+              nomeProfissional = radiografia.responsavelData.nome
+            } else if (radiografia.usuario?.nome) {
+              nomeProfissional = radiografia.usuario.nome
+            } else if (radiografia.user?.nome) {
+              nomeProfissional = radiografia.user.nome
+            } else if (typeof radiografia.responsavel === 'object' && radiografia.responsavel?.nome) {
+              nomeProfissional = radiografia.responsavel.nome
             }
+            
+            if (!nomeProfissional && responsavelId) {
+              try {
+                // Verificar se o user do contexto é o responsável
+                if (user?.id === responsavelId) {
+                  nomeProfissional = user.nome || user.name || ''
+                }
+                // Verificar se o perfil no selectedClinicData é o responsável
+                else if (selectedClinicData?.perfil?.id === responsavelId) {
+                  nomeProfissional = selectedClinicData.perfil.nome || ''
+                }
+                // Verificar selectedClinicData.user
+                else if (selectedClinicData?.user?.id === responsavelId) {
+                  nomeProfissional = selectedClinicData.user.nome || ''
+                } 
+                // Tentar do sessionStorage
+                else {
+                  const userFromStorage = sessionStorage.getItem('user')
+                  if (userFromStorage) {
+                    const userParsed = JSON.parse(userFromStorage)
+                    if (userParsed.id === responsavelId) {
+                      nomeProfissional = userParsed.nome || ''
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error('Erro ao buscar nome do profissional:', error)
+              }
+            }
+            
+            // Normalizar dados da radiografia para o formato esperado
+            // Converter achadosRadiograficos para array se necessário
+            let achadosNormalizados = []
+            if (radiografia.achadosRadiograficos) {
+              if (Array.isArray(radiografia.achadosRadiograficos)) {
+                achadosNormalizados = radiografia.achadosRadiograficos
+              } else if (typeof radiografia.achadosRadiograficos === 'string') {
+                achadosNormalizados = radiografia.achadosRadiograficos.split('\n').filter(line => line.trim())
+              }
+            } else if (radiografia.achados && Array.isArray(radiografia.achados)) {
+              achadosNormalizados = radiografia.achados
+            }
+            
+            // Converter necessidades para array se necessário
+            let necessidadesNormalizadas = []
+            if (radiografia.necessidades) {
+              if (Array.isArray(radiografia.necessidades)) {
+                necessidadesNormalizadas = radiografia.necessidades
+              } else if (typeof radiografia.necessidades === 'string') {
+                necessidadesNormalizadas = radiografia.necessidades.split('\n').filter(line => line.trim())
+              }
+            }
+            
+            const diagnosticoCompleto = {
+              id: radiografia.id,
+              paciente: radiografia.nome || radiografia.nome || '',
+              radiografia: radiografia.radiografia || '',
+              tipoExame: radiografia.tipoExame || '',
+              descricao: radiografia.descricaoExame || radiografia.tipoExame || '',
+              tratamento: radiografia.tratamento || '',
+              data: radiografia.data || '',
+              cliente_id: radiografia.pacienteId || null,
+              cliente_nome: radiografia.nome || '',
+              cliente_email: radiografia.emailPaciente || '',
+              imagem: radiografia.imagens && radiografia.imagens.length > 0 
+                ? radiografia.imagens[0]?.url || exameImage
+                : exameImage,
+              imagens: radiografia.imagens && Array.isArray(radiografia.imagens) && radiografia.imagens.length > 0
+                ? radiografia.imagens.map(img => img.url || img).filter(Boolean)
+                : [],
+              achados: achadosNormalizados,
+              recomendacoes: radiografia.recomendacoes || [],
+              necessidades: necessidadesNormalizadas,
+              created_at: radiografia.createdAt || new Date().toISOString(),
+              responsavelId: responsavelId
+            }
+            
             setDiagnostico(diagnosticoCompleto)
+            setProfissionalNome(nomeProfissional)
             setEditedDescricao(diagnosticoCompleto.descricao || '')
             setEditedAchados(diagnosticoCompleto.achados || [])
-            setEditedNecessidades(diagnosticoCompleto.recomendacoes || diagnosticoCompleto.necessidades || [])
+            setEditedNecessidades(diagnosticoCompleto.necessidades || diagnosticoCompleto.recomendacoes || [])
             setEditedTitulo(diagnosticoCompleto.paciente || '')
+            
+            // Buscar ID do paciente pelo nome ou email
+            await buscarPacienteId(radiografia.nome, radiografia.emailPaciente, radiografia.masterClient?.id || radiografia.clienteMasterId)
+            
+            if (nomeProfissional) {
+              setProfissionalNome(nomeProfissional)
+            } else if (responsavelId) {
+              // Sempre tentar buscar o nome do responsável se tiver o ID
+              loadProfissionalNome(responsavelId)
+            }
           } else {
-            // Se não encontrar, usar dados mockados
+            // Se não encontrar, usar dados mockados como fallback
             const mockDetalhes = getMockDetalhes(parseInt(id))
-            setDiagnostico(mockDetalhes)
-            setEditedDescricao(mockDetalhes.descricao || '')
-            setEditedAchados(mockDetalhes.achados || [])
-            setEditedNecessidades(mockDetalhes.recomendacoes || mockDetalhes.necessidades || [])
-            setEditedTitulo(mockDetalhes.paciente || '')
+            const mockComImagens = {
+              ...mockDetalhes,
+              imagens: mockDetalhes.imagem ? [mockDetalhes.imagem] : []
+            }
+            setDiagnostico(mockComImagens)
+            setEditedDescricao(mockComImagens.descricao || '')
+            setEditedAchados(mockComImagens.achados || [])
+            setEditedNecessidades(mockComImagens.recomendacoes || mockComImagens.necessidades || [])
+            setEditedTitulo(mockComImagens.paciente || '')
           }
         } catch (error) {
-          console.error('Erro ao carregar diagnóstico:', error)
-          // Se não encontrar, usar dados mockados
+          console.error('Erro ao carregar radiografia:', error)
+          // Se não encontrar, usar dados mockados como fallback
           const mockDetalhes = getMockDetalhes(parseInt(id))
-          setDiagnostico(mockDetalhes)
-          setEditedDescricao(mockDetalhes.descricao || '')
-          setEditedAchados(mockDetalhes.achados || [])
+          const mockComImagens = {
+            ...mockDetalhes,
+            imagens: mockDetalhes.imagem ? [mockDetalhes.imagem] : []
+          }
+          setDiagnostico(mockComImagens)
+          setEditedDescricao(mockComImagens.descricao || '')
+          setEditedAchados(mockComImagens.achados || [])
         } finally {
           setLoading(false)
         }
       }
 
-  const handleSave = () => {
-    // Atualizar diagnóstico local
-    const updatedDiagnostico = {
-      ...diagnostico,
-      descricao: editedDescricao,
-      achados: editedAchados
+  const updateRadiografiaAPI = async (dataToUpdate) => {
+    try {
+      await api.put(`/radiografias/${id}`, dataToUpdate)
+      // Mostrar mensagem de sucesso
+      setCustomAlert({ show: true, message: 'Alterações salvas com sucesso!', type: 'success' })
+      setTimeout(() => {
+        setCustomAlert({ show: false, message: '', type: 'error' })
+      }, 3000)
+      return true
+    } catch (error) {
+      console.error('Erro ao atualizar radiografia:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao salvar alterações. Tente novamente.'
+      setCustomAlert({ show: true, message: errorMessage, type: 'error' })
+      setTimeout(() => {
+        setCustomAlert({ show: false, message: '', type: 'error' })
+      }, 3000)
+      return false
     }
-    setDiagnostico(updatedDiagnostico)
-    
-    // Salvar no localStorage
-    const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-    const index = savedDiagnosticos.findIndex(d => d.id === parseInt(id))
-    
-    if (index !== -1) {
-      savedDiagnosticos[index] = {
-        ...savedDiagnosticos[index],
-        descricao: editedDescricao,
-        achados: editedAchados
-      }
-    } else {
-      // Se não existir, criar novo
-      savedDiagnosticos.push({
-        id: parseInt(id),
-        descricao: editedDescricao,
-        achados: editedAchados
-      })
-    }
-    
-    localStorage.setItem('mockDiagnosticos', JSON.stringify(savedDiagnosticos))
-    setIsEditingDescricao(false)
   }
 
-  const handleSaveAchados = () => {
-    // Atualizar diagnóstico local
-    const updatedDiagnostico = {
-      ...diagnostico,
-      achados: editedAchados
+  const handleSave = async () => {
+    // Preparar dados para a API
+    const payload = {
+      descricaoExame: editedDescricao || ''
     }
-    setDiagnostico(updatedDiagnostico)
     
-    // Salvar no localStorage
-    const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-    const index = savedDiagnosticos.findIndex(d => d.id === parseInt(id))
+    // Chamar API PUT
+    const success = await updateRadiografiaAPI(payload)
     
-    if (index !== -1) {
-      savedDiagnosticos[index] = {
-        ...savedDiagnosticos[index],
-        achados: editedAchados
+    if (success) {
+      // Atualizar diagnóstico local apenas se a API foi bem-sucedida
+      const updatedDiagnostico = {
+        ...diagnostico,
+        descricao: editedDescricao
       }
-    } else {
-      // Se não existir, criar novo
-      savedDiagnosticos.push({
-        id: parseInt(id),
-        achados: editedAchados
-      })
+      setDiagnostico(updatedDiagnostico)
+      setIsEditingDescricao(false)
+    }
+  }
+
+  const handleSaveAchados = async () => {
+    // Preparar dados para a API - converter para array de strings
+    const achadosArray = editedAchados.filter(achado => achado && achado.trim() !== '')
+    
+    const payload = {
+      achadosRadiograficos: achadosArray
     }
     
-    localStorage.setItem('mockDiagnosticos', JSON.stringify(savedDiagnosticos))
-    setIsEditingAchados(false)
+    // Chamar API PUT
+    const success = await updateRadiografiaAPI(payload)
+    
+    if (success) {
+      // Atualizar diagnóstico local apenas se a API foi bem-sucedida
+      const updatedDiagnostico = {
+        ...diagnostico,
+        achados: achadosArray
+      }
+      setDiagnostico(updatedDiagnostico)
+      setIsEditingAchados(false)
+    }
   }
 
   const handleAddAchado = () => {
@@ -330,36 +592,52 @@ const DiagnosticoDetalhes = () => {
     setEditedAchados(updated)
   }
 
-  const handleSaveNecessidades = () => {
-    // Atualizar diagnóstico local
-    const updatedDiagnostico = {
-      ...diagnostico,
-      recomendacoes: editedNecessidades,
-      necessidades: editedNecessidades
+  const handleSaveNecessidades = async () => {
+    // Preparar dados para a API - converter para array de strings
+    const necessidadesArray = editedNecessidades
+      .filter(nec => {
+        // Filtrar apenas necessidades válidas (não vazias)
+        if (typeof nec === 'string') {
+          return nec.trim() !== ''
+        }
+        if (typeof nec === 'object' && nec !== null) {
+          const procedimento = nec.procedimento || ''
+          const anotacoes = nec.anotacoes || ''
+          return procedimento.trim() !== '' || anotacoes.trim() !== ''
+        }
+        return false
+      })
+      .map(nec => {
+        // Converter para string no formato "procedimento - anotacao"
+        if (typeof nec === 'string') {
+          return nec.trim()
+        }
+        if (typeof nec === 'object' && nec !== null) {
+          const partes = []
+          if (nec.procedimento) partes.push(nec.procedimento.trim())
+          if (nec.anotacoes) partes.push(nec.anotacoes.trim())
+          return partes.join(' - ')
+        }
+        return ''
+      })
+      .filter(nec => nec !== '')
+    
+    const payload = {
+      necessidades: necessidadesArray
     }
-    setDiagnostico(updatedDiagnostico)
     
-    // Salvar no localStorage
-    const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-    const index = savedDiagnosticos.findIndex(d => d.id === parseInt(id))
+    // Chamar API PUT
+    const success = await updateRadiografiaAPI(payload)
     
-    if (index !== -1) {
-      savedDiagnosticos[index] = {
-        ...savedDiagnosticos[index],
-        recomendacoes: editedNecessidades,
+    if (success) {
+      // Atualizar diagnóstico local apenas se a API foi bem-sucedida
+      const updatedDiagnostico = {
+        ...diagnostico,
         necessidades: editedNecessidades
       }
-    } else {
-      // Se não existir, criar novo
-      savedDiagnosticos.push({
-        id: parseInt(id),
-        recomendacoes: editedNecessidades,
-        necessidades: editedNecessidades
-      })
+      setDiagnostico(updatedDiagnostico)
+      setIsEditingNecessidades(false)
     }
-    
-    localStorage.setItem('mockDiagnosticos', JSON.stringify(savedDiagnosticos))
-    setIsEditingNecessidades(false)
   }
 
   const handleAddNecessidade = () => {
@@ -405,27 +683,64 @@ const DiagnosticoDetalhes = () => {
     setIsEditingTitulo(false)
   }
 
-  const handleDeleteDetalhamento = (e) => {
-    e.stopPropagation() // Prevenir navegação ao clicar no botão
-    setShowDeleteConfirm(true)
-  }
-
-  const confirmDeleteDetalhamento = () => {
+  const handleViewDesenho = async (desenhoId) => {
     try {
-      // Remover dados do detalhamento do localStorage
-      localStorage.removeItem(`drawing_${id}`)
+      // Fazer GET para buscar detalhes do desenho
+      const response = await api.get(`/desenhos-profissionais/${desenhoId}`)
+      const desenho = response.data?.data || response.data
       
-      // Atualizar estado
-      setDrawingData(null)
-      
-      setShowDeleteConfirm(false)
-      showAlert('Detalhamento profissional excluído com sucesso!', 'success')
+      if (desenho) {
+        // Navegar para a tela de detalhamento profissional com os dados do desenho
+        navigate(`/app/diagnosticos/${id}/detalhamento-profissional`, { 
+          state: { 
+            desenhoData: {
+              imagemDesenhada: desenho.imagemDesenhada?.url,
+              dentesAnotacoes: desenho.dentesAnotacoes || [],
+              necessidades: desenho.necessidades || [],
+              observacoes: desenho.observacoes || '',
+              tituloDesenho: desenho.tituloDesenho || ''
+            }
+          } 
+        })
+      }
     } catch (error) {
-      console.error('Erro ao excluir detalhamento:', error)
-      setShowDeleteConfirm(false)
-      showAlert('Erro ao excluir detalhamento', 'error')
+      console.error('Erro ao carregar desenho:', error)
+      showError('Erro ao carregar desenho. Tente novamente.')
     }
   }
+
+  const handleDeleteDesenhoClick = (desenhoId, e) => {
+    if (e) {
+      e.stopPropagation()
+    }
+    setDesenhoToDelete(desenhoId)
+    setShowDeleteDesenhoModal(true)
+  }
+
+  const handleConfirmDeleteDesenho = async () => {
+    if (!desenhoToDelete) return
+
+    try {
+      await api.delete(`/desenhos-profissionais/${desenhoToDelete}`)
+      // Recarregar lista de desenhos
+      await loadDesenhosProfissionais()
+      setShowDeleteDesenhoModal(false)
+      setDesenhoToDelete(null)
+      setCustomAlert({ show: true, message: 'Desenho excluído com sucesso!', type: 'success' })
+      setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 3000)
+    } catch (error) {
+      console.error('Erro ao excluir desenho:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao excluir desenho. Tente novamente.'
+      setCustomAlert({ show: true, message: errorMessage, type: 'error' })
+      setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 3000)
+    }
+  }
+
+  const handleCancelDeleteDesenho = () => {
+    setShowDeleteDesenhoModal(false)
+    setDesenhoToDelete(null)
+  }
+
 
   const showAlert = (message, type = 'error') => {
     setCustomAlert({ show: true, message, type })
@@ -478,29 +793,6 @@ const DiagnosticoDetalhes = () => {
         </div>
       )}
 
-      {/* Modal de Confirmação de Exclusão */}
-      {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="modal-confirm" onClick={(e) => e.stopPropagation()}>
-            <h3>Confirmar Exclusão</h3>
-            <p>Tem certeza que deseja excluir este detalhamento profissional?</p>
-            <div className="modal-actions">
-              <button 
-                className="btn-modal-cancel"
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                Cancelar
-              </button>
-              <button 
-                className="btn-modal-confirm"
-                onClick={confirmDeleteDetalhamento}
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="detalhes-header">
         <div className="header-left-detalhes">
           <button className="btn-back-detalhes" onClick={() => navigate('/app/diagnosticos')}>
@@ -511,24 +803,51 @@ const DiagnosticoDetalhes = () => {
           </h1>
         </div>
         <div className="header-right-detalhes">
-
-          <button 
-            className="btn-desenho-detalhes"
-            onClick={() => navigate(`/app/diagnosticos/${id}/desenho`)}
-          >
-            <FontAwesomeIcon icon={faPencil} /> Ir para Desenho
-          </button>
+          {(isMaster || diagnostico?.responsavelId === user?.id) && (
+            <button 
+              className="btn-desenho-detalhes"
+              onClick={() => {
+                if (diagnostico?.imagens && diagnostico.imagens.length > 1) {
+                  setShowImageSelector(true)
+                } else {
+                  const imagemUrl = diagnostico?.imagens?.[0] || diagnostico?.imagem || ''
+                  navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl } })
+                }
+              }}
+            >
+              <FontAwesomeIcon icon={faPencil} /> Ir para Desenho
+            </button>
+          )}
         </div>
       </div>
 
       <div className="detalhes-content">
             {/* Imagem da Radiografia */}
-            <div className="detalhes-imagem-section">
-              <img 
-                src={exameImage}
-                alt={diagnostico.paciente}
-                className="detalhes-imagem"
-              />
+            <div className={`detalhes-imagem-section ${diagnostico.imagens && diagnostico.imagens.length === 4 ? 'has-four-images' : ''}`}>
+              {diagnostico.imagens && diagnostico.imagens.length > 0 ? (
+                <div className={`detalhes-imagens-grid ${
+                  diagnostico.imagens.length === 1 ? 'single' 
+                  : diagnostico.imagens.length === 2 ? 'two-columns' 
+                  : diagnostico.imagens.length === 4 ? 'four-grid'
+                  : 'three-grid'
+                }`}>
+                  {diagnostico.imagens.map((img, index) => (
+                    <div key={index} className="detalhes-imagem-item">
+                      <img 
+                        src={img || exameImage}
+                        alt={`${diagnostico.paciente} - Imagem ${index + 1}`}
+                        className="detalhes-imagem"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <img 
+                  src={diagnostico.imagem || exameImage}
+                  alt={diagnostico.paciente}
+                  className="detalhes-imagem"
+                />
+              )}
             </div>
 
         {/* Informações Principais */}
@@ -538,19 +857,13 @@ const DiagnosticoDetalhes = () => {
               <h3>
                 <FontAwesomeIcon icon={faUser} /> Informações do Paciente
               </h3>
-              {(diagnostico.cliente_id || diagnostico.cliente_nome) && (
+              {(pacienteId || diagnostico.cliente_id || diagnostico.cliente_nome) && (
                 <button 
                   className="btn-ver-perfil"
                   onClick={() => {
-                    if (diagnostico.cliente_id) {
-                      navigate(`/app/clientes/${diagnostico.cliente_id}`)
-                    } else if (diagnostico.cliente_nome) {
-                      // Tentar encontrar o cliente pelo nome
-                      const savedClientes = JSON.parse(localStorage.getItem('mockClientes') || '[]')
-                      const cliente = savedClientes.find(c => c.nome === diagnostico.cliente_nome)
-                      if (cliente) {
-                        navigate(`/app/clientes/${cliente.id}`)
-                      }
+                    const idParaNavegar = pacienteId || diagnostico.cliente_id
+                    if (idParaNavegar) {
+                      navigate(`/app/clientes/${idParaNavegar}`)
                     }
                   }}
                   title="Ver perfil do paciente"
@@ -561,7 +874,7 @@ const DiagnosticoDetalhes = () => {
             </div>
             <div className="info-item">
               <strong>Radiografia:</strong>
-              <span>{diagnostico.paciente}</span>
+              <span>{diagnostico.radiografia || diagnostico.paciente}</span>
             </div>
             {diagnostico.cliente_nome && (
               <div className="info-item">
@@ -575,34 +888,52 @@ const DiagnosticoDetalhes = () => {
                 <span>{diagnostico.cliente_email}</span>
               </div>
             )}
-            <div className="info-item">
-              <strong>Data do Exame:</strong>
-              <span>{new Date(diagnostico.data).toLocaleDateString('pt-BR')}</span>
-            </div>
-            <div className="info-item">
-              <strong>Tipo de Exame:</strong>
-              <span>{diagnostico.tipoExame || 'Radiografia Odontológica'}</span>
-            </div>
+            {diagnostico.data && (
+              <div className="info-item">
+                <strong>Data do Exame:</strong>
+                <span>{new Date(diagnostico.data).toLocaleDateString('pt-BR')}</span>
+              </div>
+            )}
+            {diagnostico.tipoExame && (
+              <div className="info-item">
+                <strong>Tipo de Exame:</strong>
+                <span>{diagnostico.tipoExame}</span>
+              </div>
+            )}
           </div>
 
           <div className="detalhes-info-card">
             <h3>
               <FontAwesomeIcon icon={faUser} /> Profissional Responsável
             </h3>
-            <div className="info-item">
-              <strong>Nome:</strong>
-              <span>{diagnostico.profissional || 'Dr. Carlos Mendes'}</span>
-            </div>
-            <div className="info-item">
-              <strong>Registro:</strong>
-              <span>{diagnostico.crm || 'CRO-SP 12345'}</span>
-            </div>
-            <div className="info-item">
-              <strong>Data da Análise:</strong>
-              <span>{new Date(diagnostico.dataAnalise || diagnostico.data).toLocaleDateString('pt-BR')}</span>
-            </div>
+            {profissionalNome && (
+              <div className="info-item">
+                <strong>Nome:</strong>
+                <span>{profissionalNome}</span>
+              </div>
+            )}
+            {diagnostico.created_at && (
+              <div className="info-item">
+                <strong>Data da Análise:</strong>
+                <span>{new Date(diagnostico.created_at).toLocaleDateString('pt-BR')}</span>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Tratamento */}
+        {diagnostico.tratamento && (
+          <div className="detalhes-section tratamento-section">
+            <div className="detalhes-section-header">
+              <h3>
+                <FontAwesomeIcon icon={faStethoscope} /> Tratamento
+              </h3>
+            </div>
+            <div className="tratamento-content">
+              <p>{diagnostico.tratamento}</p>
+            </div>
+          </div>
+        )}
 
         {/* Detalhamento Profissional */}
         <div className="detalhes-section">
@@ -612,47 +943,67 @@ const DiagnosticoDetalhes = () => {
             </h3>
           </div>
           
-          {drawingData && (drawingData.observacoes || (drawingData.selectedDentes && drawingData.selectedDentes.length > 0)) ? (
-            <div 
-              className="detalhamento-card"
-              onClick={() => navigate(`/app/diagnosticos/${id}/detalhamento-profissional`)}
-            >
-              <button 
-                className="detalhamento-card-delete-btn"
-                onClick={handleDeleteDetalhamento}
-                title="Excluir detalhamento"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-              <div className="detalhamento-card-image">
-                <img 
-                  src={exameImage}
-                  alt="Radiografia"
-                  className="detalhamento-card-img"
-                />
-              </div>
-              <div className="detalhamento-card-content" onClick={(e) => e.stopPropagation()}>
-                <div className="detalhamento-card-subtitle-wrapper">
+          {loadingDesenhos ? (
+            <p className="detalhes-empty-message">Carregando desenhos...</p>
+          ) : desenhosProfissionais.length > 0 ? (
+            <div className="detalhamento-cards-grid">
+              {desenhosProfissionais.map((desenho) => (
+                <div 
+                  key={desenho.id}
+                  className="detalhamento-card"
+                  onClick={() => handleViewDesenho(desenho.id)}
+                >
+                  {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                    <button 
+                      className="detalhamento-card-delete-btn"
+                      onClick={(e) => handleDeleteDesenhoClick(desenho.id, e)}
+                      title="Excluir detalhamento"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  )}
+                  <div className="detalhamento-card-image">
+                    <img 
+                      src={desenho.imagemDesenhada?.url || exameImage}
+                      alt={desenho.tituloDesenho || 'Desenho Profissional'}
+                      className="detalhamento-card-img"
+                    />
+                  </div>
+                  <div className="detalhamento-card-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="detalhamento-card-subtitle-wrapper">
                       <p className="detalhamento-card-subtitle">
-                        {diagnostico.paciente || 'Radiografia Odontológica'}
+                        {desenho.tituloDesenho || 'Desenho Profissional'}
                       </p>
+                    </div>
+                    {desenho.nome && (
+                      <div className="detalhamento-card-paciente">
+                        <span>{desenho.nome}</span>
+                      </div>
+                    )}
+                    {desenho.nomeUsuario && (
+                      <div className="detalhamento-card-profissional">
+                        <FontAwesomeIcon icon={faUser} />
+                        <span>{desenho.nomeUsuario}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="detalhamento-card-profissional">
-                  <FontAwesomeIcon icon={faUser} />
-                  <span>{diagnostico.profissional || 'Dr. Carlos Mendes'}</span>
-                  <span className="detalhamento-card-cro">{diagnostico.crm || 'CRO-SP 12345'}</span>
-                </div>
-              </div>
+              ))}
             </div>
           ) : (
             <p className="detalhes-empty-message">
-              Nenhum detalhamento profissional registrado. 
-              <button 
-                className="btn-link-desenho"
-                onClick={() => navigate(`/app/diagnosticos/${id}/desenho`)}
-              >
-                Clique aqui para adicionar desenhos e observações
-              </button>
+              Nenhum detalhamento profissional registrado.
+              {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                <>
+                  {' '}
+                  <button 
+                    className="btn-link-desenho"
+                    onClick={() => navigate(`/app/diagnosticos/${id}/desenho`)}
+                  >
+                    Clique aqui para adicionar desenhos e observações
+                  </button>
+                </>
+              )}
             </p>
           )}
         </div>
@@ -663,20 +1014,35 @@ const DiagnosticoDetalhes = () => {
             <h3>
               <FontAwesomeIcon icon={faFileAlt} /> Descrição do Exame
             </h3>
-            {isEditingDescricao ? (
-              <button 
-                className="btn-save-section"
-                onClick={handleSave}
-              >
-                <FontAwesomeIcon icon={faSave} /> Salvar
-              </button>
-            ) : (
-              <button 
-                className="btn-edit-section"
-                onClick={() => setIsEditingDescricao(true)}
-              >
-                <FontAwesomeIcon icon={faEdit} /> Editar
-              </button>
+            {(isMaster || diagnostico?.responsavelId === user?.id) && (
+              <div className="section-header-actions">
+                {isEditingDescricao ? (
+                  <>
+                    <button 
+                      className="btn-cancel-section"
+                      onClick={() => {
+                        setIsEditingDescricao(false)
+                        setEditedDescricao(diagnostico.descricao || '')
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Cancelar
+                    </button>
+                    <button 
+                      className="btn-save-section"
+                      onClick={handleSave}
+                    >
+                      <FontAwesomeIcon icon={faSave} /> Salvar
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="btn-edit-section"
+                    onClick={() => setIsEditingDescricao(true)}
+                  >
+                    <FontAwesomeIcon icon={faEdit} /> Editar
+                  </button>
+                )}
+              </div>
             )}
           </div>
           {isEditingDescricao ? (
@@ -689,9 +1055,13 @@ const DiagnosticoDetalhes = () => {
             />
           ) : (
             <div className="detalhes-text-content">
-              {diagnostico.descricao.split('\n').map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
+              {diagnostico.descricao ? (
+                diagnostico.descricao.split('\n').map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))
+              ) : (
+                <p className="detalhes-empty-message">Nenhuma descrição registrada.</p>
+              )}
             </div>
           )}
         </div>
@@ -703,29 +1073,40 @@ const DiagnosticoDetalhes = () => {
               <FontAwesomeIcon icon={faCheck} /> Achados Radiográficos
             </h3>
             <div className="section-header-actions">
-              {isEditingAchados ? (
-                <>
+              {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                isEditingAchados ? (
+                  <>
+                    <button 
+                      className="btn-add-achado"
+                      onClick={handleAddAchado}
+                      title="Adicionar achado"
+                    >
+                      <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    </button>
+                    <button 
+                      className="btn-cancel-section"
+                      onClick={() => {
+                        setIsEditingAchados(false)
+                        setEditedAchados(diagnostico.achados || [])
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Cancelar
+                    </button>
+                    <button 
+                      className="btn-save-section"
+                      onClick={handleSaveAchados}
+                    >
+                      <FontAwesomeIcon icon={faSave} /> Salvar
+                    </button>
+                  </>
+                ) : (
                   <button 
-                    className="btn-add-achado"
-                    onClick={handleAddAchado}
-                    title="Adicionar achado"
+                    className="btn-edit-section"
+                    onClick={() => setIsEditingAchados(true)}
                   >
-                    <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    <FontAwesomeIcon icon={faEdit} /> Editar
                   </button>
-                  <button 
-                    className="btn-save-section"
-                    onClick={handleSaveAchados}
-                  >
-                    <FontAwesomeIcon icon={faSave} /> Salvar
-                  </button>
-                </>
-              ) : (
-                <button 
-                  className="btn-edit-section"
-                  onClick={() => setIsEditingAchados(true)}
-                >
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
+                )
               )}
             </div>
           </div>
@@ -778,29 +1159,40 @@ const DiagnosticoDetalhes = () => {
               <FontAwesomeIcon icon={faStethoscope} /> Necessidades
             </h3>
             <div className="section-header-actions">
-              {isEditingNecessidades ? (
-                <>
+              {(isMaster || diagnostico?.responsavelId === user?.id) && (
+                isEditingNecessidades ? (
+                  <>
+                    <button 
+                      className="btn-add-achado"
+                      onClick={handleAddNecessidade}
+                      title="Adicionar necessidade"
+                    >
+                      <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    </button>
+                    <button 
+                      className="btn-cancel-section"
+                      onClick={() => {
+                        setIsEditingNecessidades(false)
+                        setEditedNecessidades(diagnostico.necessidades || [])
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Cancelar
+                    </button>
+                    <button 
+                      className="btn-save-section"
+                      onClick={handleSaveNecessidades}
+                    >
+                      <FontAwesomeIcon icon={faSave} /> Salvar
+                    </button>
+                  </>
+                ) : (
                   <button 
-                    className="btn-add-achado"
-                    onClick={handleAddNecessidade}
-                    title="Adicionar necessidade"
+                    className="btn-edit-section"
+                    onClick={() => setIsEditingNecessidades(true)}
                   >
-                    <FontAwesomeIcon icon={faPlus} /> Adicionar
+                    <FontAwesomeIcon icon={faEdit} /> Editar
                   </button>
-                  <button 
-                    className="btn-save-section"
-                    onClick={handleSaveNecessidades}
-                  >
-                    <FontAwesomeIcon icon={faSave} /> Salvar
-                  </button>
-                </>
-              ) : (
-                <button 
-                  className="btn-edit-section"
-                  onClick={() => setIsEditingNecessidades(true)}
-                >
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
+                )
               )}
             </div>
           </div>
@@ -808,9 +1200,16 @@ const DiagnosticoDetalhes = () => {
             <div className="detalhes-achados-edit">
               {editedNecessidades.length > 0 ? (
                 editedNecessidades.map((necessidade, index) => {
-                  const necessidadeValue = typeof necessidade === 'object' && necessidade !== null
-                    ? (necessidade.procedimento || necessidade.anotacoes || '')
-                    : (typeof necessidade === 'string' ? necessidade : '')
+                  let necessidadeValue = ''
+                  if (typeof necessidade === 'object' && necessidade !== null) {
+                    // Mostrar procedimento primeiro, depois anotação
+                    const partes = []
+                    if (necessidade.procedimento) partes.push(necessidade.procedimento)
+                    if (necessidade.anotacoes) partes.push(necessidade.anotacoes)
+                    necessidadeValue = partes.join(' - ') || ''
+                  } else if (typeof necessidade === 'string') {
+                    necessidadeValue = necessidade
+                  }
                   
                   return (
                   <div key={index} className="achado-item-edit">
@@ -839,9 +1238,18 @@ const DiagnosticoDetalhes = () => {
             editedNecessidades && editedNecessidades.length > 0 ? (
               <ul className="detalhes-list">
                 {editedNecessidades.map((necessidade, index) => {
-                  const necessidadeValue = typeof necessidade === 'object' && necessidade !== null
-                    ? (necessidade.procedimento || necessidade.anotacoes || 'Nenhuma informação')
-                    : (typeof necessidade === 'string' ? necessidade : 'Nenhuma informação')
+                  let necessidadeValue = ''
+                  if (typeof necessidade === 'object' && necessidade !== null) {
+                    // Mostrar procedimento primeiro, depois anotação
+                    const partes = []
+                    if (necessidade.procedimento) partes.push(necessidade.procedimento)
+                    if (necessidade.anotacoes) partes.push(necessidade.anotacoes)
+                    necessidadeValue = partes.join(' - ') || 'Nenhuma informação'
+                  } else if (typeof necessidade === 'string') {
+                    necessidadeValue = necessidade || 'Nenhuma informação'
+                  } else {
+                    necessidadeValue = 'Nenhuma informação'
+                  }
                   
                   return (
                   <li key={index}>
@@ -857,6 +1265,81 @@ const DiagnosticoDetalhes = () => {
           )}
         </div>
       </div>
+
+      {/* Modal de Seleção de Imagem */}
+      {showImageSelector && (
+        <div className="modal-overlay" onClick={() => setShowImageSelector(false)}>
+          <div className="modal-image-selector" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-image-selector-header">
+              <h3>Selecione a Imagem para Desenho</h3>
+              <button 
+                className="btn-close-modal"
+                onClick={() => setShowImageSelector(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-image-selector-grid">
+              {diagnostico?.imagens && diagnostico.imagens.map((img, index) => (
+                <div 
+                  key={index}
+                  className="modal-image-selector-item"
+                  onClick={() => {
+                    navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl: img } })
+                    setShowImageSelector(false)
+                  }}
+                >
+                  <img src={img || exameImage} alt={`Imagem ${index + 1}`} />
+                  <div className="modal-image-selector-overlay">
+                    <span>Selecionar</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Desenho */}
+      {showDeleteDesenhoModal && (
+        <div className="modal-overlay" onClick={handleCancelDeleteDesenho}>
+          <div className="modal-confirm-delete" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-confirm-icon">
+              <FontAwesomeIcon icon={faTrash} />
+            </div>
+            <h3>Excluir Desenho Profissional</h3>
+            <p>
+              Tem certeza que deseja excluir este desenho profissional?
+            </p>
+            <p className="modal-warning">
+              <FontAwesomeIcon icon={faExclamationTriangle} /> Esta ação não pode ser desfeita.
+            </p>
+            <div className="modal-actions">
+              <button 
+                className="btn-modal-cancel"
+                onClick={handleCancelDeleteDesenho}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-modal-delete"
+                onClick={handleConfirmDeleteDesenho}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

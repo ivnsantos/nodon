@@ -9,13 +9,82 @@ const api = axios.create({
   }
 })
 
-// Interceptor para adicionar token automaticamente
+// Interceptor para adicionar token automaticamente e userComumId ou clienteMasterId
 api.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // Verificar se o header X-Cliente-Master-Id foi passado explicitamente na requisição
+    // O axios pode normalizar os headers, então verificamos de forma case-insensitive
+    const hasExplicitClienteMasterId = config.headers && (
+      config.headers['X-Cliente-Master-Id'] !== undefined || 
+      config.headers['x-cliente-master-id'] !== undefined ||
+      config.headers['X-CLIENTE-MASTER-ID'] !== undefined
+    )
+    
+    // Se o header foi passado explicitamente, preservar seu valor
+    const explicitClienteMasterIdValue = hasExplicitClienteMasterId ? 
+      (config.headers['X-Cliente-Master-Id'] || config.headers['x-cliente-master-id'] || config.headers['X-CLIENTE-MASTER-ID']) : 
+      null
+    
+    // Adicionar headers apropriados apenas em rotas dentro de /app para segurança
+    if (window.location.pathname.startsWith('/app')) {
+      // Verificar se existe relacionamento no sessionStorage
+      const relacionamentoStr = sessionStorage.getItem('relacionamento')
+      const selectedClinicId = sessionStorage.getItem('selectedClinicId')
+      
+      if (relacionamentoStr) {
+        try {
+          const relacionamento = JSON.parse(relacionamentoStr)
+          
+          // Se o relacionamento for do tipo "clienteMaster", usar X-Cliente-Master-Id
+          if (relacionamento.tipo === 'clienteMaster' && relacionamento.id) {
+            config.headers['X-Cliente-Master-Id'] = relacionamento.id
+            // Remover X-User-Comum-Id se existir
+            delete config.headers['X-User-Comum-Id']
+          } else if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+            // Se for do tipo "usuario", usar X-User-Comum-Id
+            config.headers['X-User-Comum-Id'] = relacionamento.id
+            // Remover X-Cliente-Master-Id apenas se não foi passado explicitamente
+            if (!hasExplicitClienteMasterId) {
+              delete config.headers['X-Cliente-Master-Id']
+            }
+          } else {
+            // Se não tiver tipo válido, usar X-Cliente-Master-Id com selectedClinicId como fallback
+            if (selectedClinicId && !hasExplicitClienteMasterId) {
+              config.headers['X-Cliente-Master-Id'] = selectedClinicId
+            }
+            delete config.headers['X-User-Comum-Id']
+          }
+        } catch (error) {
+          // Se houver erro ao parsear, usar X-Cliente-Master-Id como fallback
+          if (selectedClinicId && !hasExplicitClienteMasterId) {
+            config.headers['X-Cliente-Master-Id'] = selectedClinicId
+          }
+          delete config.headers['X-User-Comum-Id']
+        }
+      } else {
+        // Se não houver relacionamento, usar X-Cliente-Master-Id com selectedClinicId
+        if (selectedClinicId && !hasExplicitClienteMasterId) {
+          config.headers['X-Cliente-Master-Id'] = selectedClinicId
+        }
+        delete config.headers['X-User-Comum-Id']
+      }
+    } else {
+      // Se não estiver dentro de /app, manter X-Cliente-Master-Id se foi passado explicitamente
+      // (ex: na chamada /complete que acontece antes de entrar em /app)
+      if (hasExplicitClienteMasterId && explicitClienteMasterIdValue) {
+        config.headers['X-Cliente-Master-Id'] = explicitClienteMasterIdValue
+      } else {
+        // Remover apenas se não foi passado explicitamente
+        delete config.headers['X-Cliente-Master-Id']
+      }
+      delete config.headers['X-User-Comum-Id']
+    }
+    
     return config
   },
   (error) => {

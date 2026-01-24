@@ -26,6 +26,7 @@ const SelectClinic = () => {
   const [error, setError] = useState('')
   const [selectedClinic, setSelectedClinic] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('')
   const [showEditProfile, setShowEditProfile] = useState(false)
   const [userPhoto, setUserPhoto] = useState(null)
   const [editFormData, setEditFormData] = useState({
@@ -45,7 +46,7 @@ const SelectClinic = () => {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, getClinicsByEmail, setSelectedClinicId, logout, setUser } = useAuth()
+  const { user, getClinicsByEmail, setSelectedClinicId, logout, setUser, refreshUser, clearUserComumId } = useAuth()
   const hasFetchedRef = useRef(false)
 
   // Buscar foto do perfil do usuário
@@ -192,22 +193,34 @@ const SelectClinic = () => {
 
     setSubmitting(true)
     setError('')
+    setLoadingMessage('Conectando ao consultório...')
+    await new Promise(resolve => setTimeout(resolve, 800))
 
     try {
       let clinicCompleteData = null
       try {
-        const response = await api.get(`/clientes-master/${selectedClinic.id}/complete`)
+        setLoadingMessage('Carregando dados do consultório...')
+        await new Promise(resolve => setTimeout(resolve, 600))
+        // Chamar API via POST com o ID no header ao invés da URL
+        const response = await api.post('/clientes-master/complete', {}, {
+          headers: {
+            'X-Cliente-Master-Id': selectedClinic.id
+          }
+        })
         clinicCompleteData = response.data?.data || response.data
+        await new Promise(resolve => setTimeout(resolve, 500))
       } catch (error) {
         console.error('Erro ao buscar dados completos do cliente master:', error)
         setError('Erro ao buscar dados do consultório. Tente novamente.')
         setSubmitting(false)
+        setLoadingMessage('')
         return
       }
       
       if (!clinicCompleteData) {
         setError('Dados do consultório não encontrados.')
         setSubmitting(false)
+        setLoadingMessage('')
         return
       }
       
@@ -221,19 +234,30 @@ const SelectClinic = () => {
       const assinaturaStatus = assinatura?.status
       const assinaturaInativa = assinaturaStatus !== 'ACTIVE'
       
+      // Passar os dados já obtidos para setSelectedClinicId para evitar chamada duplicada da API
       if (clienteMasterInativo || assinaturaInativa) {
-        await setSelectedClinicId(selectedClinic.id)
+        setLoadingMessage('Redirecionando...')
+        await new Promise(resolve => setTimeout(resolve, 500))
+        await setSelectedClinicId(selectedClinic.id, clinicCompleteData)
+        await new Promise(resolve => setTimeout(resolve, 400))
         navigate('/assinatura-pendente')
         return
       }
       
-      await setSelectedClinicId(selectedClinic.id)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      setLoadingMessage('Preparando ambiente...')
+      await new Promise(resolve => setTimeout(resolve, 800))
+      await setSelectedClinicId(selectedClinic.id, clinicCompleteData)
+      await new Promise(resolve => setTimeout(resolve, 600))
+      
+      setLoadingMessage('Entrando na plataforma...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
       navigate('/app')
     } catch (error) {
       console.error('Erro ao selecionar consultório:', error)
       setError('Erro ao processar seleção. Tente novamente.')
       setSubmitting(false)
+      setLoadingMessage('')
     }
   }
 
@@ -562,6 +586,21 @@ const SelectClinic = () => {
           )}
         </div>
       </div>
+
+      {/* Loading Overlay */}
+      {submitting && (
+        <div className="loading-overlay">
+          <div className="loading-content">
+            <div className="loading-spinner-wrapper">
+              <div className="loading-spinner"></div>
+            </div>
+            <p className="loading-message">{loadingMessage || 'Carregando...'}</p>
+            <div className="loading-progress">
+              <div className="loading-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

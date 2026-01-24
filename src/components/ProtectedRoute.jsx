@@ -1,9 +1,26 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useContext } from 'react'
+import { AuthContext } from '../context/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading, selectedClinicId, selectedClinicData } = useAuth()
   const location = useLocation()
+  
+  // Usar useContext diretamente para evitar problemas de contexto
+  const authContext = useContext(AuthContext)
+  
+  if (!authContext) {
+    // Se o contexto não estiver disponível, mostrar loading
+    return <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh',
+      color: '#ffffff',
+      background: '#0a0e27'
+    }}>Carregando...</div>
+  }
+  
+  const { user, loading, selectedClinicId, selectedClinicData } = authContext
 
   if (loading) {
     return <div style={{ 

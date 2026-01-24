@@ -18,6 +18,7 @@ import Clientes from './pages/Clientes'
 import ClienteDetalhes from './pages/ClienteDetalhes'
 import ClienteNovo from './pages/ClienteNovo'
 import Perfil from './pages/Perfil'
+import Calendario from './pages/Calendario'
 import AssinaturaPendente from './pages/AssinaturaPendente'
 import VerifyEmail from './pages/VerifyEmail'
 import SelectClinic from './pages/SelectClinic'
@@ -89,6 +90,7 @@ function AppRoutes() {
           <Route path="diagnosticos/:id" element={<DiagnosticoDetalhes />} />
           <Route path="diagnosticos/:id/desenho" element={<DiagnosticoDesenho />} />
           <Route path="diagnosticos/:id/detalhamento-profissional" element={<DetalhamentoProfissional />} />
+          <Route path="calendario" element={<Calendario />} />
           <Route path="chat" element={<Chat />} />
           <Route path="perfil" element={<Perfil />} />
           <Route path="clientes" element={<Clientes />} />
