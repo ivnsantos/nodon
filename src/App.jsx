@@ -24,6 +24,7 @@ import VerifyEmail from './pages/VerifyEmail'
 import SelectClinic from './pages/SelectClinic'
 import UsuarioInativo from './pages/UsuarioInativo'
 import RegisterByHash from './pages/RegisterByHash'
+import LPDentista from './pages/LPDentista'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -74,6 +75,11 @@ function AppRoutes() {
         <Route path="/profissional/:hash" element={
           <PublicRoute>
             <RegisterByHash />
+          </PublicRoute>
+        } />
+        <Route path="/lp/dentista" element={
+          <PublicRoute>
+            <LPDentista />
           </PublicRoute>
         } />
         <Route path="/app" element={
