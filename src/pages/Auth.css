@@ -252,6 +252,88 @@
   padding: 0.5rem;
 }
 
+/* Botões de Login Social */
+.social-login-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.social-btn:hover {
+  transform: translateY(-2px);
+}
+
+.google-btn {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.google-btn:hover {
+  background: #f3f4f6;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.google-btn svg {
+  color: #ea4335;
+  font-size: 1.125rem;
+}
+
+.facebook-btn {
+  background: #1877f2;
+  color: #ffffff;
+  border: 1px solid #1877f2;
+}
+
+.facebook-btn:hover {
+  background: #166fe5;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.4);
+}
+
+.facebook-btn svg {
+  font-size: 1.125rem;
+}
+
+/* Divisor Social */
+.social-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.social-divider::before,
+.social-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.social-divider span {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
 .auth-button-modern {
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);

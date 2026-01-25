@@ -25,6 +25,7 @@ import SelectClinic from './pages/SelectClinic'
 import UsuarioInativo from './pages/UsuarioInativo'
 import RegisterByHash from './pages/RegisterByHash'
 import LPDentista from './pages/LPDentista'
+import GoogleCallback from './pages/GoogleCallback'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -57,6 +58,8 @@ function AppRoutes() {
             <VerifyEmail />
           </PublicRoute>
         } />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        <Route path="/auth/facebook/callback" element={<GoogleCallback />} />
         <Route path="/select-clinic" element={
           <ProtectedRoute>
             <SelectClinic />

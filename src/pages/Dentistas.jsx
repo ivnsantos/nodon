@@ -3,10 +3,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUsers, faPlus, faUserMd, faEnvelope, faIdCard, faGraduationCap, faPhone, faImage, faLink, faCopy, faCheckCircle, faToggleOn, faToggleOff, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './Dentistas.css'
 
 const Dentistas = () => {
   const { selectedClinicData, selectedClinicId } = useAuth()
+  const { alertConfig, showError, hideAlert } = useAlert()
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -166,7 +169,7 @@ const Dentistas = () => {
       fetchDentistas()
     } catch (error) {
       console.error('Erro ao cadastrar dentista:', error)
-      alert('Erro ao cadastrar dentista')
+      showError('Erro ao cadastrar dentista')
     }
   }
 
@@ -428,6 +431,15 @@ const Dentistas = () => {
           })
         )}
       </div>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

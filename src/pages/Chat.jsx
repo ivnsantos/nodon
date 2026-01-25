@@ -2,56 +2,38 @@ import { useState, useRef, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
-  faHistory, faBars, faTimes, faPlus
+  faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock, faStop,
+  faMicrophone, faImage, faTrash
 } from '@fortawesome/free-solid-svg-icons'
+import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
+import { useAuth } from '../context/AuthContext'
 import nodoLogo from '../img/nodo.png'
 import './Chat.css'
 
-// Função para gerar respostas mockadas
-const generateMockResponse = (message) => {
-  const lowerMessage = message.toLowerCase()
-  
-  if (lowerMessage.includes('cárie') || lowerMessage.includes('carie')) {
-    return 'Cáries são lesões causadas por bactérias que destroem o esmalte dentário. O tratamento geralmente envolve remoção da parte afetada e restauração com resina ou amálgama. É importante manter boa higiene bucal e visitas regulares ao dentista para prevenção.'
-  }
-  
-  if (lowerMessage.includes('canal') || lowerMessage.includes('endodontia')) {
-    return 'O tratamento de canal (endodontia) é realizado quando a polpa dentária está infectada ou danificada. O procedimento remove o tecido infectado, limpa e desinfeta o interior do dente, e depois o sela. Após o tratamento, geralmente é necessário uma coroa para proteger o dente.'
-  }
-  
-  if (lowerMessage.includes('ortodontia') || lowerMessage.includes('aparelho')) {
-    return 'A ortodontia corrige o alinhamento dos dentes e a mordida. Pode ser feita com aparelhos fixos ou móveis, dependendo do caso. O tratamento geralmente leva de 1 a 3 anos e requer manutenção periódica. É importante seguir as orientações do ortodontista para obter os melhores resultados.'
-  }
-  
-  if (lowerMessage.includes('limpeza') || lowerMessage.includes('profilaxia')) {
-    return 'A limpeza dental (profilaxia) remove placa bacteriana e tártaro que não podem ser removidos apenas com escovação. É recomendada a cada 6 meses para manter a saúde bucal. Durante o procedimento, o dentista também pode aplicar flúor para fortalecer os dentes.'
-  }
-  
-  if (lowerMessage.includes('implante') || lowerMessage.includes('implante')) {
-    return 'Implantes dentários são uma solução permanente para substituir dentes perdidos. Consistem em uma raiz artificial de titânio que é inserida no osso maxilar, sobre a qual é colocada uma coroa. O processo pode levar alguns meses e requer boa saúde bucal e óssea.'
-  }
-  
-  if (lowerMessage.includes('clareamento') || lowerMessage.includes('clarear')) {
-    return 'O clareamento dental pode ser feito no consultório ou em casa com acompanhamento profissional. O procedimento usa agentes clareadores como peróxido de hidrogênio. É importante ter cuidado com sensibilidade e seguir as orientações do dentista. Resultados variam de pessoa para pessoa.'
-  }
-  
-  // Resposta genérica
-  return 'Entendo sua dúvida sobre odontologia. Para uma resposta mais específica, você poderia detalhar melhor sua pergunta? Estou aqui para ajudar com informações sobre tratamentos, procedimentos, prevenção e cuidados com a saúde bucal. Lembre-se: o NODON serve como apoio ao profissional. A decisão final deve ser sempre do responsável.'
-}
-
 const Chat = () => {
+  const { selectedClinicData } = useAuth()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
-  const [conversations, setConversations] = useState([])
+  const [conversations, setConversations] = useState({})
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [tokensInfo, setTokensInfo] = useState(null)
+  const [tokensBlocked, setTokensBlocked] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioBlob, setAudioBlob] = useState(null)
+  const [attachedImages, setAttachedImages] = useState([])
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
+  const abortControllerRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const fileInputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -63,15 +45,52 @@ const Chat = () => {
 
   useEffect(() => {
     loadConversations()
-  }, [])
+    checkTokens()
+  }, [selectedClinicData])
+
+  const checkTokens = async () => {
+    try {
+      const response = await api.get('/assinaturas/dashboard')
+      const tokensChat = response.data.tokensChat
+      
+      if (tokensChat) {
+        setTokensInfo(tokensChat)
+        // Verificar se tokensUtilizados >= limitePlano
+        // Pode vir tokensUtilizados (total) ou tokensUtilizadosMes (do mês)
+        const tokensUtilizados = tokensChat.tokensUtilizadosMes !== undefined 
+          ? tokensChat.tokensUtilizadosMes 
+          : (tokensChat.tokensUtilizados || 0)
+        const limitePlano = tokensChat.limitePlano || 0
+        
+        if (limitePlano > 0 && tokensUtilizados >= limitePlano) {
+          setTokensBlocked(true)
+        } else {
+          setTokensBlocked(false)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar tokens:', error)
+      // Em caso de erro, não bloquear o chat
+      setTokensBlocked(false)
+    }
+  }
 
   const loadConversations = async () => {
     try {
       setLoadingHistory(true)
       
-      // Buscar histórico da API
-      const response = await api.get('/chat/history')
-      const data = response.data?.data || response.data
+      // Buscar conversas da API
+      const response = await api.get('/chat/conversations')
+      
+      // A API pode retornar data.data.data ou data.data ou data
+      let data = response.data
+      if (data?.data?.data) {
+        data = data.data.data
+      } else if (data?.data) {
+        data = data.data
+      }
+      
+      console.log('Histórico da API:', data)
       
       // A estrutura pode variar, então vamos tratar diferentes formatos
       let conversationsList = []
@@ -81,40 +100,77 @@ const Chat = () => {
         conversationsList = data.conversations
       } else if (data?.history) {
         conversationsList = data.history
+      } else if (data?.chats) {
+        conversationsList = data.chats
+      } else if (data?.conversationId || data?.id) {
+        // Se for um objeto único com conversationId, colocar em um array
+        conversationsList = [data]
+      }
+      
+      console.log('Lista de conversas:', conversationsList)
+      
+      if (conversationsList.length === 0) {
+        setConversations({})
+        return
       }
       
       // Agrupar conversas por data
       const grouped = conversationsList.reduce((acc, conv) => {
-        const date = new Date(conv.created_at || conv.createdAt || Date.now()).toLocaleDateString('pt-BR')
+        const dateStr = conv.created_at || conv.createdAt || conv.updatedAt || new Date().toISOString()
+        const date = new Date(dateStr).toLocaleDateString('pt-BR')
         if (!acc[date]) {
           acc[date] = []
         }
+        
+        // Extrair a primeira mensagem do usuário para preview
+        let mensagemPreview = ''
+        if (conv.title) {
+          mensagemPreview = conv.title
+        } else if (conv.mensagem) {
+          mensagemPreview = conv.mensagem
+        } else if (conv.message) {
+          mensagemPreview = conv.message
+        } else if (conv.userMessage) {
+          mensagemPreview = conv.userMessage
+        } else if (Array.isArray(conv.messages) && conv.messages.length > 0) {
+          const firstUserMsg = conv.messages.find(m => m.role === 'user')
+          mensagemPreview = firstUserMsg?.content || conv.messages[0]?.content || 'Conversa'
+        } else {
+          mensagemPreview = 'Conversa'
+        }
+        
         acc[date].push({
-          id: conv.id || conv.conversationId,
-          mensagem: conv.mensagem || conv.message || conv.userMessage || '',
+          id: conv.conversationId || conv.id || conv._id,
+          mensagem: mensagemPreview,
           resposta: conv.resposta || conv.response || conv.assistantMessage || '',
-          created_at: conv.created_at || conv.createdAt || new Date().toISOString()
+          created_at: dateStr
         })
         return acc
       }, {})
       
+      console.log('Conversas agrupadas:', grouped)
       setConversations(grouped)
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
       // Em caso de erro, tentar carregar do localStorage como fallback
       try {
         const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
-        const grouped = savedHistory.reduce((acc, conv) => {
-          const date = new Date(conv.created_at).toLocaleDateString('pt-BR')
-          if (!acc[date]) {
-            acc[date] = []
-          }
-          acc[date].push(conv)
-          return acc
-        }, {})
-        setConversations(grouped)
+        if (savedHistory.length > 0) {
+          const grouped = savedHistory.reduce((acc, conv) => {
+            const date = new Date(conv.created_at).toLocaleDateString('pt-BR')
+            if (!acc[date]) {
+              acc[date] = []
+            }
+            acc[date].push(conv)
+            return acc
+          }, {})
+          setConversations(grouped)
+        } else {
+          setConversations({})
+        }
       } catch (fallbackError) {
         console.error('Erro ao carregar histórico do localStorage:', fallbackError)
+        setConversations({})
       }
     } finally {
       setLoadingHistory(false)
@@ -123,22 +179,46 @@ const Chat = () => {
 
   const loadConversation = async (conversationId) => {
     try {
+      console.log('Carregando conversa:', conversationId)
+      
       // Buscar conversa específica da API
       const response = await api.get(`/chat/history/${conversationId}`)
-      const data = response.data?.data || response.data
+      
+      // A API pode retornar data.data.data ou data.data ou data
+      let data = response.data
+      if (data?.data?.data) {
+        data = data.data.data
+      } else if (data?.data) {
+        data = data.data
+      }
+      
+      console.log('Dados da conversa:', data)
       
       if (data) {
         // Mapear mensagens da API para o formato do componente
         const messagesList = []
         
-        // Se a API retornar mensagens individuais
-        if (Array.isArray(data.messages)) {
-          data.messages.forEach(msg => {
-            messagesList.push({
-              role: msg.role || (msg.tipo === 'user' ? 'user' : 'assistant'),
-              content: msg.content || msg.mensagem || msg.text || '',
-              isTyping: false
-            })
+        // Pegar as mensagens do objeto
+        let messages = data.messages || data
+        
+        // Se messages for um array de mensagens
+        if (Array.isArray(messages) && messages.length > 0) {
+          messages.forEach(msg => {
+            // Filtrar apenas mensagens de user e assistant
+            if (msg.role === 'user' || msg.role === 'assistant') {
+              const messageObj = {
+                role: msg.role,
+                content: msg.content || msg.mensagem || msg.text || '',
+                isTyping: false
+              }
+              
+              // Incluir imagens se existirem
+              if (msg.imageUrls && Array.isArray(msg.imageUrls) && msg.imageUrls.length > 0) {
+                messageObj.images = msg.imageUrls
+              }
+              
+              messagesList.push(messageObj)
+            }
           })
         } else {
           // Se a API retornar mensagem e resposta separadas
@@ -157,14 +237,19 @@ const Chat = () => {
           }
         }
         
+        console.log('Mensagens mapeadas:', messagesList)
+        
         if (messagesList.length > 0) {
           setMessages(messagesList)
           setCurrentConversationId(conversationId)
           setShowHistory(false)
+        } else {
+          console.warn('Nenhuma mensagem encontrada na conversa')
         }
       }
     } catch (error) {
       console.error('Erro ao carregar conversa:', error)
+      console.error('Detalhes:', error.response?.data || error.message)
       // Fallback para localStorage
       try {
         const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
@@ -205,51 +290,230 @@ const Chat = () => {
     }, 1000)
   }
 
+  const handleStopResponse = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setLoading(false)
+    setIsThinking(false)
+    setIsStreaming(false)
+    
+    // Marcar a última mensagem como completa
+    setMessages(prev => {
+      const newMessages = [...prev]
+      const lastMessage = newMessages[newMessages.length - 1]
+      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isTyping) {
+        newMessages[newMessages.length - 1] = {
+          ...lastMessage,
+          content: lastMessage.content + ' [Resposta interrompida]',
+          isTyping: false
+        }
+      }
+      return newMessages
+    })
+  }
+
+  // Funções para gravação de áudio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error)
+      alert('Não foi possível acessar o microfone. Verifique as permissões.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+    setAudioBlob(null)
+    audioChunksRef.current = []
+  }
+
+  // Funções para anexar imagens
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files)
+    processImageFiles(files)
+    e.target.value = '' // Reset input
+  }
+
+  const processImageFiles = (files) => {
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          setAttachedImages(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            data: e.target.result,
+            name: file.name
+          }])
+        }
+        reader.readAsDataURL(file)
+      }
+    })
+  }
+
+  const removeImage = (imageId) => {
+    setAttachedImages(prev => prev.filter(img => img.id !== imageId))
+  }
+
+  // Handler para colar imagem (Ctrl+V)
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (file) {
+          processImageFiles([file])
+        }
+        break
+      }
+    }
+  }
+
+  // Converter blob para base64
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  }
+
   const handleSend = async (e) => {
     e.preventDefault()
-    if (!input.trim() || loading) return
+    
+    // Verificar se há conteúdo para enviar (texto, áudio ou imagens)
+    const hasContent = input.trim() || audioBlob || attachedImages.length > 0
+    if (!hasContent || loading || tokensBlocked) return
 
     setIsTyping(false)
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
     }
 
+    // Preparar mensagem do usuário para exibição
+    const userMessageContent = []
+    if (input.trim()) userMessageContent.push(input)
+    if (audioBlob) userMessageContent.push('🎤 Áudio enviado')
+
     const userMessage = {
       role: 'user',
-      content: input
+      content: userMessageContent.join('\n'),
+      images: attachedImages.map(img => img.data),
+      hasAudio: !!audioBlob
     }
 
     setMessages(prev => [...prev, userMessage])
     const messageToSend = input
+    const imagesToSend = [...attachedImages]
+    const audioToSend = audioBlob
+    
+    // Limpar inputs
     setInput('')
+    setAttachedImages([])
+    setAudioBlob(null)
     setLoading(true)
     setIsThinking(true)
 
     try {
+      // Preparar histórico de conversa para enviar à API
+      // O histórico são as mensagens anteriores (excluindo a mensagem atual que acabou de ser adicionada)
+      const currentMessages = [...messages]
+      const history = currentMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+
+      // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+
+      // Montar payload da API
+      const payload = {
+        clienteMasterId: clienteMasterId
+      }
+
+      // Adicionar mensagem de texto se houver
+      if (messageToSend.trim()) {
+        payload.message = messageToSend
+      }
+
+      // Adicionar áudio se houver
+      if (audioToSend) {
+        payload.audio = await blobToBase64(audioToSend)
+      }
+
+      // Adicionar imagens se houver
+      if (imagesToSend.length > 0) {
+        payload.images = imagesToSend.map(img => img.data)
+      }
+
+      // Adicionar histórico apenas se houver mensagens anteriores
+      if (history.length > 0) {
+        payload.history = history
+      }
+
+      // Adicionar conversationId ao payload se existir
+      if (currentConversationId) {
+        payload.conversationId = currentConversationId
+      }
+
+      // Obter token de autenticação
+      const token = sessionStorage.getItem('token')
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
       setIsThinking(true)
       
-      // Enviar mensagem para a API
-      const response = await api.post('/chat', {
-        message: messageToSend,
-        conversationId: currentConversationId || null
+      // Criar AbortController para permitir cancelar a requisição
+      abortControllerRef.current = new AbortController()
+      
+      // Fazer requisição POST com streaming (única chamada)
+      const streamResponse = await fetch(`${baseURL}/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: abortControllerRef.current.signal
       })
-      
-      const data = response.data?.data || response.data
-      
-      // Extrair resposta da IA
-      const aiResponse = data.response || data.resposta || data.message || data.assistantMessage || ''
-      const conversationId = data.conversationId || data.id || data.conversation_id || null
-      
-      setIsThinking(false)
-      
-      // Se recebeu um conversationId, atualizar
-      if (conversationId && !currentConversationId) {
-        setCurrentConversationId(conversationId)
+
+      if (!streamResponse.ok) {
+        throw new Error(`HTTP error! status: ${streamResponse.status}`)
       }
-      
-      // Simular digitação da IA palavra por palavra com velocidade variável
-      const words = aiResponse.split(' ')
-      let currentText = ''
+
+      setIsThinking(false)
+      setIsStreaming(true)
       
       // Adicionar mensagem vazia inicial
       setMessages(prev => [...prev, {
@@ -258,36 +522,159 @@ const Chat = () => {
         isTyping: true
       }])
 
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i]
-        // Velocidade variável: mais rápido para palavras curtas, mais lento para pontuação
-        const delay = word.length < 4 ? 15 : word.match(/[.,!?;:]/) ? 60 : 25
+      let chatText = ''
+      let tokensUsed = 0
+      const reader = streamResponse.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
         
-        await new Promise(resolve => setTimeout(resolve, delay))
-        currentText += (i > 0 ? ' ' : '') + word
+        if (done) break
+
+        // Decodificar chunk e adicionar ao buffer
+        buffer += decoder.decode(value, { stream: true })
         
-        setMessages(prev => {
-          const newMessages = [...prev]
-          const lastMessage = newMessages[newMessages.length - 1]
-          if (lastMessage && lastMessage.role === 'assistant') {
-            newMessages[newMessages.length - 1] = {
-              ...lastMessage,
-              content: currentText,
-              isTyping: true
+        // Processar linhas completas (SSE format: "data: {...}\n\n")
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || '' // Manter última linha incompleta no buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          
+          // Remover prefixo "data: " se presente
+          const dataLine = line.startsWith('data: ') ? line.slice(6) : line
+          
+          try {
+            const data = JSON.parse(dataLine)
+            
+            // Capturar conversationId se presente
+            if (data.conversationId && !currentConversationId) {
+              setCurrentConversationId(data.conversationId)
+            }
+            
+            if (data.type === 'chunk') {
+              // Adicionar chunk ao texto visível
+              chatText += data.content
+              
+              // Atualizar UI com o texto acumulado
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: chatText,
+                    isTyping: true
+                  }
+                }
+                return newMessages
+              })
+              
+              // Scroll suave a cada atualização
+              scrollToBottom()
+            } else if (data.type === 'done') {
+              // Resposta completa
+              tokensUsed = data.tokensUsed || 0
+              console.log('Tokens usados:', tokensUsed)
+              
+              // Se a resposta veio junto com o done, usar ela
+              if (data.response) {
+                chatText = data.response
+              }
+              
+              // Marcar mensagem como completa
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: chatText,
+                    isTyping: false
+                  }
+                }
+                return newMessages
+              })
+              
+              break
+            } else if (data.type === 'error') {
+              console.error('Erro:', data.message)
+              throw new Error(data.message || 'Erro ao processar resposta')
+            } else if (data.response) {
+              // Formato alternativo: resposta direta (sem streaming)
+              chatText = data.response
+              tokensUsed = data.tokensUsed || 0
+              
+              // Atualizar UI com a resposta completa
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: chatText,
+                    isTyping: false
+                  }
+                }
+                return newMessages
+              })
+              
+              scrollToBottom()
+            }
+          } catch (parseError) {
+            // Ignorar erros de parsing de linhas incompletas
+            if (dataLine.trim()) {
+              console.warn('Erro ao parsear linha:', dataLine, parseError)
             }
           }
-          return newMessages
-        })
-        
-        // Scroll suave apenas a cada 5 palavras para melhor performance
-        if (i % 5 === 0) {
-          scrollToBottom()
+        }
+      }
+      
+      // Processar buffer restante se houver dados
+      if (buffer.trim()) {
+        try {
+          const dataLine = buffer.startsWith('data: ') ? buffer.slice(6) : buffer
+          const data = JSON.parse(dataLine)
+          
+          if (data.conversationId && !currentConversationId) {
+            setCurrentConversationId(data.conversationId)
+          }
+          
+          if (data.response) {
+            chatText = data.response
+            setMessages(prev => {
+              const newMessages = [...prev]
+              const lastMessage = newMessages[newMessages.length - 1]
+              if (lastMessage && lastMessage.role === 'assistant') {
+                newMessages[newMessages.length - 1] = {
+                  ...lastMessage,
+                  content: chatText,
+                  isTyping: false
+                }
+              }
+              return newMessages
+            })
+          }
+        } catch (e) {
+          console.warn('Erro ao processar buffer final:', e)
         }
       }
       
       // Scroll final
       scrollToBottom()
       
+      // Salvar no histórico local
+      const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
+      const newConversation = {
+        id: Date.now(),
+        mensagem: messageToSend,
+        resposta: chatText,
+        created_at: new Date().toISOString()
+      }
+      savedHistory.unshift(newConversation)
+      localStorage.setItem('mockChatHistory', JSON.stringify(savedHistory))
       // Marcar mensagem como completa
       setMessages(prev => {
         const newMessages = [...prev]
@@ -303,9 +690,34 @@ const Chat = () => {
       
       // Recarregar histórico após nova mensagem
       loadConversations()
+      
+      // Verificar tokens após enviar mensagem
+      await checkTokens()
     } catch (error) {
+      // Se foi abortado pelo usuário, não mostrar erro
+      if (error.name === 'AbortError') {
+        console.log('Resposta interrompida pelo usuário')
+        return
+      }
+      
       console.error('Erro ao enviar mensagem:', error)
       setIsThinking(false)
+      
+      // Mensagem de erro mais detalhada
+      let errorContent = 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.'
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        errorContent = 'Sua sessão expirou. Por favor, faça login novamente.'
+      } else if (error.message?.includes('500') || error.message?.includes('Internal Server Error')) {
+        errorContent = 'Erro no servidor. Tente novamente em alguns instantes.'
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        errorContent = 'Não foi possível conectar ao servidor. Verifique sua conexão.'
+      }
+      
+      const errorMessage = {
+        role: 'assistant',
+        content: errorContent,
+        isTyping: false
+      }
       
       // Tentar usar resposta mockada como fallback
       try {
@@ -382,6 +794,8 @@ const Chat = () => {
       }
     } finally {
       setLoading(false)
+      setIsStreaming(false)
+      abortControllerRef.current = null
     }
   }
 
@@ -489,6 +903,32 @@ const Chat = () => {
                 <strong>Importante:</strong> O NODON deve servir como apoio ao profissional. A decisão final deve ser sempre do responsável.
               </div>
             </div>
+            
+            {/* Mensagem de bloqueio por tokens */}
+            {tokensBlocked && (
+              <div className="tokens-blocked-message">
+                <div className="tokens-blocked-icon">
+                  <FontAwesomeIcon icon={faLock} />
+                </div>
+                <div className="tokens-blocked-content">
+                  <h3>Limite de Tokens Atingido</h3>
+                  <p>
+                    Você atingiu o limite de tokens do seu plano ({tokensInfo?.limitePlano?.toLocaleString('pt-BR') || 'N/A'} tokens).
+                    Para continuar usando o chat, entre em contato para renovar ou atualizar seu plano.
+                  </p>
+                  <div className="tokens-stats">
+                    <span>
+                      Tokens utilizados: <strong>
+                        {(tokensInfo?.tokensUtilizadosMes !== undefined 
+                          ? tokensInfo.tokensUtilizadosMes 
+                          : tokensInfo?.tokensUtilizados || 0).toLocaleString('pt-BR')}
+                      </strong> / {tokensInfo?.limitePlano?.toLocaleString('pt-BR') || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
           {messages.length === 0 ? (
             <div className="chat-welcome-modern">
               <div className="welcome-icon-modern">
@@ -533,7 +973,20 @@ const Chat = () => {
                 </div>
                 <div className="message-content-modern">
                   <div className="message-bubble">
-                    {msg.content}
+                    {msg.role === 'assistant' ? (
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    ) : (
+                      <>
+                        {msg.content}
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="message-images">
+                            {msg.images.map((img, imgIndex) => (
+                              <img key={imgIndex} src={img} alt={`Anexo ${imgIndex + 1}`} />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
                     {msg.isTyping && (
                       <span className="typing-cursor">|</span>
                     )}
@@ -582,7 +1035,60 @@ const Chat = () => {
         </div>
 
         <form onSubmit={handleSend} className="chat-input-modern">
-          {isTyping && (
+          {/* Preview de imagens anexadas */}
+          {attachedImages.length > 0 && (
+            <div className="attached-images-preview">
+              {attachedImages.map(img => (
+                <div key={img.id} className="attached-image-item">
+                  <img src={img.data} alt={img.name} />
+                  <button 
+                    type="button" 
+                    className="remove-image-btn"
+                    onClick={() => removeImage(img.id)}
+                    title="Remover imagem"
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Preview de áudio gravado */}
+          {audioBlob && (
+            <div className="audio-preview">
+              <div className="audio-preview-content">
+                <FontAwesomeIcon icon={faMicrophone} className="audio-icon" />
+                <span>Áudio gravado</span>
+                <audio controls src={URL.createObjectURL(audioBlob)} />
+              </div>
+              <button 
+                type="button" 
+                className="remove-audio-btn"
+                onClick={cancelRecording}
+                title="Remover áudio"
+              >
+                <FontAwesomeIcon icon={faTrash} />
+              </button>
+            </div>
+          )}
+
+          {/* Indicador de gravação */}
+          {isRecording && (
+            <div className="recording-indicator">
+              <div className="recording-pulse"></div>
+              <span>Gravando...</span>
+              <button 
+                type="button" 
+                className="stop-recording-btn"
+                onClick={stopRecording}
+              >
+                Parar
+              </button>
+            </div>
+          )}
+
+          {isTyping && !isRecording && (
             <div className="user-typing-indicator">
               <div className="typing-dots">
                 <span></span>
@@ -591,22 +1097,67 @@ const Chat = () => {
               </div>
             </div>
           )}
+
           <div className="input-wrapper">
+            {/* Input de arquivo oculto */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+            />
+
+            {/* Botão anexar imagem */}
+            <button
+              type="button"
+              className="chat-action-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || tokensBlocked}
+              title="Anexar imagem"
+            >
+              <FontAwesomeIcon icon={faImage} />
+            </button>
+
+            {/* Botão gravar áudio */}
+            <button
+              type="button"
+              className={`chat-action-btn ${isRecording ? 'recording' : ''}`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={loading || tokensBlocked || audioBlob}
+              title={isRecording ? "Parar gravação" : "Gravar áudio"}
+            >
+              <FontAwesomeIcon icon={faMicrophone} />
+            </button>
+
             <input
               type="text"
               value={input}
               onChange={handleInputChange}
-              placeholder="Digite sua mensagem..."
+              onPaste={handlePaste}
+              placeholder={tokensBlocked ? "Limite de tokens atingido" : (loading ? "Aguarde a resposta..." : "Digite sua mensagem ou cole uma imagem...")}
               className="chat-input-field"
-              disabled={loading}
+              disabled={loading || tokensBlocked || isRecording}
             />
-            <button 
-              type="submit" 
-              className="chat-send-btn-modern" 
-              disabled={loading || !input.trim()}
-            >
-              <FontAwesomeIcon icon={faPaperPlane} />
-            </button>
+            {isStreaming ? (
+              <button 
+                type="button" 
+                className="chat-stop-btn" 
+                onClick={handleStopResponse}
+                title="Parar resposta"
+              >
+                <FontAwesomeIcon icon={faStop} />
+              </button>
+            ) : (
+              <button 
+                type="submit" 
+                className="chat-send-btn-modern" 
+                disabled={loading || tokensBlocked || isRecording || (!input.trim() && !audioBlob && attachedImages.length === 0)}
+              >
+                <FontAwesomeIcon icon={faPaperPlane} />
+              </button>
+            )}
           </div>
         </form>
       </div>
