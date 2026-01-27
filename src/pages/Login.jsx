@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faLock, faArrowRight, faXRay, faFileMedical, faSearch } from '@fortawesome/free-solid-svg-icons'
@@ -149,6 +149,9 @@ const Login = () => {
                 required
                 placeholder="••••••••"
               />
+              <Link to="/forgot-password" className="forgot-password-link">
+                Esqueceu a senha?
+              </Link>
             </div>
 
             <div className="social-login-buttons">
@@ -185,7 +188,7 @@ const Login = () => {
           </form>
 
           <p className="auth-footer-modern">
-            Não tem uma conta? <a href="/register">Cadastre-se aqui</a>
+            Não tem uma conta? <Link to="/checkout">Cadastre-se aqui</Link>
           </p>
         </div>
       </div>

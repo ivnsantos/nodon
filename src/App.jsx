@@ -26,6 +26,8 @@ import UsuarioInativo from './pages/UsuarioInativo'
 import RegisterByHash from './pages/RegisterByHash'
 import LPDentista from './pages/LPDentista'
 import GoogleCallback from './pages/GoogleCallback'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -56,6 +58,16 @@ function AppRoutes() {
         <Route path="/verify-email" element={
           <PublicRoute>
             <VerifyEmail />
+          </PublicRoute>
+        } />
+        <Route path="/forgot-password" element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        } />
+        <Route path="/reset-password" element={
+          <PublicRoute>
+            <ResetPassword />
           </PublicRoute>
         } />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />

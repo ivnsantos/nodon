@@ -156,17 +156,74 @@ const Checkout = () => {
               ]
           }
 
+          // Valores padrão baseados no nome do plano (quando API retorna null)
+          const getDefaultPrices = (nomePlano) => {
+            switch (nomePlano) {
+              case 'Plano Inicial':
+                return { original: 159, promocional: 98 }
+              case 'Plano Básico':
+                return { original: 299, promocional: 179 }
+              case 'Plano Premium':
+                return { original: 299, promocional: null }
+              case 'Plano Essencial':
+                return { original: 399, promocional: null }
+              case 'Plano Enterprise':
+                return { original: 499, promocional: null }
+              case 'Plano Chat':
+                return { original: 49, promocional: 39 }
+              default:
+                return { original: 0, promocional: null }
+            }
+          }
+
           // Calcular preços com segurança
-          const valorPromocional = plano.valorPromocional || plano.valor_promocional || null
-          const valorOriginal = plano.valorOriginal || plano.valor_original || plano.valor || 0
-          const price = valorPromocional ? Number(valorPromocional) : Number(valorOriginal)
-          const oldPrice = valorPromocional ? Number(valorOriginal) : null
+          // Os valores podem vir como string (ex: "49.00") ou número
+          let valorPromocional = plano.valorPromocional || plano.valor_promocional || null
+          let valorOriginal = plano.valorOriginal || plano.valor_original || plano.valor || null
+          
+          // Se os valores vierem null, usar valores padrão
+          if (valorOriginal === null && valorPromocional === null) {
+            const defaultPrices = getDefaultPrices(plano.nome)
+            valorOriginal = defaultPrices.original
+            valorPromocional = defaultPrices.promocional
+          } else if (valorOriginal === null) {
+            // Se só o original for null, usar o promocional como original
+            valorOriginal = valorPromocional
+          }
+          
+          // Converter para número, tratando strings com vírgula ou ponto decimal
+          const parsePrice = (value) => {
+            if (value === null || value === undefined) return null
+            if (typeof value === 'number') return value
+            if (typeof value === 'string') {
+              // Remove espaços e converte vírgula para ponto
+              const cleaned = value.trim().replace(',', '.')
+              const parsed = parseFloat(cleaned)
+              return isNaN(parsed) ? null : parsed
+            }
+            return null
+          }
+          
+          const priceOriginal = parsePrice(valorOriginal) || 0
+          const pricePromocional = valorPromocional !== null ? parsePrice(valorPromocional) : null
+          const price = pricePromocional !== null && pricePromocional > 0 ? pricePromocional : priceOriginal
+          const oldPrice = pricePromocional !== null && pricePromocional > 0 && priceOriginal > pricePromocional ? priceOriginal : null
+
+          console.log('Plano processado:', {
+            nome: plano.nome,
+            valorOriginal,
+            valorPromocional,
+            priceOriginal,
+            pricePromocional,
+            price,
+            oldPrice
+          })
 
           return {
             id: plano.id,
             name: plano.nome,
-            price: isNaN(price) ? 0 : price,
-            oldPrice: oldPrice && !isNaN(oldPrice) ? oldPrice : null,
+            price: price,
+            oldPrice: oldPrice,
             patients: plano.descricao || `Até ${plano.limiteAnalises || plano.limite_analises || 0} análises por mês`,
             features,
             featured,

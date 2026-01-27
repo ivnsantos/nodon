@@ -81,7 +81,14 @@ const Home = () => {
   const loadPlanos = async () => {
     try {
       setLoadingPlanos(true)
-      const response = await api.get('/planos')
+      // Garantir que sempre usamos /api/planos
+      // Se o baseURL já termina com /api, usar apenas /planos, senão usar /api/planos
+      const baseURL = api.defaults.baseURL || ''
+      const endpoint = baseURL.endsWith('/api') ? '/planos' : '/api/planos'
+      console.log('Base URL:', baseURL)
+      console.log('Endpoint usado:', endpoint)
+      const response = await api.get(endpoint)
+      console.log('URL completa:', response.config?.baseURL + response.config?.url)
       const data = response.data?.data || response.data
       
       // A estrutura pode variar, então vamos tratar diferentes formatos

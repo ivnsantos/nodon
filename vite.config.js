@@ -11,7 +11,23 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true
       }
+    },
+    fs: {
+      strict: false
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    },
+    commonjsOptions: {
+      transformMixedEsModules: true
+    }
+  },
+  optimizeDeps: {
+    exclude: ['webpage_content_reporter']
   }
 })
 
