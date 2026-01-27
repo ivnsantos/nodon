@@ -104,10 +104,34 @@ const Home = () => {
       // Filtrar apenas planos ativos e ordenar por ordem ou valor
       planosList = planosList
         .filter(plano => plano.ativo !== false)
+        .map(plano => {
+          let valorOriginal = plano.valorOriginal || plano.valor_original || plano.valor || null
+          let valorPromocional = plano.valorPromocional || plano.valor_promocional || null
+          
+          // Se os valores vierem null, usar valores padrão
+          if (valorOriginal === null && valorPromocional === null) {
+            const defaultPrices = getDefaultPrices(plano.nome)
+            valorOriginal = defaultPrices.original
+            valorPromocional = defaultPrices.promocional
+          } else if (valorOriginal === null) {
+            // Se só o original for null, usar o promocional como original
+            valorOriginal = valorPromocional
+          }
+          
+          // Converter para número
+          const priceOriginal = parsePrice(valorOriginal) || 0
+          const pricePromocional = valorPromocional !== null ? parsePrice(valorPromocional) : null
+          
+          return {
+            ...plano,
+            valorOriginal: priceOriginal,
+            valorPromocional: pricePromocional
+          }
+        })
         .sort((a, b) => {
           // Ordenar por valor promocional ou original
-          const valorA = parseFloat(a.valorPromocional || a.valorOriginal || a.valor || 0)
-          const valorB = parseFloat(b.valorPromocional || b.valorOriginal || b.valor || 0)
+          const valorA = a.valorPromocional || a.valorOriginal || 0
+          const valorB = b.valorPromocional || b.valorOriginal || 0
           return valorA - valorB
         })
       
@@ -690,11 +714,12 @@ const Home = () => {
               {planos.map((plano, index) => {
                 const planoId = plano.id || plano.nome?.toLowerCase().replace(/\s+/g, '-') || `plano-${index}`
                 const nomePlano = plano.nome || 'Plano'
-                const valorOriginal = parseFloat(plano.valorOriginal || plano.valor || 0)
-                const valorPromocional = parseFloat(plano.valorPromocional || 0)
+                // Os valores já foram processados em loadPlanos, então usar diretamente
+                const valorOriginal = plano.valorOriginal || 0
+                const valorPromocional = plano.valorPromocional !== null && plano.valorPromocional !== undefined ? plano.valorPromocional : null
                 const limiteAnalises = plano.limiteAnalises || plano.limite_analises || 0
                 const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat || '0'
-                const temPromocao = valorPromocional > 0 && valorPromocional < valorOriginal
+                const temPromocao = valorPromocional !== null && valorPromocional > 0 && valorPromocional < valorOriginal
                 const badge = plano.badge || plano.label || null
                 const featured = plano.featured || plano.destaque || false
                 const acesso = plano.acesso || null
@@ -768,13 +793,13 @@ const Home = () => {
                     <div className="plan-header-card">
                       <h3>{nomePlano}</h3>
                       <div className="plan-price">
-                        {temPromocao ? (
+                        {temPromocao && valorPromocional ? (
                           <>
                             <span className="price-old">De: {formatarValor(valorOriginal)}/mês*</span>
                             <span className="price-new">Por: {formatarValor(valorPromocional)}/mês*</span>
                           </>
                         ) : (
-                          <span className="price-single">{formatarValor(valorOriginal || valorPromocional)}/mês*</span>
+                          <span className="price-single">{formatarValor(valorOriginal || valorPromocional || 0)}/mês*</span>
                         )}
                       </div>
                       <div className="plan-feature-count">
