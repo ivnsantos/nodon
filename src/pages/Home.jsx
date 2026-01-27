@@ -78,6 +78,18 @@ const Home = () => {
     });
   }
 
+  // Função para converter valores (string ou número) para número
+  const parsePrice = (value) => {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'number') return value
+    if (typeof value === 'string') {
+      const cleaned = value.trim().replace(',', '.')
+      const parsed = parseFloat(cleaned)
+      return isNaN(parsed) ? null : parsed
+    }
+    return null
+  }
+
   const loadPlanos = async () => {
     try {
       setLoadingPlanos(true)
@@ -85,10 +97,10 @@ const Home = () => {
       // Se o baseURL já termina com /api, usar apenas /planos, senão usar /api/planos
       const baseURL = api.defaults.baseURL || ''
       const endpoint = baseURL.endsWith('/api') ? '/planos' : '/api/planos'
-      console.log('Base URL:', baseURL)
-      console.log('Endpoint usado:', endpoint)
+      
       const response = await api.get(endpoint)
-      console.log('URL completa:', response.config?.baseURL + response.config?.url)
+      
+      // A API retorna { statusCode: 200, message: "Success", data: [...] }
       const data = response.data?.data || response.data
       
       // A estrutura pode variar, então vamos tratar diferentes formatos
@@ -101,44 +113,31 @@ const Home = () => {
         planosList = data.plans
       }
       
-      // Filtrar apenas planos ativos e ordenar por ordem ou valor
+      // Processar planos usando APENAS os dados da API
       planosList = planosList
         .filter(plano => plano.ativo !== false)
         .map(plano => {
-          let valorOriginal = plano.valorOriginal || plano.valor_original || plano.valor || null
-          let valorPromocional = plano.valorPromocional || plano.valor_promocional || null
-          
-          // Se os valores vierem null, usar valores padrão
-          if (valorOriginal === null && valorPromocional === null) {
-            const defaultPrices = getDefaultPrices(plano.nome)
-            valorOriginal = defaultPrices.original
-            valorPromocional = defaultPrices.promocional
-          } else if (valorOriginal === null) {
-            // Se só o original for null, usar o promocional como original
-            valorOriginal = valorPromocional
-          }
-          
-          // Converter para número
-          const priceOriginal = parsePrice(valorOriginal) || 0
-          const pricePromocional = valorPromocional !== null ? parsePrice(valorPromocional) : null
+          // Usar APENAS os valores que vêm da API
+          const valorOriginal = parsePrice(plano.valorOriginal || plano.valor_original || plano.valor)
+          const valorPromocional = parsePrice(plano.valorPromocional || plano.valor_promocional)
           
           return {
             ...plano,
-            valorOriginal: priceOriginal,
-            valorPromocional: pricePromocional
+            valorOriginal: valorOriginal,
+            valorPromocional: valorPromocional
           }
         })
         .sort((a, b) => {
-          // Ordenar por valor promocional ou original
-          const valorA = a.valorPromocional || a.valorOriginal || 0
-          const valorB = b.valorPromocional || b.valorOriginal || 0
+          // Ordenar por valor promocional ou original (usando 0 se ambos forem null)
+          const valorA = a.valorPromocional ?? a.valorOriginal ?? 0
+          const valorB = b.valorPromocional ?? b.valorOriginal ?? 0
           return valorA - valorB
         })
       
       setPlanos(planosList)
     } catch (error) {
       console.error('Erro ao carregar planos:', error)
-      // Em caso de erro, manter array vazio ou usar planos padrão
+      console.error('Detalhes do erro:', error.response?.data || error.message)
       setPlanos([])
     } finally {
       setLoadingPlanos(false)
