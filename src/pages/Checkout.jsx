@@ -68,7 +68,11 @@ const Checkout = () => {
     const loadPlans = async () => {
       try {
         setLoadingPlans(true)
-        const response = await api.get('/planos')
+        // Garantir que sempre usamos /api/planos
+        // Se o baseURL já termina com /api, usar apenas /planos, senão usar /api/planos
+        const baseURL = api.defaults.baseURL || ''
+        const endpoint = baseURL.endsWith('/api') ? '/planos' : '/api/planos'
+        const response = await api.get(endpoint)
         
         // Debug: verificar estrutura da resposta
         console.log('Resposta completa da API:', response)

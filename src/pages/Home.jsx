@@ -78,6 +78,26 @@ const Home = () => {
     });
   }
 
+  // Função para obter valores padrão quando a API retorna null
+  const getDefaultPrices = (nomePlano) => {
+    switch (nomePlano) {
+      case 'Plano Inicial':
+        return { original: 159, promocional: 98 }
+      case 'Plano Básico':
+        return { original: 299, promocional: 179 }
+      case 'Plano Premium':
+        return { original: 299, promocional: null }
+      case 'Plano Essencial':
+        return { original: 399, promocional: null }
+      case 'Plano Enterprise':
+        return { original: 499, promocional: null }
+      case 'Plano Chat':
+        return { original: 49, promocional: 39 }
+      default:
+        return { original: 0, promocional: null }
+    }
+  }
+
   // Função para converter valores (string ou número) para número
   const parsePrice = (value) => {
     if (value === null || value === undefined) return null
@@ -113,13 +133,26 @@ const Home = () => {
         planosList = data.plans
       }
       
-      // Processar planos usando APENAS os dados da API
+      // Processar planos usando os dados da API, com valores padrão quando null
       planosList = planosList
         .filter(plano => plano.ativo !== false)
         .map(plano => {
-          // Usar APENAS os valores que vêm da API
-          const valorOriginal = parsePrice(plano.valorOriginal || plano.valor_original || plano.valor)
-          const valorPromocional = parsePrice(plano.valorPromocional || plano.valor_promocional)
+          // Usar os valores que vêm da API (usar ?? para não substituir null)
+          const valorOriginalRaw = plano.valorOriginal ?? plano.valor_original ?? plano.valor ?? null
+          const valorPromocionalRaw = plano.valorPromocional ?? plano.valor_promocional ?? null
+          
+          let valorOriginal = parsePrice(valorOriginalRaw)
+          let valorPromocional = parsePrice(valorPromocionalRaw)
+          
+          // Se os valores vierem null da API, usar valores padrão
+          if (valorOriginal === null && valorPromocional === null) {
+            const defaultPrices = getDefaultPrices(plano.nome)
+            valorOriginal = defaultPrices.original
+            valorPromocional = defaultPrices.promocional
+          } else if (valorOriginal === null && valorPromocional !== null) {
+            // Se só o original for null, usar o promocional como original
+            valorOriginal = valorPromocional
+          }
           
           return {
             ...plano,
@@ -714,11 +747,11 @@ const Home = () => {
                 const planoId = plano.id || plano.nome?.toLowerCase().replace(/\s+/g, '-') || `plano-${index}`
                 const nomePlano = plano.nome || 'Plano'
                 // Os valores já foram processados em loadPlanos, então usar diretamente
-                const valorOriginal = plano.valorOriginal || 0
+                const valorOriginal = plano.valorOriginal !== null && plano.valorOriginal !== undefined ? plano.valorOriginal : null
                 const valorPromocional = plano.valorPromocional !== null && plano.valorPromocional !== undefined ? plano.valorPromocional : null
                 const limiteAnalises = plano.limiteAnalises || plano.limite_analises || 0
                 const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat || '0'
-                const temPromocao = valorPromocional !== null && valorPromocional > 0 && valorPromocional < valorOriginal
+                const temPromocao = valorPromocional !== null && valorPromocional > 0 && valorOriginal !== null && valorPromocional < valorOriginal
                 const badge = plano.badge || plano.label || null
                 const featured = plano.featured || plano.destaque || false
                 const acesso = plano.acesso || null
@@ -792,13 +825,17 @@ const Home = () => {
                     <div className="plan-header-card">
                       <h3>{nomePlano}</h3>
                       <div className="plan-price">
-                        {temPromocao && valorPromocional ? (
+                        {temPromocao && valorPromocional && valorOriginal ? (
                           <>
                             <span className="price-old">De: {formatarValor(valorOriginal)}/mês*</span>
                             <span className="price-new">Por: {formatarValor(valorPromocional)}/mês*</span>
                           </>
+                        ) : valorPromocional !== null && valorPromocional > 0 ? (
+                          <span className="price-single">{formatarValor(valorPromocional)}/mês*</span>
+                        ) : valorOriginal !== null && valorOriginal > 0 ? (
+                          <span className="price-single">{formatarValor(valorOriginal)}/mês*</span>
                         ) : (
-                          <span className="price-single">{formatarValor(valorOriginal || valorPromocional || 0)}/mês*</span>
+                          <span className="price-single">{formatarValor(valorOriginal || 0)}/mês*</span>
                         )}
                       </div>
                       <div className="plan-feature-count">
