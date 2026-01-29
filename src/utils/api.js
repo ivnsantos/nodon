@@ -2,8 +2,16 @@ import axios from 'axios'
 
 // Configurar base URL usando variável de ambiente
 // Vite requer que variáveis de ambiente comecem com VITE_
+let baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Garantir que o baseURL sempre termine com /api
+if (!baseURL.endsWith('/api')) {
+  // Se não terminar com /api, adicionar
+  baseURL = baseURL.endsWith('/') ? `${baseURL}api` : `${baseURL}/api`
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: baseURL,
   headers: {
     'Content-Type': 'application/json'
   }

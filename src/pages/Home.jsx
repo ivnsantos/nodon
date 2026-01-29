@@ -113,12 +113,8 @@ const Home = () => {
   const loadPlanos = async () => {
     try {
       setLoadingPlanos(true)
-      // Garantir que sempre usamos /api/planos
-      // Se o baseURL já termina com /api, usar apenas /planos, senão usar /api/planos
-      const baseURL = api.defaults.baseURL || ''
-      const endpoint = baseURL.endsWith('/api') ? '/planos' : '/api/planos'
-      
-      const response = await api.get(endpoint)
+      // O baseURL já garante que termina com /api, então usamos apenas /planos
+      const response = await api.get('/planos')
       
       // A API retorna { statusCode: 200, message: "Success", data: [...] }
       const data = response.data?.data || response.data
