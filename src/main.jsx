@@ -48,11 +48,21 @@ window.addEventListener('error', (event) => {
     const tagName = event.target.tagName.toLowerCase()
     // Ignorar 404 de imagens, links e scripts que não são críticos
     if ((tagName === 'img' || tagName === 'link' || tagName === 'script') && 
-        event.target.src && event.target.src.includes('app:')) {
+        (event.target.src?.includes('app:') || event.target.href?.includes('app:'))) {
       event.preventDefault()
       event.stopPropagation()
       return false
     }
+  }
+  
+  // Ignorar erros 404 de requisições fetch/XMLHttpRequest para rotas do React Router
+  if (event.message && (
+    event.message.includes('404') || 
+    event.message.includes('Failed to fetch') ||
+    (event.filename && event.filename.includes('/app'))
+  )) {
+    // Não prevenir completamente, apenas logar como aviso
+    console.warn('Erro de recurso ignorado:', event.message)
   }
 }, true)
 
