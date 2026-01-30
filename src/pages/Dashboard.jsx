@@ -29,9 +29,16 @@ const Dashboard = () => {
       
       const response = await api.get('/dashboard')
       
-      // A API retorna { statusCode, message, data: { diagnosticos, conversas, consultas, clientes } }
+      // A API retorna estrutura aninhada: { statusCode, message, data: { statusCode, message, data: { resumo, usoTokens, ... } } }
+      let data = null
       if (response.data?.statusCode === 200 && response.data?.data) {
-        setDashboardData(response.data.data)
+        // Se a estrutura estiver aninhada, pegar o data interno
+        if (response.data.data.data) {
+          data = response.data.data.data
+        } else {
+          data = response.data.data
+        }
+        setDashboardData(data)
       } else {
         throw new Error('Resposta inválida da API')
       }
@@ -43,10 +50,35 @@ const Dashboard = () => {
     }
   }
 
-  // Calcular estatísticas a partir dos arrays
+  // Calcular estatísticas usando os dados da API
   const calculateStats = () => {
     if (!dashboardData) return null
 
+    // Se a API retornar resumo e usoTokens diretamente, usar esses dados
+    if (dashboardData.resumo && dashboardData.usoTokens) {
+      return {
+        diagnosticos: {
+          total: dashboardData.resumo.diagnosticos?.total || 0,
+          esteMes: dashboardData.resumo.diagnosticos?.esteMes || 0
+        },
+        conversas: {
+          total: dashboardData.resumo.conversas?.total || 0,
+          tokensUtilizados: dashboardData.usoTokens?.utilizados || 0,
+          limiteTokens: dashboardData.usoTokens?.limite || 0,
+          tokenPercentage: dashboardData.usoTokens?.porcentagem || 0
+        },
+        consultas: {
+          hoje: dashboardData.resumo.consultas?.hoje || 0,
+          estaSemana: dashboardData.resumo.consultas?.estaSemana || 0
+        },
+        clientes: {
+          total: dashboardData.resumo.clientes?.total || 0,
+          ativos: dashboardData.resumo.clientes?.ativos || 0
+        }
+      }
+    }
+
+    // Fallback: calcular a partir dos arrays (estrutura antiga)
     const { diagnosticos = [], conversas = [], consultas = [], clientes = [] } = dashboardData
 
     // Diagnósticos
@@ -116,7 +148,15 @@ const Dashboard = () => {
 
   // Obter próximas consultas (ordenadas por data e hora)
   const getProximasConsultas = () => {
-    if (!dashboardData?.consultas) return []
+    if (!dashboardData) return []
+    
+    // Se a API retornar proximasConsultas diretamente, usar esses dados
+    if (dashboardData.proximasConsultas && Array.isArray(dashboardData.proximasConsultas)) {
+      return dashboardData.proximasConsultas.slice(0, 5)
+    }
+    
+    // Fallback: calcular a partir do array consultas (estrutura antiga)
+    if (!dashboardData.consultas) return []
     
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
@@ -146,7 +186,15 @@ const Dashboard = () => {
 
   // Obter diagnósticos recentes (ordenados por data)
   const getDiagnosticosRecentes = () => {
-    if (!dashboardData?.diagnosticos) return []
+    if (!dashboardData) return []
+    
+    // Se a API retornar diagnosticosRecentes diretamente, usar esses dados
+    if (dashboardData.diagnosticosRecentes && Array.isArray(dashboardData.diagnosticosRecentes)) {
+      return dashboardData.diagnosticosRecentes.slice(0, 5)
+    }
+    
+    // Fallback: calcular a partir do array diagnosticos (estrutura antiga)
+    if (!dashboardData.diagnosticos) return []
     
     return [...dashboardData.diagnosticos]
       .sort((a, b) => {
