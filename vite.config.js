@@ -28,6 +28,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['webpage_content_reporter']
+  },
+  // Ignorar erros de extensões do navegador durante o build
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   }
 })
 
