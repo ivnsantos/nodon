@@ -1,0 +1,330 @@
+.anamnese-entrada-container {
+  min-height: 100vh;
+  background: #0f172a;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.anamnese-entrada-content {
+  width: 100%;
+  max-width: 500px;
+  background: transparent;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Header */
+.empresa-header {
+  text-align: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.5rem;
+}
+
+.empresa-logo,
+.empresa-logo-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  object-fit: cover;
+  margin: 0 auto 0.5rem;
+  border: 2px solid var(--cor-empresa, #0ea5e9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--cor-empresa, #0ea5e9) 0%, #06b6d4 100%);
+}
+
+.empresa-nome {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* Cards */
+.anamnese-info-card,
+.paciente-info-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--cor-empresa, #0ea5e9) 0%, #06b6d4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.anamnese-titulo,
+.paciente-nome {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+}
+
+.anamnese-descricao {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+.anamnese-stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+}
+
+.stat-item strong {
+  color: var(--cor-empresa, #0ea5e9);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.paciente-detalhes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.detalhe-item {
+  display: flex;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.detalhe-label {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 50px;
+  flex-shrink: 0;
+}
+
+.detalhe-value {
+  color: rgba(255, 255, 255, 0.8);
+  word-break: break-word;
+}
+
+/* Botão */
+.btn-iniciar {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--cor-empresa, #0ea5e9) 0%, #06b6d4 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.btn-iniciar:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+/* Loading e Error */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: #ffffff;
+  text-align: center;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+.loading-spinner {
+  font-size: 2rem;
+  color: #0ea5e9;
+}
+
+.error-container {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  color: #fca5a5;
+}
+
+/* Concluída */
+.concluida-container {
+  text-align: center;
+  padding: 2rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.concluida-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 2rem;
+  color: #ffffff;
+}
+
+.concluida-titulo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+}
+
+.concluida-mensagem {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.concluida-info {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+}
+
+.concluida-info p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.concluida-info strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Instruções Simplificadas */
+.instrucoes-simples {
+  padding: 0.75rem 1rem;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  text-align: center;
+  margin: 0.5rem 0;
+}
+
+.instrucoes-simples p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.instrucoes-simples .required-mark {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* Desktop */
+@media (min-width: 769px) {
+  .anamnese-entrada-container {
+    padding: 2rem;
+  }
+
+  .anamnese-entrada-content {
+    background: rgba(26, 31, 58, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    padding: 2rem;
+    max-width: 600px;
+    height: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .instrucoes-simples {
+    padding: 1rem;
+  }
+
+  .instrucoes-simples p {
+    font-size: 0.875rem;
+  }
+
+  .empresa-logo,
+  .empresa-logo-placeholder {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .empresa-nome {
+    font-size: 1.5rem;
+  }
+
+  .anamnese-info-card,
+  .paciente-info-card {
+    padding: 1.5rem;
+  }
+
+  .anamnese-titulo,
+  .paciente-nome {
+    font-size: 1.125rem;
+  }
+
+  .anamnese-descricao {
+    font-size: 0.9375rem;
+  }
+
+  .stat-item {
+    font-size: 0.875rem;
+  }
+
+  .detalhe-item {
+    font-size: 0.875rem;
+  }
+}

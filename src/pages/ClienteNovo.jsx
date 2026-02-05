@@ -5,7 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft, faSave, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faIdCard,
-  faStethoscope, faCheckCircle, faPlus, faTimes
+  faStethoscope, faCheckCircle, faPlus, faTimes,
+  faClipboardQuestion
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -38,12 +39,45 @@ const ClienteNovo = () => {
     status: 'avaliacao-realizada'
   })
   const [novaNecessidade, setNovaNecessidade] = useState('')
+  const [anamneses, setAnamneses] = useState([])
+  const [anamneseSelecionada, setAnamneseSelecionada] = useState('')
+  const [loadingAnamneses, setLoadingAnamneses] = useState(false)
 
   useEffect(() => {
     if (isEditMode && id) {
       loadPacienteData()
     }
-  }, [id, isEditMode])
+    loadAnamneses()
+  }, [id, isEditMode, selectedClinicData])
+
+  const loadAnamneses = async () => {
+    try {
+      setLoadingAnamneses(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        setLoadingAnamneses(false)
+        return
+      }
+
+      const response = await api.get(`/anamneses?clienteMasterId=${clienteMasterId}`)
+      let anamnesesData = []
+      
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          anamnesesData = response.data.filter(a => a.ativa) // Apenas anamneses ativas
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          anamnesesData = response.data.data.filter(a => a.ativa)
+        }
+      }
+      
+      setAnamneses(anamnesesData)
+    } catch (error) {
+      console.error('Erro ao carregar anamneses:', error)
+    } finally {
+      setLoadingAnamneses(false)
+    }
+  }
 
   const loadPacienteData = async () => {
     setLoadingData(true)
@@ -141,9 +175,53 @@ const ClienteNovo = () => {
     }
   }
 
+  const formatCPF = (value) => {
+    const cleaned = value.replace(/\D/g, '').substring(0, 11) // Limitar a 11 dígitos
+    if (cleaned.length === 0) {
+      return ''
+    } else if (cleaned.length <= 3) {
+      return cleaned
+    } else if (cleaned.length <= 6) {
+      return cleaned.replace(/(\d{3})(\d)/, '$1.$2')
+    } else if (cleaned.length <= 9) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d)/, '$1.$2.$3')
+    } else {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d)/, '$1.$2.$3-$4')
+    }
+  }
+
+  const formatTelefone = (value) => {
+    const cleaned = value.replace(/\D/g, '')
+    if (cleaned.length === 0) {
+      return ''
+    } else if (cleaned.length <= 2) {
+      return `(${cleaned}`
+    } else if (cleaned.length <= 6) {
+      return cleaned.replace(/(\d{2})(\d)/, '($1) $2')
+    } else if (cleaned.length <= 10) {
+      // Telefone fixo (10 dígitos)
+      return cleaned.replace(/(\d{2})(\d{4})(\d)/, '($1) $2-$3')
+    } else if (cleaned.length <= 11) {
+      // Celular (11 dígitos)
+      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    }
+    // Limitar a 11 dígitos
+    return cleaned.substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // Aplicar máscaras específicas
+    if (name === 'cpf') {
+      const formatted = formatCPF(value)
+      setFormData(prev => ({ ...prev, [name]: formatted }))
+    } else if (name === 'telefone') {
+      const formatted = formatTelefone(value)
+      setFormData(prev => ({ ...prev, [name]: formatted }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleAddNecessidade = () => {
@@ -165,9 +243,18 @@ const ClienteNovo = () => {
 
   const handleCepChange = async (e) => {
     const cep = e.target.value.replace(/\D/g, '')
-    const formattedCep = cep.replace(/(\d{5})(\d)/, '$1-$2')
+    let formattedCep = cep
+    
+    // Aplicar máscara progressivamente
+    if (cep.length > 5) {
+      formattedCep = cep.substring(0, 8).replace(/(\d{5})(\d)/, '$1-$2')
+    } else if (cep.length > 0) {
+      formattedCep = cep
+    }
+    
     setFormData(prev => ({ ...prev, cep: formattedCep }))
 
+    // Buscar CEP quando tiver 8 dígitos
     if (cep.length === 8) {
       try {
         const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
@@ -285,6 +372,33 @@ const ClienteNovo = () => {
 
       const pacienteId = response.data?.data?.id || response.data?.id || id
       
+      // Vincular anamnese se uma foi selecionada
+      if (!isEditMode && anamneseSelecionada) {
+        try {
+          // Vincular anamnese ao paciente
+          const vincularResponse = await api.post('/anamneses/vincular-paciente', {
+            anamneseId: anamneseSelecionada,
+            pacienteId: pacienteId
+          })
+          
+          // Obter o ID da respostaAnamnese criada
+          const respostaAnamneseId = vincularResponse.data?.id || vincularResponse.data?.data?.id
+          
+          // Se conseguiu o ID, ativar automaticamente
+          if (respostaAnamneseId) {
+            try {
+              await api.put(`/anamneses/ativar/${respostaAnamneseId}`)
+            } catch (ativarError) {
+              console.warn('Erro ao ativar anamnese automaticamente:', ativarError)
+              // Não bloquear o cadastro se a ativação falhar
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao vincular anamnese:', error)
+          // Não bloquear o cadastro se falhar ao vincular
+        }
+      }
+      
       navigate(`/app/clientes/${pacienteId}`)
     } catch (error) {
       console.error('Erro ao salvar paciente:', error)
@@ -392,6 +506,7 @@ const ClienteNovo = () => {
                 value={formData.telefone}
                 onChange={handleInputChange}
                 required
+                maxLength="15"
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -411,6 +526,35 @@ const ClienteNovo = () => {
                 <option value="perdido">Perdido</option>
               </select>
             </div>
+            {!isEditMode && (
+              <div className="form-group full-width">
+                <label>
+                  <FontAwesomeIcon icon={faClipboardQuestion} /> Vincular Anamnese (Opcional)
+                </label>
+                {loadingAnamneses ? (
+                  <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem' }}>
+                    Carregando anamneses...
+                  </p>
+                ) : (
+                  <select
+                    value={anamneseSelecionada}
+                    onChange={(e) => setAnamneseSelecionada(e.target.value)}
+                  >
+                    <option value="">Nenhuma anamnese</option>
+                    {anamneses.map((anamnese) => (
+                      <option key={anamnese.id} value={anamnese.id}>
+                        {anamnese.titulo}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {anamneses.length === 0 && !loadingAnamneses && (
+                  <small style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.875rem' }}>
+                    Nenhuma anamnese disponível. Você pode vincular uma depois no perfil do paciente.
+                  </small>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

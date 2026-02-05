@@ -88,13 +88,28 @@
 
 .cliente-info-main {
   flex: 1;
+  position: relative;
 }
 
 .cliente-info-main h1 {
   color: #ffffff;
   font-size: 2rem;
   font-weight: 700;
-  margin: 0 0 0.75rem 0;
+  margin: 0;
+}
+
+/* Ocultar qualquer badge de status no header */
+.ficha-header .status-badge-large,
+.cliente-info-main .status-badge-large,
+.ficha-header .status-badge,
+.cliente-info-main .status-badge,
+.ficha-header [class*="status"],
+.cliente-info-main [class*="status"],
+.ficha-header [class*="badge"],
+.cliente-info-main [class*="badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 .status-badge-large {
@@ -602,12 +617,24 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  animation: overlayFadeIn 0.3s ease-out;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -661,6 +688,14 @@
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+}
+
+.modal-respostas .modal-actions {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .btn-cancel,
@@ -1081,6 +1116,603 @@
   box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
 }
 
+/* Estilos para Anamneses */
+.btn-add-anamnese {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.btn-add-anamnese:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.anamneses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.anamnese-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.anamnese-item.ativa {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.anamnese-item:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.anamnese-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.anamnese-info {
+  flex: 1;
+}
+
+.anamnese-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.anamnese-info h4 {
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+.anamnese-status-header {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+
+.status-badge-active,
+.status-badge-inactive,
+.status-badge-concluida {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge-active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge-inactive {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-badge-concluida {
+  background: rgba(14, 165, 233, 0.2);
+  color: #0ea5e9;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.anamnese-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+@media (min-width: 769px) {
+  .anamnese-actions {
+    width: auto;
+  }
+}
+
+.btn-ver-respostas {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  color: #0ea5e9;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.btn-ver-respostas:hover {
+  background: rgba(14, 165, 233, 0.3);
+  border-color: rgba(14, 165, 233, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-ativar-anamnese,
+.btn-desativar-anamnese,
+.btn-ver-anamnese {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: auto;
+  height: 36px;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.btn-ativar-anamnese {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.btn-ativar-anamnese:hover {
+  background: rgba(34, 197, 94, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-desativar-anamnese {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-desativar-anamnese:hover {
+  background: rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-ver-anamnese {
+  background: rgba(14, 165, 233, 0.2);
+  color: #0ea5e9;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.btn-ver-anamnese:hover {
+  background: rgba(14, 165, 233, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-compartilhar-anamnese,
+.btn-copiar-link-anamnese {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  flex-shrink: 0;
+  border: none;
+}
+
+.btn-compartilhar-anamnese {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.btn-compartilhar-anamnese:hover {
+  background: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-copiar-link-anamnese {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.btn-copiar-link-anamnese:hover {
+  background: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.anamnese-descricao {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin: 0.75rem 0;
+}
+
+.anamnese-meta {
+  display: flex;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+}
+
+.empty-text {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9375rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+/* Modal de Respostas */
+.modal-respostas {
+  max-width: 750px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(30px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-respostas .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.75rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.modal-respostas .modal-header h3 {
+  margin: 0;
+  flex: 1;
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-respostas .modal-header h3::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(180deg, #0ea5e9 0%, #06b6d4 100%);
+  border-radius: 2px;
+}
+
+.modal-respostas .btn-close-modal {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.modal-respostas .btn-close-modal:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  transform: rotate(90deg);
+}
+
+.loading-respostas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  flex: 1;
+}
+
+.loading-respostas svg {
+  font-size: 2.5rem;
+  color: #0ea5e9;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.respostas-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 2rem;
+}
+
+.respostas-header-info {
+  padding: 2rem 0 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.05) 0%, transparent 100%);
+  margin: 0 -2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  backdrop-filter: blur(10px);
+}
+
+.respostas-header-info h4 {
+  color: #ffffff;
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.respostas-header-info h4::before {
+  content: '';
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(180deg, #0ea5e9 0%, #06b6d4 100%);
+  border-radius: 2px;
+}
+
+.respostas-descricao {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.respostas-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  background: rgba(14, 165, 233, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  width: fit-content;
+}
+
+.respostas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 0;
+}
+
+.resposta-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.resposta-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #0ea5e9 0%, #06b6d4 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.resposta-item:hover {
+  border-color: rgba(14, 165, 233, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.1);
+}
+
+.resposta-item:hover::before {
+  opacity: 1;
+}
+
+.resposta-pergunta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.resposta-numero {
+  color: #0ea5e9;
+  font-weight: 700;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 165, 233, 0.15);
+  border-radius: 50%;
+  border: 2px solid rgba(14, 165, 233, 0.3);
+}
+
+.resposta-texto {
+  color: #ffffff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.required-mark {
+  color: #ef4444;
+  font-weight: 700;
+  margin-left: 0.375rem;
+  font-size: 1.125rem;
+  vertical-align: middle;
+}
+
+.resposta-valor {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  color: #0ea5e9;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.6;
+  word-wrap: break-word;
+  position: relative;
+  overflow: hidden;
+}
+
+.resposta-valor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.resposta-item:hover .resposta-valor::before {
+  left: 100%;
+}
+
+.empty-respostas {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 3rem 2rem;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.empty-respostas::before {
+  content: '📋';
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+
+.modal-respostas .btn-close {
+  padding: 0.875rem 2rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border: none;
+  border-radius: 0.75rem;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 600;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-respostas .btn-close::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.modal-respostas .btn-close:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+}
+
+.modal-respostas .btn-close:hover::before {
+  left: 100%;
+}
+
+.modal-respostas .btn-close:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .radiografia-item {
     padding: 0.875rem 1rem;
@@ -1093,6 +1725,169 @@
   .btn-view-radiografia-small {
     width: 32px;
     height: 32px;
+  }
+
+  /* Ajustes Mobile - Anamneses */
+  .anamnese-item {
+    padding: 1rem;
+  }
+
+  .anamnese-item-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .anamnese-info {
+    width: 100%;
+  }
+
+  .anamnese-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .anamnese-status-header {
+    width: 100%;
+  }
+
+  .anamnese-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .btn-ver-respostas,
+  .btn-ativar-anamnese,
+  .btn-desativar-anamnese {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .btn-compartilhar-anamnese,
+  .btn-copiar-link-anamnese {
+    flex: 0 0 auto;
+  }
+
+  .anamnese-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Modal de Respostas Mobile */
+  .modal-respostas {
+    max-width: 100%;
+    max-height: 95vh;
+    margin: 0.5rem;
+  }
+
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .modal-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .modal-header h3::before {
+    height: 20px;
+  }
+
+  .respostas-content {
+    padding: 0 1.5rem;
+  }
+
+  .respostas-header-info {
+    padding: 1.5rem 0 1.25rem;
+    margin: 0 -1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .respostas-header-info h4 {
+    font-size: 1.125rem;
+  }
+
+  .respostas-header-info h4::before {
+    height: 18px;
+  }
+
+  .respostas-descricao {
+    font-size: 0.9375rem;
+  }
+
+  .respostas-meta {
+    font-size: 0.8125rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .respostas-list {
+    padding: 1.25rem 0;
+    gap: 0.875rem;
+  }
+
+  .resposta-item {
+    padding: 1.25rem;
+    border-radius: 0.875rem;
+  }
+
+  .resposta-pergunta {
+    gap: 0.625rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .resposta-numero {
+    font-size: 1rem;
+    width: 24px;
+    height: 24px;
+  }
+
+  .resposta-texto {
+    font-size: 1rem;
+  }
+
+  .resposta-valor {
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .modal-actions {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .btn-close {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9375rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .anamnese-item {
+    padding: 0.875rem;
+  }
+
+  .btn-ver-respostas,
+  .btn-ativar-anamnese,
+  .btn-desativar-anamnese {
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.625rem;
+    min-width: 100px;
+  }
+
+  .modal-respostas {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .respostas-header-info h4 {
+    font-size: 1rem;
+  }
+
+  .respostas-descricao {
+    font-size: 0.875rem;
+  }
+
+  .resposta-item {
+    padding: 0.875rem;
   }
 }
 

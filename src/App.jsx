@@ -17,6 +17,9 @@ import Chat from './pages/Chat'
 import Clientes from './pages/Clientes'
 import ClienteDetalhes from './pages/ClienteDetalhes'
 import ClienteNovo from './pages/ClienteNovo'
+import Anamneses from './pages/Anamneses'
+import AnamneseNovo from './pages/AnamneseNovo'
+import AnamneseDetalhes from './pages/AnamneseDetalhes'
 import Perfil from './pages/Perfil'
 import Calendario from './pages/Calendario'
 import AssinaturaPendente from './pages/AssinaturaPendente'
@@ -28,6 +31,8 @@ import LPDentista from './pages/LPDentista'
 import GoogleCallback from './pages/GoogleCallback'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import ResponderAnamnese from './pages/ResponderAnamnese'
+import AnamneseEntrada from './pages/AnamneseEntrada'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -97,6 +102,16 @@ function AppRoutes() {
             <LPDentista />
           </PublicRoute>
         } />
+        <Route path="/responder-anamnese/:id" element={
+          <PublicRoute>
+            <AnamneseEntrada />
+          </PublicRoute>
+        } />
+        <Route path="/responder-anamnese/:id/iniciar" element={
+          <PublicRoute>
+            <ResponderAnamnese />
+          </PublicRoute>
+        } />
         <Route path="/app" element={
           <ProtectedRoute>
             <Layout />
@@ -115,6 +130,10 @@ function AppRoutes() {
           <Route path="clientes/novo" element={<ClienteNovo />} />
           <Route path="clientes/:id" element={<ClienteDetalhes />} />
           <Route path="clientes/:id/editar" element={<ClienteNovo />} />
+          <Route path="anamneses" element={<Anamneses />} />
+          <Route path="anamneses/novo" element={<AnamneseNovo />} />
+          <Route path="anamneses/:id" element={<AnamneseDetalhes />} />
+          <Route path="anamneses/:id/editar" element={<AnamneseNovo />} />
         </Route>
       </Routes>
     </Router>

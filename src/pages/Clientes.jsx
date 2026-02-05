@@ -82,7 +82,24 @@ const Clientes = () => {
         telefone: paciente.telefone || '',
         cpf: paciente.cpf || '',
         dataNascimento: paciente.dataNascimento || '',
-        status: paciente.status || 'avaliacao-realizada',
+        status: (() => {
+          // Normalizar status do backend
+          const statusRaw = paciente.status || paciente.dadosPessoais?.status || 'avaliacao-realizada'
+          // Normalizar valores comuns que podem vir do backend
+          const statusNormalizado = String(statusRaw).toLowerCase().trim()
+          
+          // Mapear valores comuns para status válidos
+          const statusMap = {
+            'inativa': 'perdido',
+            'inativo': 'perdido',
+            'ativa': 'avaliacao-realizada',
+            'ativo': 'avaliacao-realizada',
+            'active': 'avaliacao-realizada',
+            'inactive': 'perdido'
+          }
+          
+          return statusMap[statusNormalizado] || statusRaw
+        })(),
         necessidades: paciente.necessidades || '',
         observacoes: paciente.observacoes || '',
         endereco: {

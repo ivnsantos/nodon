@@ -6,7 +6,9 @@ import {
   faPhone, faEnvelope, faMapMarkerAlt, faIdCard,
   faStethoscope, faHistory, faPlus, faFileMedical,
   faCheckCircle, faClock, faTimesCircle, faExclamationTriangle,
-  faXRay, faEye, faCheck, faTrash, faSave, faTimes
+  faXRay, faEye, faCheck, faTrash, faSave, faTimes,
+  faClipboardQuestion, faPowerOff, faToggleOn, faToggleOff,
+  faCopy, faShareAlt, faSpinner
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
@@ -25,7 +27,7 @@ const ClienteDetalhes = () => {
   const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
   
   // Hook para modal de alerta
-  const { alertConfig, showError, hideAlert } = useAlert()
+  const { alertConfig, showError, showSuccess, hideAlert } = useAlert()
   
   const [cliente, setCliente] = useState(null)
   const [historico, setHistorico] = useState([])
@@ -39,10 +41,20 @@ const ClienteDetalhes = () => {
   const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
   const [editedNecessidades, setEditedNecessidades] = useState([])
   const [radiografiasCompletas, setRadiografiasCompletas] = useState({})
+  const [anamnesesVinculadas, setAnamnesesVinculadas] = useState([])
+  const [anamnesesDisponiveis, setAnamnesesDisponiveis] = useState([])
+  const [showVincularAnamneseModal, setShowVincularAnamneseModal] = useState(false)
+  const [anamneseParaVincular, setAnamneseParaVincular] = useState('')
+  const [loadingAnamneses, setLoadingAnamneses] = useState(false)
+  const [showRespostasModal, setShowRespostasModal] = useState(false)
+  const [respostasAnamnese, setRespostasAnamnese] = useState(null)
+  const [loadingRespostas, setLoadingRespostas] = useState(false)
 
   useEffect(() => {
     loadCliente()
     loadHistorico()
+    loadAnamnesesVinculadas()
+    loadAnamnesesDisponiveis()
   }, [id])
 
   // Carregar radiografias quando o cliente for carregado
@@ -80,7 +92,24 @@ const ClienteDetalhes = () => {
             estado: paciente.estado || '',
             cep: paciente.cep || ''
           },
-          status: paciente.status || 'avaliacao-realizada',
+          status: (() => {
+            // Normalizar status do backend
+            const statusRaw = paciente.status || paciente.dadosPessoais?.status || 'avaliacao-realizada'
+            // Normalizar valores comuns que podem vir do backend
+            const statusNormalizado = String(statusRaw).toLowerCase().trim()
+            
+            // Mapear valores comuns para status válidos
+            const statusMap = {
+              'inativa': 'perdido',
+              'inativo': 'perdido',
+              'ativa': 'avaliacao-realizada',
+              'ativo': 'avaliacao-realizada',
+              'active': 'avaliacao-realizada',
+              'inactive': 'perdido'
+            }
+            
+            return statusMap[statusNormalizado] || statusRaw
+          })(),
           necessidades: (() => {
             // Verificar se necessidades está em informacoesClinicas ou diretamente no paciente
             const necessidadesRaw = paciente.informacoesClinicas?.necessidades || paciente.necessidades
@@ -554,6 +583,221 @@ const ClienteDetalhes = () => {
     }
   }
 
+  const loadAnamnesesVinculadas = async () => {
+    try {
+      const response = await api.get(`/anamneses/paciente/${id}`)
+      // A API retorna { statusCode, message, data: [...] }
+      let anamnesesData = []
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          anamnesesData = response.data
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          anamnesesData = response.data.data
+        } else if (Array.isArray(response.data)) {
+          anamnesesData = response.data
+        }
+      }
+      console.log('Anamneses vinculadas carregadas:', anamnesesData)
+      setAnamnesesVinculadas(anamnesesData || [])
+    } catch (error) {
+      console.error('Erro ao carregar anamneses vinculadas:', error)
+      setAnamnesesVinculadas([])
+    }
+  }
+
+  const loadAnamnesesDisponiveis = async () => {
+    try {
+      setLoadingAnamneses(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        setLoadingAnamneses(false)
+        return
+      }
+
+      const response = await api.get(`/anamneses?clienteMasterId=${clienteMasterId}`)
+      let anamnesesData = []
+      
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          anamnesesData = response.data.filter(a => a.ativa)
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          anamnesesData = response.data.data.filter(a => a.ativa)
+        }
+      }
+      
+      // Filtrar anamneses já vinculadas
+      const idsVinculadas = anamnesesVinculadas.map(a => a.anamneseId || a.anamnese?.id)
+      const disponiveis = anamnesesData.filter(a => !idsVinculadas.includes(a.id))
+      
+      setAnamnesesDisponiveis(disponiveis)
+    } catch (error) {
+      console.error('Erro ao carregar anamneses disponíveis:', error)
+      setAnamnesesDisponiveis([])
+    } finally {
+      setLoadingAnamneses(false)
+    }
+  }
+
+
+  const handleVincularAnamnese = async () => {
+    if (!anamneseParaVincular) {
+      showError('Por favor, selecione uma anamnese para vincular.')
+      return
+    }
+
+    try {
+      // Vincular anamnese ao paciente
+      const vincularResponse = await api.post('/anamneses/vincular-paciente', {
+        anamneseId: anamneseParaVincular,
+        pacienteId: id
+      })
+      
+      // Obter o ID da respostaAnamnese criada
+      const respostaAnamneseId = vincularResponse.data?.id || vincularResponse.data?.data?.id
+      
+      // Se conseguiu o ID, ativar automaticamente
+      if (respostaAnamneseId) {
+        try {
+          await api.put(`/anamneses/ativar/${respostaAnamneseId}`)
+        } catch (ativarError) {
+          console.warn('Erro ao ativar anamnese automaticamente:', ativarError)
+          // Não falhar o processo se a ativação falhar, apenas avisar
+        }
+      }
+      
+      setShowVincularAnamneseModal(false)
+      setAnamneseParaVincular('')
+      await loadAnamnesesVinculadas()
+      // Recarregar disponíveis após vincular
+      await loadAnamnesesDisponiveis()
+      showSuccess('Anamnese vinculada e ativada com sucesso!')
+    } catch (error) {
+      console.error('Erro ao vincular anamnese:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao vincular anamnese. Tente novamente.'
+      showError(errorMessage)
+    }
+  }
+
+  const handleAtivarAnamnese = async (respostaAnamneseId) => {
+    try {
+      await api.put(`/anamneses/ativar/${respostaAnamneseId}`)
+      await loadAnamnesesVinculadas()
+      showSuccess('Anamnese ativada com sucesso!')
+    } catch (error) {
+      console.error('Erro ao ativar anamnese:', error)
+      console.error('Detalhes do erro:', error.response?.data)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Erro ao ativar anamnese. Tente novamente.'
+      showError(errorMessage)
+    }
+  }
+
+  const handleDesativarAnamnese = async (respostaAnamneseId) => {
+    try {
+      await api.put(`/anamneses/desativar/${respostaAnamneseId}`)
+      await loadAnamnesesVinculadas()
+      showSuccess('Anamnese desativada com sucesso!')
+    } catch (error) {
+      console.error('Erro ao desativar anamnese:', error)
+      console.error('Detalhes do erro:', error.response?.data)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Erro ao desativar anamnese. Tente novamente.'
+      showError(errorMessage)
+    }
+  }
+
+  const handleCopiarLink = async (respostaAnamneseId) => {
+    try {
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/responder-anamnese/${respostaAnamneseId}`
+      
+      await navigator.clipboard.writeText(link)
+      showSuccess('Link copiado para a área de transferência!')
+    } catch (error) {
+      console.error('Erro ao copiar link:', error)
+      // Fallback para navegadores que não suportam clipboard API
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/responder-anamnese/${respostaAnamneseId}`
+      const textArea = document.createElement('textarea')
+      textArea.value = link
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        showSuccess('Link copiado para a área de transferência!')
+      } catch (err) {
+        showError('Não foi possível copiar o link. Por favor, copie manualmente: ' + link)
+      }
+      document.body.removeChild(textArea)
+    }
+  }
+
+  const handleCompartilharLink = async (respostaAnamneseId) => {
+    try {
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/responder-anamnese/${respostaAnamneseId}`
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Questionário de Anamnese',
+          text: 'Por favor, responda este questionário de anamnese',
+          url: link
+        })
+      } else {
+        // Fallback: copiar link
+        await handleCopiarLink(respostaAnamneseId)
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Erro ao compartilhar link:', error)
+        // Se falhar, tentar copiar
+        await handleCopiarLink(respostaAnamneseId)
+      }
+    }
+  }
+
+  const handleVerRespostas = async (respostaAnamneseId) => {
+    try {
+      setLoadingRespostas(true)
+      
+      // Primeiro, tentar buscar da lista já carregada
+      const anamneseExistente = anamnesesVinculadas.find(a => a.id === respostaAnamneseId)
+      
+      // Se já tiver as respostas carregadas e a anamnese estiver concluída, usar esses dados
+      if (anamneseExistente && anamneseExistente.concluida && anamneseExistente.respostasPerguntas) {
+        setRespostasAnamnese(anamneseExistente)
+        setShowRespostasModal(true)
+        setLoadingRespostas(false)
+        return
+      }
+      
+      // Caso contrário, buscar da API
+      const response = await api.get(`/anamneses/resposta/${respostaAnamneseId}`)
+      const data = response.data?.data || response.data
+      setRespostasAnamnese(data)
+      setShowRespostasModal(true)
+    } catch (error) {
+      console.error('Erro ao carregar respostas:', error)
+      const errorMessage = error.response?.data?.message || 'Erro ao carregar as respostas. Tente novamente.'
+      showError(errorMessage)
+    } finally {
+      setLoadingRespostas(false)
+    }
+  }
+
+  const formatarResposta = (valor, tipoResposta) => {
+    if (!valor || valor === 'null') return 'Não respondido'
+    
+    if (tipoResposta === 'booleano') {
+      return valor === 'true' ? 'Sim' : 'Não'
+    }
+    
+    if (tipoResposta === 'data') {
+      return new Date(valor).toLocaleDateString('pt-BR')
+    }
+    
+    return valor
+  }
+
   const handleUpdateStatus = async () => {
     if (!novoStatus) return
 
@@ -660,10 +904,6 @@ const ClienteDetalhes = () => {
             </div>
             <div className="cliente-info-main">
               <h1>{cliente.nome}</h1>
-              <div className="status-badge-large" style={{ backgroundColor: getStatusColor(cliente.status) }}>
-                <FontAwesomeIcon icon={getStatusIcon(cliente.status)} />
-                {getStatusLabel(cliente.status)}
-              </div>
             </div>
           </div>
 
@@ -871,33 +1111,6 @@ const ClienteDetalhes = () => {
               )}
             </div>
 
-            <div className="ficha-section">
-              <div className="section-header-actions">
-                <h2>
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  Status do Tratamento
-                </h2>
-                <button
-                  className="btn-change-status"
-                  onClick={() => {
-                    setNovoStatus(cliente.status)
-                    setShowStatusModal(true)
-                  }}
-                >
-                  <FontAwesomeIcon icon={faEdit} />
-                  Alterar Status
-                </button>
-              </div>
-              <div className="status-display">
-                <div
-                  className="status-badge-display"
-                  style={{ backgroundColor: getStatusColor(cliente.status) }}
-                >
-                  <FontAwesomeIcon icon={getStatusIcon(cliente.status)} />
-                  {getStatusLabel(cliente.status)}
-                </div>
-              </div>
-            </div>
 
             {cliente.observacoes && (
               <div className="ficha-section">
@@ -908,6 +1121,112 @@ const ClienteDetalhes = () => {
                 <p className="observacoes-text">{cliente.observacoes}</p>
               </div>
             )}
+
+            <div className="ficha-section">
+              <div className="section-header-actions">
+                <h2>
+                  <FontAwesomeIcon icon={faClipboardQuestion} />
+                  Anamneses
+                </h2>
+                {isMaster && (
+                  <button
+                    className="btn-add-anamnese"
+                    onClick={() => {
+                      setShowVincularAnamneseModal(true)
+                      loadAnamnesesDisponiveis()
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Vincular Anamnese
+                  </button>
+                )}
+              </div>
+
+              {anamnesesVinculadas.length === 0 ? (
+                <p className="empty-text">Nenhuma anamnese vinculada ainda.</p>
+              ) : (
+                <div className="anamneses-list">
+                  {anamnesesVinculadas.map((respostaAnamnese) => (
+                    <div key={respostaAnamnese.id} className={`anamnese-item ${respostaAnamnese.ativa ? 'ativa' : ''}`}>
+                      <div className="anamnese-item-header">
+                        <div className="anamnese-info">
+                          <div className="anamnese-title-row">
+                            <h4>{respostaAnamnese.anamnese?.titulo || 'Anamnese'}</h4>
+                            <div className="anamnese-status-header">
+
+                              {respostaAnamnese.concluida && (
+                                <span className="status-badge-concluida">
+                                  <FontAwesomeIcon icon={faCheck} />
+                                  Concluída
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {isMaster && (
+                          <div className="anamnese-actions">
+                            {respostaAnamnese.concluida && (
+                              <button
+                                className="btn-ver-respostas"
+                                onClick={() => handleVerRespostas(respostaAnamnese.id)}
+                                title="Ver respostas do paciente"
+                              >
+                                <FontAwesomeIcon icon={faEye} />
+                                <span>Ver Respostas</span>
+                              </button>
+                            )}
+                            {!respostaAnamnese.ativa ? (
+                              <button
+                                className="btn-ativar-anamnese"
+                                onClick={() => handleAtivarAnamnese(respostaAnamnese.id)}
+                                title="Ativar anamnese"
+                              >
+                                <FontAwesomeIcon icon={faToggleOn} />
+                                <span>Ativar</span>
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-desativar-anamnese"
+                                onClick={() => handleDesativarAnamnese(respostaAnamnese.id)}
+                                title="Desativar anamnese"
+                              >
+                                <FontAwesomeIcon icon={faToggleOff} />
+                                <span>Desativar</span>
+                              </button>
+                            )}
+                            {!respostaAnamnese.concluida && (
+                              <>
+                                <button
+                                  className="btn-compartilhar-anamnese"
+                                  onClick={() => handleCompartilharLink(respostaAnamnese.id)}
+                                  title="Compartilhar link para responder"
+                                >
+                                  <FontAwesomeIcon icon={faShareAlt} />
+                                </button>
+                                <button
+                                  className="btn-copiar-link-anamnese"
+                                  onClick={() => handleCopiarLink(respostaAnamnese.id)}
+                                  title="Copiar link para responder"
+                                >
+                                  <FontAwesomeIcon icon={faCopy} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {respostaAnamnese.anamnese?.descricao && (
+                        <p className="anamnese-descricao">{respostaAnamnese.anamnese.descricao}</p>
+                      )}
+                      <div className="anamnese-meta">
+                        <span>Perguntas: {respostaAnamnese.anamnese?.perguntas?.length || 0}</span>
+                        <span>Criada em: {new Date(respostaAnamnese.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="ficha-section">
               <h2>
@@ -1023,6 +1342,138 @@ const ClienteDetalhes = () => {
               </button>
               <button className="btn-save" onClick={handleUpdateStatus}>
                 Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Vincular Anamnese */}
+      {showVincularAnamneseModal && (
+        <div className="modal-overlay" onClick={() => setShowVincularAnamneseModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Vincular Anamnese</h3>
+            {loadingAnamneses ? (
+              <p>Carregando anamneses...</p>
+            ) : (
+              <>
+                <select
+                  value={anamneseParaVincular}
+                  onChange={(e) => setAnamneseParaVincular(e.target.value)}
+                  style={{ width: '100%', padding: '0.875rem', marginBottom: '1rem' }}
+                >
+                  <option value="">Selecione uma anamnese</option>
+                  {anamnesesDisponiveis.map((anamnese) => (
+                    <option key={anamnese.id} value={anamnese.id}>
+                      {anamnese.titulo}
+                    </option>
+                  ))}
+                </select>
+                {anamnesesDisponiveis.length === 0 && (
+                  <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                    Todas as anamneses já estão vinculadas ou não há anamneses disponíveis.
+                  </p>
+                )}
+                <div className="modal-actions">
+                  <button className="btn-cancel" onClick={() => {
+                    setShowVincularAnamneseModal(false)
+                    setAnamneseParaVincular('')
+                  }}>
+                    Cancelar
+                  </button>
+                  <button 
+                    className="btn-save" 
+                    onClick={handleVincularAnamnese}
+                    disabled={!anamneseParaVincular || anamnesesDisponiveis.length === 0}
+                  >
+                    Vincular
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Respostas da Anamnese */}
+      {showRespostasModal && respostasAnamnese && (
+        <div className="modal-overlay" onClick={() => setShowRespostasModal(false)}>
+          <div className="modal-content modal-respostas" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Respostas da Anamnese</h3>
+              <button 
+                className="btn-close-modal" 
+                onClick={() => setShowRespostasModal(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            
+            {loadingRespostas ? (
+              <div className="loading-respostas">
+                <FontAwesomeIcon icon={faSpinner} spin />
+                <p>Carregando respostas...</p>
+              </div>
+            ) : (
+              <div className="respostas-content">
+                <div className="respostas-header-info">
+                  <h4>{respostasAnamnese.anamnese?.titulo || 'Anamnese'}</h4>
+                  {respostasAnamnese.anamnese?.descricao && (
+                    <p className="respostas-descricao">{respostasAnamnese.anamnese.descricao}</p>
+                  )}
+                  <div className="respostas-meta">
+                    <span>Respondida em: {new Date(respostasAnamnese.updatedAt).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</span>
+                  </div>
+                </div>
+
+                <div className="respostas-list">
+                  {respostasAnamnese.respostasPerguntas && respostasAnamnese.respostasPerguntas.length > 0 ? (
+                    respostasAnamnese.respostasPerguntas
+                      .sort((a, b) => {
+                        const ordemA = a.pergunta?.ordem ?? 999
+                        const ordemB = b.pergunta?.ordem ?? 999
+                        return ordemA - ordemB
+                      })
+                      .map((respostaPergunta, index) => {
+                        const pergunta = respostaPergunta.pergunta
+                        if (!pergunta) return null
+                        
+                        return (
+                          <div key={respostaPergunta.id || index} className="resposta-item">
+                            <div className="resposta-pergunta">
+                              <span className="resposta-numero">{index + 1}</span>
+                              <div style={{ flex: 1 }}>
+                                <span className="resposta-texto">
+                                  {pergunta.texto}
+                                  {pergunta.obrigatoria && <span className="required-mark">*</span>}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="resposta-valor">
+                              {formatarResposta(respostaPergunta.valor, pergunta.tipoResposta)}
+                            </div>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="empty-respostas">Nenhuma resposta encontrada.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button 
+                className="btn-close" 
+                onClick={() => setShowRespostasModal(false)}
+              >
+                Fechar
               </button>
             </div>
           </div>

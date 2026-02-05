@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
   faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding,
-  faCalendarAlt
+  faCalendarAlt, faClipboardQuestion
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -54,6 +54,7 @@ const Layout = () => {
   const allMenuItems = [
     { path: '/app', label: 'Dashboard', icon: faChartBar },
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
+    { path: '/app/anamneses', label: 'Anamneses', icon: faClipboardQuestion },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
     { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/chat', label: 'Chat IA', icon: faComments },
@@ -64,9 +65,11 @@ const Layout = () => {
   // Filtrar menu items baseado no tipo de relacionamento e acesso do plano
   let menuItems = allMenuItems
   
-  // Se for tipo "usuario", não mostrar a aba "Usuário"
+  // Se for tipo "usuario", não mostrar a aba "Usuário" e "Anamneses"
   if (isUsuario()) {
-    menuItems = menuItems.filter(item => item.path !== '/app/dentistas')
+    menuItems = menuItems.filter(item => 
+      item.path !== '/app/dentistas' && item.path !== '/app/anamneses'
+    )
   }
   
   // Filtrar baseado no acesso do plano
@@ -81,6 +84,12 @@ const Layout = () => {
     // Não precisa fazer nada, já tem todos os itens
   }
   // Se planoAcesso for null ou undefined, mostrar todos (compatibilidade)
+  
+  // Anamneses só aparece se Diagnósticos também aparecer
+  const diagnosticosVisivel = menuItems.some(item => item.path === '/app/diagnosticos')
+  if (!diagnosticosVisivel) {
+    menuItems = menuItems.filter(item => item.path !== '/app/anamneses')
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -107,6 +116,9 @@ const Layout = () => {
     if (path === '/app/clientes/novo') return 'Novo Cliente'
     if (path.startsWith('/app/clientes/') && path.includes('/editar')) return 'Editar Cliente'
     if (path.startsWith('/app/clientes/') && path !== '/app/clientes') return 'Detalhes do Cliente'
+    if (path === '/app/anamneses/novo') return 'Nova Anamnese'
+    if (path.startsWith('/app/anamneses/') && path.includes('/editar')) return 'Editar Anamnese'
+    if (path.startsWith('/app/anamneses/') && path !== '/app/anamneses') return 'Detalhes da Anamnese'
     if (path.startsWith('/app/diagnosticos/') && path.includes('/desenho')) return 'Desenho Profissional'
     if (path.startsWith('/app/diagnosticos/') && path !== '/app/diagnosticos') return 'Detalhes da Radiografia'
     
