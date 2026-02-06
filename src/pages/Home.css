@@ -212,68 +212,6 @@
   filter: brightness(0.5);
 }
 
-.hero-section::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 1;
-  background: rgba(0, 0, 0, 0.3);
-  mask-image: radial-gradient(circle 200px at 50% 50%, transparent 0%, black 100%);
-  -webkit-mask-image: radial-gradient(circle 200px at 50% 50%, transparent 0%, black 100%);
-  animation: imageReveal 12s ease-in-out infinite;
-}
-
-@keyframes imageReveal {
-  0% {
-    mask-image: radial-gradient(circle 0px at 20% 30%, transparent 0%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 0px at 20% 30%, transparent 0%, black 100%);
-  }
-  10% {
-    mask-image: radial-gradient(circle 300px at 20% 30%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 20% 30%, transparent 0%, transparent 40%, black 100%);
-  }
-  20% {
-    mask-image: radial-gradient(circle 300px at 50% 20%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 50% 20%, transparent 0%, transparent 40%, black 100%);
-  }
-  30% {
-    mask-image: radial-gradient(circle 300px at 80% 40%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 80% 40%, transparent 0%, transparent 40%, black 100%);
-  }
-  40% {
-    mask-image: radial-gradient(circle 300px at 70% 70%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 70% 70%, transparent 0%, transparent 40%, black 100%);
-  }
-  50% {
-    mask-image: radial-gradient(circle 300px at 30% 80%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 30% 80%, transparent 0%, transparent 40%, black 100%);
-  }
-  60% {
-    mask-image: radial-gradient(circle 300px at 10% 50%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 10% 50%, transparent 0%, transparent 40%, black 100%);
-  }
-  70% {
-    mask-image: radial-gradient(circle 300px at 60% 60%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 60% 60%, transparent 0%, transparent 40%, black 100%);
-  }
-  80% {
-    mask-image: radial-gradient(circle 300px at 90% 80%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 90% 80%, transparent 0%, transparent 40%, black 100%);
-  }
-  90% {
-    mask-image: radial-gradient(circle 300px at 40% 10%, transparent 0%, transparent 40%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 300px at 40% 10%, transparent 0%, transparent 40%, black 100%);
-  }
-  100% {
-    mask-image: radial-gradient(circle 0px at 20% 30%, transparent 0%, black 100%);
-    -webkit-mask-image: radial-gradient(circle 0px at 20% 30%, transparent 0%, black 100%);
-  }
-}
-
 
 .hero-container {
   max-width: 1400px;
