@@ -500,7 +500,7 @@ const Checkout = () => {
     newSearchParams.set('plano', plan.name)
     setSearchParams(newSearchParams, { replace: true })
     
-    // Evento gtag - Seleção de plano
+    // Evento GTM - Seleção de plano
     trackPlanSelection(plan.name, plan.id, plan.price)
     
     // Avançar automaticamente para o próximo step
@@ -556,11 +556,7 @@ const Checkout = () => {
         return
       }
     }
-    const nextStep = currentStep + 1
-    setCurrentStep(nextStep)
-    
-    // Evento gtag - Mudança de etapa
-    trackCheckoutStep(nextStep, selectedPlan?.name, selectedPlan?.price)
+    setCurrentStep(prev => prev + 1)
   }
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -694,7 +690,7 @@ const Checkout = () => {
           setIsPolling(false)
           setIsSubmitting(false)
           
-          // Evento gtag - Conversão (pagamento confirmado)
+          // Evento GTM - Conversão (pagamento confirmado)
           const totalValue = selectedPlan ? calculateTotal() : 0
           trackConversion('purchase', totalValue, 'BRL')
           trackEvent('purchase', {

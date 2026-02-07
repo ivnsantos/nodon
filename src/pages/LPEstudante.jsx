@@ -488,7 +488,7 @@ const LPEstudante = () => {
                 const telefone = formData.get('telefone')
                 const plano = formData.get('plano')
                 
-                // Evento gtag - Submissão de formulário
+                // Evento GTM - Submissão de formulário
                 trackFormSubmission('lp_estudante_form', {
                   plano: plano || 'nenhum',
                   origem: 'estudante'
