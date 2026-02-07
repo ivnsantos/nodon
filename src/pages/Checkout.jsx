@@ -9,6 +9,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
+import { trackCheckoutStep, trackPlanSelection, trackConversion, trackEvent } from '../utils/gtag'
 import './Checkout.css'
 
 const Checkout = () => {
@@ -253,6 +254,13 @@ const Checkout = () => {
     loadPlans()
   }, [])
 
+  // Rastrear mudanças de etapa
+  useEffect(() => {
+    if (currentStep) {
+      trackCheckoutStep(currentStep, selectedPlan?.name, selectedPlan?.price)
+    }
+  }, [currentStep])
+
   const applyCoupon = async (code) => {
     if (!code || !code.trim()) {
       return false
@@ -491,6 +499,10 @@ const Checkout = () => {
     const newSearchParams = new URLSearchParams(searchParams)
     newSearchParams.set('plano', plan.name)
     setSearchParams(newSearchParams, { replace: true })
+    
+    // Evento gtag - Seleção de plano
+    trackPlanSelection(plan.name, plan.id, plan.price)
+    
     // Avançar automaticamente para o próximo step
     if (currentStep === 1) {
       setCurrentStep(2)
@@ -544,7 +556,11 @@ const Checkout = () => {
         return
       }
     }
-    setCurrentStep(prev => prev + 1)
+    const nextStep = currentStep + 1
+    setCurrentStep(nextStep)
+    
+    // Evento gtag - Mudança de etapa
+    trackCheckoutStep(nextStep, selectedPlan?.name, selectedPlan?.price)
   }
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -677,6 +693,22 @@ const Checkout = () => {
           setPollingStatus('Pagamento confirmado!')
           setIsPolling(false)
           setIsSubmitting(false)
+          
+          // Evento gtag - Conversão (pagamento confirmado)
+          const totalValue = selectedPlan ? calculateTotal() : 0
+          trackConversion('purchase', totalValue, 'BRL')
+          trackEvent('purchase', {
+            transaction_id: userId,
+            value: totalValue,
+            currency: 'BRL',
+            items: selectedPlan ? [{
+              item_name: selectedPlan.name,
+              item_id: selectedPlan.id,
+              price: selectedPlan.price,
+              quantity: 1
+            }] : []
+          })
+          
           showAlert('Pagamento confirmado! Redirecionando para login...', 'success')
           
           setTimeout(() => {

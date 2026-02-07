@@ -10,6 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
+import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
 import nodoLogo from '../img/nodo.png'
 import estudanteImg from '../img/especializacao-em-odontologia-1.jpg'
 import './LPEstudante.css'
@@ -119,10 +120,17 @@ const LPEstudante = () => {
   }
 
   const handleCtaClick = () => {
+    trackButtonClick('cta_header', 'lp_estudante_header')
     document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   const handlePlanSelect = (planoNome, planoId) => {
+    trackButtonClick('assinar_plano', `lp_estudante_plano_${planoNome}`)
+    trackEvent('select_content', {
+      content_type: 'plan',
+      content_id: planoId,
+      content_name: planoNome
+    })
     navigate(`/checkout?plano=${encodeURIComponent(planoNome)}&planoId=${planoId}&origem=estudante`)
   }
 
@@ -206,7 +214,10 @@ const LPEstudante = () => {
                   Começar Agora
                   <FontAwesomeIcon icon={faArrowRight} />
                 </button>
-                <button className="btn-hero-secondary" onClick={() => scrollToSection('planos')}>
+                <button className="btn-hero-secondary" onClick={() => {
+                  trackButtonClick('ver_planos', 'lp_estudante_hero')
+                  scrollToSection('planos')
+                }}>
                   Ver Planos
                 </button>
               </div>
@@ -476,6 +487,16 @@ const LPEstudante = () => {
                 const email = formData.get('email')
                 const telefone = formData.get('telefone')
                 const plano = formData.get('plano')
+                
+                // Evento gtag - Submissão de formulário
+                trackFormSubmission('lp_estudante_form', {
+                  plano: plano || 'nenhum',
+                  origem: 'estudante'
+                })
+                trackEvent('generate_lead', {
+                  form_type: 'lp_estudante',
+                  plano: plano || 'nenhum'
+                })
                 
                 if (plano) {
                   navigate(`/checkout?plano=${encodeURIComponent(plano)}&nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante`)
