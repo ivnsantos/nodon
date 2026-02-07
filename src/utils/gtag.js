@@ -38,10 +38,13 @@ export const initGA = () => {
 // Eventos personalizados via GTM
 export const trackEvent = (eventName, eventParams = {}) => {
   if (typeof window !== 'undefined' && window.dataLayer) {
-    window.dataLayer.push({
+    const eventData = {
       event: eventName,
       ...eventParams
-    })
+    }
+    window.dataLayer.push(eventData)
+    // Debug: log no console para verificar se está sendo enviado
+    console.log('GTM Event:', eventData)
   }
 }
 
