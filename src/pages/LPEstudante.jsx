@@ -113,8 +113,8 @@ const LPEstudante = () => {
         return {
           id: plano.id,
           nome: plano.nome,
-          valorOriginal: Number(valorOriginal) || 0,
-          valorPromocional: valorPromocional !== null ? Number(valorPromocional) : null,
+          valorOriginal: valorOriginal, // Já convertido para número acima
+          valorPromocional: valorPromocional, // Já convertido para número acima (ou null)
           limiteAnalises: plano.limiteAnalises || plano.limite_analises,
           tokenChat: plano.tokenChat || plano.token_chat || plano.tokensChat || null,
           features,
@@ -453,9 +453,11 @@ const LPEstudante = () => {
           ) : (
             <div className="plans-container">
               {planos.map((plano, index) => {
-                // Converte valores para número se necessário
-                let valorOriginal = typeof plano.valorOriginal === 'string' ? parseFloat(plano.valorOriginal) : (plano.valorOriginal || 0)
-                const valorPromocional = plano.valorPromocional ? (typeof plano.valorPromocional === 'string' ? parseFloat(plano.valorPromocional) : plano.valorPromocional) : null
+                // Os valores já vêm convertidos de loadPlanos
+                const valorOriginal = Number(plano.valorOriginal) || 0
+                const valorPromocional = plano.valorPromocional !== null && plano.valorPromocional !== undefined 
+                  ? Number(plano.valorPromocional) 
+                  : null
                 
                 // Verifica se tem promoção: valor promocional existe, é válido e menor que o original
                 const temPromocao = valorPromocional !== null && 
@@ -465,7 +467,6 @@ const LPEstudante = () => {
                                     valorPromocional < valorOriginal
                 
                 // Aplica desconto do cupom se estiver ativo
-                let valorComDesconto = null
                 let valorExibir = temPromocao ? valorPromocional : valorOriginal
                 let temDescontoCupom = false
                 let valorBaseParaDesconto = temPromocao ? valorPromocional : valorOriginal
@@ -474,7 +475,7 @@ const LPEstudante = () => {
                   const discountPercent = Number(cupomData.discountValue) || 0
                   if (discountPercent > 0) {
                     // Aplica desconto sobre o valor promocional (se existir) ou sobre o original
-                    valorComDesconto = valorBaseParaDesconto * (1 - discountPercent / 100)
+                    const valorComDesconto = valorBaseParaDesconto * (1 - discountPercent / 100)
                     valorExibir = valorComDesconto
                     temDescontoCupom = true
                   }
