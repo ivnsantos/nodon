@@ -306,6 +306,20 @@ const Checkout = () => {
     }
   }
 
+  // Aplicar cupom assim que chegar na página (independente dos planos)
+  useEffect(() => {
+    const coupon = searchParams.get('cupom')
+    if (coupon) {
+      // Preenche o input com o cupom
+      setCouponCode(coupon.toUpperCase())
+      // Aplica o cupom se ainda não foi aplicado
+      if (!couponApplied && !isApplyingCoupon) {
+        applyCoupon(coupon.toUpperCase())
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
   useEffect(() => {
     // Verificar se há plano na query (usando o nome do plano)
     if (plans.length > 0) {
@@ -317,18 +331,11 @@ const Checkout = () => {
           // Não pular o passo 1, deixar o usuário confirmar
         }
       }
-
-      // Verificar se há cupom na query
-      const coupon = searchParams.get('cupom')
-      if (coupon) {
-        setCouponCode(coupon)
-        applyCoupon(coupon)
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, plans])
 
-  // Recalcular desconto quando o plano mudar
+  // Recalcular desconto quando o plano mudar ou quando o cupom for aplicado
   useEffect(() => {
     if (appliedCoupon && selectedPlan) {
       const discountPercent = Number(appliedCoupon.discountValue) || 0
@@ -338,6 +345,11 @@ const Checkout = () => {
         const discountInReais = (planPrice * discountPercent) / 100
         setDiscountValue(discountInReais)
       }
+    } else if (appliedCoupon && !selectedPlan) {
+      // Se tem cupom mas ainda não tem plano, mantém o desconto percentual
+      const discountPercent = Number(appliedCoupon.discountValue) || 0
+      setDiscount(discountPercent)
+      setDiscountValue(0) // Valor em reais será calculado quando o plano for selecionado
     }
   }, [selectedPlan, appliedCoupon])
 
