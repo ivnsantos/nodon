@@ -22,12 +22,16 @@ const LPEstudante = () => {
   const [planos, setPlanos] = useState([])
   const [loadingPlanos, setLoadingPlanos] = useState(true)
   const [cupomCode, setCupomCode] = useState(null)
+  const [cupomValido, setCupomValido] = useState(false)
+  const [validandoCupom, setValidandoCupom] = useState(false)
+  const [cupomData, setCupomData] = useState(null) // Armazena dados do cupom (discountValue, etc)
 
   useEffect(() => {
     // Verificar se há cupom na URL
     const cupom = searchParams.get('cupom')
     if (cupom) {
       setCupomCode(cupom.toUpperCase())
+      validarCupom(cupom.toUpperCase())
     }
     
     loadPlanos()
@@ -44,7 +48,7 @@ const LPEstudante = () => {
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [searchParams])
 
   const loadPlanos = async () => {
     try {
@@ -127,6 +131,34 @@ const LPEstudante = () => {
     }
   }
 
+  const validarCupom = async (codigo) => {
+    if (!codigo || !codigo.trim()) {
+      setCupomValido(false)
+      setCupomData(null)
+      return
+    }
+
+    setValidandoCupom(true)
+    try {
+      const response = await api.get(`/cupons/name/${codigo.toUpperCase().trim()}`)
+      const cupom = response.data?.data || response.data
+
+      if (cupom && cupom.active) {
+        setCupomValido(true)
+        setCupomData(cupom) // Armazena os dados do cupom (discountValue, name, etc)
+      } else {
+        setCupomValido(false)
+        setCupomData(null)
+      }
+    } catch (error) {
+      console.error('Erro ao validar cupom:', error)
+      setCupomValido(false)
+      setCupomData(null)
+    } finally {
+      setValidandoCupom(false)
+    }
+  }
+
   const handleCtaClick = () => {
     trackButtonClick('cta_header', 'lp_estudante_header')
     document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -173,10 +205,16 @@ const LPEstudante = () => {
     <div className="lp-estudante">
       {/* Tag de Cupom Ativo */}
       {cupomCode && (
-        <div className="cupom-banner">
+        <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
             <FontAwesomeIcon icon={faTag} />
-            <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado no checkout</span>
+            {validandoCupom ? (
+              <span>Validando cupom <strong>{cupomCode}</strong>...</span>
+            ) : cupomValido ? (
+              <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado no checkout</span>
+            ) : (
+              <span>Cupom <strong>{cupomCode}</strong> inválido ou inativo</span>
+            )}
           </div>
         </div>
       )}
@@ -416,7 +454,7 @@ const LPEstudante = () => {
             <div className="plans-container">
               {planos.map((plano, index) => {
                 // Converte valores para número se necessário
-                const valorOriginal = typeof plano.valorOriginal === 'string' ? parseFloat(plano.valorOriginal) : (plano.valorOriginal || 0)
+                let valorOriginal = typeof plano.valorOriginal === 'string' ? parseFloat(plano.valorOriginal) : (plano.valorOriginal || 0)
                 const valorPromocional = plano.valorPromocional ? (typeof plano.valorPromocional === 'string' ? parseFloat(plano.valorPromocional) : plano.valorPromocional) : null
                 
                 // Verifica se tem promoção: valor promocional existe, é válido e menor que o original
@@ -425,7 +463,22 @@ const LPEstudante = () => {
                                     valorPromocional > 0 && 
                                     valorOriginal > 0 &&
                                     valorPromocional < valorOriginal
-                const valorExibir = temPromocao ? valorPromocional : valorOriginal
+                
+                // Aplica desconto do cupom se estiver ativo
+                let valorComDesconto = null
+                let valorExibir = temPromocao ? valorPromocional : valorOriginal
+                let temDescontoCupom = false
+                let valorBaseParaDesconto = temPromocao ? valorPromocional : valorOriginal
+                
+                if (cupomValido && cupomData && valorOriginal > 0) {
+                  const discountPercent = Number(cupomData.discountValue) || 0
+                  if (discountPercent > 0) {
+                    // Aplica desconto sobre o valor promocional (se existir) ou sobre o original
+                    valorComDesconto = valorBaseParaDesconto * (1 - discountPercent / 100)
+                    valorExibir = valorComDesconto
+                    temDescontoCupom = true
+                  }
+                }
                 
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
@@ -434,14 +487,26 @@ const LPEstudante = () => {
                     )}
                     <div className="plan-header">
                       <h3 className="plan-name">{plano.nome}</h3>
+                      {cupomValido && cupomData && (
+                        <div className="cupom-badge-plan">
+                          <FontAwesomeIcon icon={faTag} />
+                          <span>Cupom {cupomCode} aplicado!</span>
+                        </div>
+                      )}
                       <div className="plan-price-section">
-                        {temPromocao && (
-                          <div className="old-price">{formatarValor(plano.valorOriginal)}</div>
+                        {(temPromocao || temDescontoCupom) && (
+                          <div className="old-price">{formatarValor(valorBaseParaDesconto)}</div>
                         )}
                         <div className="price-main">
                           <span className="price-value">{formatarValor(valorExibir)}</span>
                           <span className="price-period">/mês</span>
                         </div>
+                        {temDescontoCupom && cupomData && (
+                          <div className="cupom-discount-info">
+                            <span className="discount-percent">-{Number(cupomData.discountValue).toFixed(0)}%</span>
+                            <span className="discount-text">com cupom {cupomCode}</span>
+                          </div>
+                        )}
                       </div>
                       {plano.limiteAnalises && (
                         <div className="plan-limit">{plano.limiteAnalises} análises/mês</div>
