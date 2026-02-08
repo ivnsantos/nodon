@@ -13,6 +13,7 @@ import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
 import nodoLogo from '../img/nodo.png'
 import estudanteImg from '../img/especializacao-em-odontologia-1.jpg'
+import xl20Img from '../img/xl20.jpeg'
 import './LPEstudante.css'
 
 const LPEstudante = () => {
@@ -211,7 +212,7 @@ const LPEstudante = () => {
             {validandoCupom ? (
               <span>Validando cupom <strong>{cupomCode}</strong>...</span>
             ) : cupomValido ? (
-              <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado no checkout</span>
+              <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado</span>
             ) : (
               <span>Cupom <strong>{cupomCode}</strong> inválido ou inativo</span>
             )}
@@ -281,7 +282,11 @@ const LPEstudante = () => {
             </div>
             <div className="hero-side">
               <div className="hero-image-wrapper">
-                <img src={estudanteImg} alt="Estudantes de Odontologia" className="hero-image" />
+                <img 
+                  src={cupomCode === 'XL20' && cupomValido ? xl20Img : estudanteImg} 
+                  alt={cupomCode === 'XL20' && cupomValido ? "Cupom XL20" : "Estudantes de Odontologia"} 
+                  className="hero-image" 
+                />
                 <div className="image-overlay"></div>
               </div>
             </div>
@@ -469,6 +474,7 @@ const LPEstudante = () => {
                 // Aplica desconto do cupom se estiver ativo
                 let valorExibir = temPromocao ? valorPromocional : valorOriginal
                 let temDescontoCupom = false
+                // Valor base para aplicar desconto do cupom (promocional se existir, senão original)
                 let valorBaseParaDesconto = temPromocao ? valorPromocional : valorOriginal
                 
                 if (cupomValido && cupomData && valorOriginal > 0) {
@@ -495,19 +501,19 @@ const LPEstudante = () => {
                         </div>
                       )}
                       <div className="plan-price-section">
+                        {/* Sempre mostra o original riscado quando tem promoção ou cupom */}
                         {(temPromocao || temDescontoCupom) && (
-                          <div className="old-price">{formatarValor(valorBaseParaDesconto)}</div>
+                          <div className="old-price">{formatarValor(valorOriginal)}</div>
                         )}
+                        {/* Mostra o promocional riscado quando tem cupom aplicado */}
+                        {temDescontoCupom && temPromocao && (
+                          <div className="old-price">{formatarValor(valorPromocional)}</div>
+                        )}
+                        {/* Preço final */}
                         <div className="price-main">
                           <span className="price-value">{formatarValor(valorExibir)}</span>
                           <span className="price-period">/mês</span>
                         </div>
-                        {temDescontoCupom && cupomData && (
-                          <div className="cupom-discount-info">
-                            <span className="discount-percent">-{Number(cupomData.discountValue).toFixed(0)}%</span>
-                            <span className="discount-text">com cupom {cupomCode}</span>
-                          </div>
-                        )}
                       </div>
                       {plano.limiteAnalises && (
                         <div className="plan-limit">{plano.limiteAnalises} análises/mês</div>
