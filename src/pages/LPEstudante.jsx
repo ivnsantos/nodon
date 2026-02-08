@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faGraduationCap, faCheckCircle, faUsers, faShieldAlt,
   faCloud, faMobileAlt, faRobot, faStar, faArrowRight,
   faBars, faTimes, faBolt, faXRay, faBookOpen, faRocket,
   faComments, faMessage, faBrain, faAward, faLightbulb,
-  faChartLine, faHandHoldingHeart
+  faChartLine, faHandHoldingHeart, faTag
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -17,11 +17,19 @@ import './LPEstudante.css'
 
 const LPEstudante = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [planos, setPlanos] = useState([])
   const [loadingPlanos, setLoadingPlanos] = useState(true)
+  const [cupomCode, setCupomCode] = useState(null)
 
   useEffect(() => {
+    // Verificar se há cupom na URL
+    const cupom = searchParams.get('cupom')
+    if (cupom) {
+      setCupomCode(cupom.toUpperCase())
+    }
+    
     loadPlanos()
     
     const handleScroll = () => {
@@ -131,7 +139,8 @@ const LPEstudante = () => {
       content_id: planoId,
       content_name: planoNome
     })
-    navigate(`/checkout?plano=${encodeURIComponent(planoNome)}&planoId=${planoId}&origem=estudante`)
+    const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
+    navigate(`/checkout?plano=${encodeURIComponent(planoNome)}&planoId=${planoId}&origem=estudante${cupomParam}`)
   }
 
   const scrollToSection = (id) => {
@@ -162,6 +171,16 @@ const LPEstudante = () => {
 
   return (
     <div className="lp-estudante">
+      {/* Tag de Cupom Ativo */}
+      {cupomCode && (
+        <div className="cupom-banner">
+          <div className="cupom-banner-content">
+            <FontAwesomeIcon icon={faTag} />
+            <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado no checkout</span>
+          </div>
+        </div>
+      )}
+      
       {/* Header Minimalista */}
       <header className="lp-header">
         <div className="lp-container">
@@ -498,10 +517,12 @@ const LPEstudante = () => {
                   plano: plano || 'nenhum'
                 })
                 
+                const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
+                
                 if (plano) {
-                  navigate(`/checkout?plano=${encodeURIComponent(plano)}&nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante`)
+                  navigate(`/checkout?plano=${encodeURIComponent(plano)}&nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante${cupomParam}`)
                 } else {
-                  navigate(`/checkout?nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante`)
+                  navigate(`/checkout?nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante${cupomParam}`)
                 }
               }}>
                 <div className="form-field">

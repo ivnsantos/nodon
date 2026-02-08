@@ -17,6 +17,48 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Banner de Cupom */
+.cupom-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  padding: 0.75rem 0;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.3);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.cupom-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.cupom-banner-content svg {
+  font-size: 1.125rem;
+}
+
+.cupom-banner-content strong {
+  font-weight: 900;
+  font-size: 1.0625rem;
+  letter-spacing: 0.05em;
+}
+
 .lp-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -45,6 +87,11 @@
   height: 80px;
   display: flex;
   align-items: center;
+  transition: top 0.3s ease;
+}
+
+.lp-estudante:has(.cupom-banner) .lp-header {
+  top: 45px;
 }
 
 .lp-header.scrolled {
@@ -127,6 +174,10 @@
   margin-top: 80px;
   position: relative;
   overflow: hidden;
+}
+
+.lp-estudante:has(.cupom-banner) .hero-section {
+  margin-top: 125px;
 }
 
 .hero-bg-pattern {
@@ -1486,6 +1537,24 @@
 }
 
 @media (max-width: 768px) {
+  .cupom-banner {
+    padding: 0.5rem 0;
+  }
+
+  .cupom-banner-content {
+    font-size: 0.875rem;
+    padding: 0 1rem;
+    text-align: center;
+  }
+
+  .lp-estudante:has(.cupom-banner) .lp-header {
+    top: 40px;
+  }
+
+  .lp-estudante:has(.cupom-banner) .hero-section {
+    margin-top: 120px;
+  }
+
   .value-section {
     padding: 4rem 0;
   }
