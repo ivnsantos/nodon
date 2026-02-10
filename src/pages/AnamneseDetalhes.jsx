@@ -121,35 +121,32 @@ const AnamneseDetalhes = () => {
       </div>
 
       <div className="anamnese-detalhes-content">
-        <div className="anamnese-info-card">
-          <div className="anamnese-title-section">
+        <div className="anamnese-header-card">
+          <div className="anamnese-header-top">
             <div className="anamnese-icon-large">
               <FontAwesomeIcon icon={faClipboardQuestion} />
             </div>
-            <div className="anamnese-title-info">
+            <div className="anamnese-header-title">
               <h1>{anamnese.titulo}</h1>
-              <div className="anamnese-status-badge">
-                <span className={`status-badge ${anamnese.ativa ? 'active' : 'inactive'}`}>
-                  <FontAwesomeIcon icon={anamnese.ativa ? faCheckCircle : faTimesCircle} />
-                  {anamnese.ativa ? 'Ativa' : 'Inativa'}
-                </span>
-              </div>
+              <span className={`status-badge ${anamnese.ativa ? 'active' : 'inactive'}`}>
+                {anamnese.ativa ? 'ATIVA' : 'INATIVA'}
+              </span>
             </div>
           </div>
 
           {anamnese.descricao && (
-            <div className="anamnese-description-section">
+            <div className="anamnese-description-inline">
               <p>{anamnese.descricao}</p>
             </div>
           )}
-
-          <div className="anamnese-meta-info">
+          
+          <div className="anamnese-meta-grid">
             <div className="meta-item">
-              <span className="meta-label">Perguntas:</span>
+              <span className="meta-label">Perguntas</span>
               <span className="meta-value">{perguntasOrdenadas.length}</span>
             </div>
             <div className="meta-item">
-              <span className="meta-label">Criada em:</span>
+              <span className="meta-label">Criada em</span>
               <span className="meta-value">
                 {new Date(anamnese.createdAt).toLocaleDateString('pt-BR', {
                   day: '2-digit',
@@ -162,7 +159,7 @@ const AnamneseDetalhes = () => {
             </div>
             {anamnese.updatedAt && anamnese.updatedAt !== anamnese.createdAt && (
               <div className="meta-item">
-                <span className="meta-label">Atualizada em:</span>
+                <span className="meta-label">Atualizada em</span>
                 <span className="meta-value">
                   {new Date(anamnese.updatedAt).toLocaleDateString('pt-BR', {
                     day: '2-digit',
@@ -187,9 +184,8 @@ const AnamneseDetalhes = () => {
             <div className="perguntas-list">
               {perguntasOrdenadas.map((pergunta, index) => (
                 <div key={pergunta.id} className="pergunta-item">
-                  <div className="pergunta-header">
+                    <div className="pergunta-header">
                     <div className="pergunta-number">
-                      <FontAwesomeIcon icon={faGripVertical} />
                       <span>{index + 1}</span>
                     </div>
                     <div className="pergunta-info">
@@ -198,12 +194,7 @@ const AnamneseDetalhes = () => {
                         {pergunta.obrigatoria && <span className="required-mark">*</span>}
                       </h3>
                       <div className="pergunta-details">
-                        <span className="tipo-resposta">Tipo: {getTipoRespostaLabel(pergunta.tipoResposta)}</span>
-                        {pergunta.opcoes && pergunta.opcoes.length > 0 && (
-                          <span className="opcoes-count">
-                            {pergunta.opcoes.length} opção(ões)
-                          </span>
-                        )}
+                        <span className="tipo-resposta">{getTipoRespostaLabel(pergunta.tipoResposta)}</span>
                       </div>
                     </div>
                   </div>

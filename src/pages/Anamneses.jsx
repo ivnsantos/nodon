@@ -182,21 +182,18 @@ const Anamneses = () => {
         ) : (
           filteredAnamneses.map(anamnese => (
             <div key={anamnese.id} className="anamnese-card">
-              <div className="anamnese-header">
+              <div className="anamnese-card-top">
                 <div className="anamnese-icon">
                   <FontAwesomeIcon icon={faClipboardQuestion} />
                 </div>
-                <div className="anamnese-info-header">
+                <div className="anamnese-title-section">
                   <h3>{anamnese.titulo}</h3>
-                  <span 
-                    className={`status-badge ${anamnese.ativa ? 'active' : 'inactive'}`}
-                  >
-                    <FontAwesomeIcon icon={anamnese.ativa ? faCheckCircle : faTimesCircle} />
-                    {anamnese.ativa ? 'Ativa' : 'Inativa'}
+                  <span className={`status-badge ${anamnese.ativa ? 'active' : 'inactive'}`}>
+                    {anamnese.ativa ? 'ATIVA' : 'INATIVA'}
                   </span>
                 </div>
               </div>
-              
+
               {anamnese.descricao && (
                 <div className="anamnese-description">
                   <p>{anamnese.descricao}</p>
@@ -211,7 +208,11 @@ const Anamneses = () => {
                 <div className="detail-item">
                   <span className="detail-label">Criada em:</span>
                   <span className="detail-value">
-                    {new Date(anamnese.createdAt).toLocaleDateString('pt-BR')}
+                    {new Date(anamnese.createdAt).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
                   </span>
                 </div>
               </div>

@@ -102,13 +102,7 @@ const Calendario = () => {
     }
   }
 
-  // Carregar clientes da API
-  useEffect(() => {
-    if (selectedClinicId) {
-      fetchClientes()
-    }
-  }, [selectedClinicId])
-
+  // Função para carregar clientes da API (não é chamada automaticamente)
   const fetchClientes = async () => {
     if (!selectedClinicId) return
 
@@ -1038,32 +1032,46 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
       
       const response = await api.get(url)
       
-      // A resposta tem estrutura aninhada: data.data.data.pacientes
+      // A resposta pode ter diferentes estruturas
       let pacientes = []
       
-      if (response.data.statusCode === 200) {
-        // A estrutura é: response.data.data.data.pacientes
-        pacientes = response.data.data?.data?.pacientes || response.data.data?.pacientes || []
+      // Verificar se é um array direto (resposta mais comum)
+      if (Array.isArray(response.data)) {
+        pacientes = response.data
+      } 
+      // Verificar estrutura com statusCode
+      else if (response.data?.statusCode === 200) {
+        // A estrutura pode ser: response.data.data.data.pacientes ou response.data.data.pacientes
+        pacientes = response.data.data?.data?.pacientes || 
+                   response.data.data?.pacientes || 
+                   response.data.pacientes || 
+                   []
+      }
+      // Verificar se há data direto (sem statusCode)
+      else if (response.data?.data) {
+        pacientes = Array.isArray(response.data.data) 
+          ? response.data.data 
+          : (response.data.data.pacientes || [])
+      }
+      // Fallback: tentar pegar diretamente se não houver estrutura conhecida
+      else if (response.data) {
+        pacientes = Array.isArray(response.data) ? response.data : []
+      }
+      
+      // Sempre mostrar dropdown após busca, mesmo se não houver resultados
+      setShowSearchResults(true)
+      
+      if (pacientes.length > 0) {
+        setSearchResults(pacientes)
         
-        
-        if (pacientes.length > 0) {
-          setSearchResults(pacientes)
-          setShowSearchResults(true) // Sempre mostrar dropdown após busca
-          
-          // Adicionar novos pacientes à lista de clientes
-          pacientes.forEach(paciente => {
-            if (!clientes.find(c => c.id === paciente.id)) {
-              setClientes(prev => [...prev, paciente])
-            }
-          })
-        } else {
-          setSearchResults([])
-          setShowSearchResults(true) // Mostrar mensagem "nenhum resultado"
-        }
+        // Adicionar novos pacientes à lista de clientes
+        pacientes.forEach(paciente => {
+          if (!clientes.find(c => c.id === paciente.id)) {
+            setClientes(prev => [...prev, paciente])
+          }
+        })
       } else {
-        console.warn('Status code diferente de 200:', response.data.statusCode)
         setSearchResults([])
-        setShowSearchResults(true) // Mostrar mensagem mesmo sem resultados
       }
     } catch (error) {
       console.error('Erro ao buscar pacientes:', error)
