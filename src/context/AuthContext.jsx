@@ -427,7 +427,6 @@ export const AuthProvider = ({ children }) => {
         const acesso = data.relacionamento?.acesso || data.plano?.acesso || 'all'
         setPlanoAcesso(acesso)
         sessionStorage.setItem('planoAcesso', acesso)
-        console.log('Acesso do plano:', acesso)
         
         // Salvar também o relacionamento separadamente para fácil acesso
         if (data.relacionamento) {

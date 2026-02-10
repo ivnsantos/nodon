@@ -253,10 +253,7 @@ const DiagnosticoDetalhes = () => {
           return
         }
       } catch (userError) {
-        console.log('Erro ao buscar usuário pelo ID:', userError)
       }
-
-      console.log('Responsável não encontrado com ID:', responsavelId)
     } catch (error) {
       console.error('Erro ao buscar nome do profissional:', error)
     }

@@ -43,8 +43,6 @@ export const trackEvent = (eventName, eventParams = {}) => {
       ...eventParams
     }
     window.dataLayer.push(eventData)
-    // Debug: log no console para verificar se está sendo enviado
-    console.log('GTM Event:', eventData)
   }
 }
 

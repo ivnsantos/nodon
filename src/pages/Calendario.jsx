@@ -70,10 +70,8 @@ const Calendario = () => {
     }
 
     try {
-      console.log('Carregando tipos de consulta...')
       setLoading(true)
       const response = await api.get('/calendario/tipos')
-      console.log('Resposta da API de tipos:', response.data)
       
       if (response.data.statusCode === 200) {
         // A resposta pode ter estrutura aninhada: data.data.tipos ou data.tipos
@@ -81,8 +79,6 @@ const Calendario = () => {
                      response.data.data?.tipos || 
                      response.data.tipos || 
                      []
-        
-        console.log('Tipos encontrados:', tipos)
         
         // Mapear para o formato esperado pelo componente
         const mappedTypes = tipos
@@ -93,10 +89,8 @@ const Calendario = () => {
             color: tipo.cor
           }))
         
-        console.log('Tipos mapeados:', mappedTypes)
         setEventTypes(mappedTypes)
       } else {
-        console.warn('Status code diferente de 200:', response.data.statusCode)
         setEventTypes([])
       }
     } catch (error) {
@@ -157,8 +151,6 @@ const Calendario = () => {
           usuariosData = response.data.usuarios
         }
         
-        console.log('Dados brutos da API:', response.data) // Debug
-        console.log('Usuários extraídos:', usuariosData) // Debug
         
         // Extrair informações do cliente master da resposta
         // A estrutura é: response.data.data.data.cliente_master
@@ -171,8 +163,6 @@ const Calendario = () => {
           clienteMaster = response.data.cliente_master
         }
         
-        console.log('Cliente Master extraído:', clienteMaster)
-        
         if (clienteMaster) {
           const clienteMasterData = {
             id: clienteMaster.id,
@@ -180,10 +170,8 @@ const Calendario = () => {
             email: clienteMaster.email || '',
             isClienteMaster: true
           }
-          console.log('Cliente Master Info setado:', clienteMasterData)
           setClienteMasterInfo(clienteMasterData)
         } else {
-          console.warn('Cliente Master não encontrado na resposta')
           setClienteMasterInfo(null)
         }
         
@@ -197,7 +185,6 @@ const Calendario = () => {
           ativo: usuario.ativo !== false,
           isClienteMaster: false
         }))
-        console.log('Profissionais mapeados:', mappedProfissionais) // Debug
         setProfissionais(mappedProfissionais)
       }
     } catch (error) {
@@ -215,7 +202,6 @@ const Calendario = () => {
 
   const fetchConsultas = async () => {
     if (!selectedClinicId) {
-      console.log('fetchConsultas: selectedClinicId não definido')
       return
     }
 
@@ -247,15 +233,9 @@ const Calendario = () => {
       }
       // Se for 'all' ou null, não passar profissional_id (backend retornará todas)
 
-      console.log('=== DEBUG REQUISIÇÃO ===')
-      console.log('URL da requisição:', url)
-      console.log('selectedClinicId:', selectedClinicId)
-      console.log('Token:', sessionStorage.getItem('token') ? 'Presente' : 'Ausente')
-      console.log('Relacionamento:', sessionStorage.getItem('relacionamento'))
       
       const response = await api.get(url)
       
-      console.log('Resposta da API:', response.data)
       
       if (response.data.statusCode === 200) {
         // Verificar diferentes estruturas possíveis da resposta
@@ -267,8 +247,6 @@ const Calendario = () => {
         } else if (response.data.consultas) {
           consultas = response.data.consultas
         }
-        
-        console.log('Consultas extraídas:', consultas)
         
         // Mapear para o formato esperado pelo componente
         const mappedEvents = consultas.map(consulta => {
@@ -292,41 +270,22 @@ const Calendario = () => {
               notes: consulta.observacoes || ''
             }
           } catch (err) {
-            console.error('Erro ao mapear consulta:', consulta, err)
             return null
           }
         }).filter(Boolean) // Remove nulls
         
-        console.log('Eventos mapeados:', mappedEvents)
         setEvents(mappedEvents)
       } else {
-        console.warn('Status code diferente de 200:', response.data.statusCode)
         setEvents([])
       }
     } catch (error) {
-      console.error('Erro ao carregar consultas:', error)
-      console.error('Detalhes completos do erro:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers
-        }
-      })
-      
       setEvents([])
       
       // Mostrar erro detalhado ao usuário
       if (error.response?.status >= 500) {
         const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Erro interno do servidor'
-        console.error('Erro 500 - Mensagem do servidor:', errorMessage)
-        showError(`Erro ao carregar consultas: ${errorMessage}. Verifique o console para mais detalhes.`)
+        showError(`Erro ao carregar consultas: ${errorMessage}`)
       } else if (error.response?.status === 404) {
-        console.log('Endpoint não encontrado - pode ser que ainda não esteja implementado no backend')
         showWarning('Endpoint não encontrado. Verifique se a rota está implementada no backend.')
       } else if (error.response?.status === 401) {
         showError('Não autorizado. Faça login novamente.')
@@ -425,12 +384,9 @@ const Calendario = () => {
   const handleAddType = async (name, color) => {
     try {
       const response = await api.post('/calendario/tipos', { nome: name, cor: color })
-      console.log('Resposta ao criar tipo:', response.data)
-      
       if (response.data.statusCode === 201) {
         // A resposta pode ter estrutura aninhada: data.data.tipo ou data.tipo
         const newType = response.data.data?.data?.tipo || response.data.data?.tipo || response.data.tipo
-        console.log('Novo tipo criado:', newType)
         
         if (newType) {
           const mappedType = {
@@ -523,7 +479,6 @@ const Calendario = () => {
         throw new Error('Data inválida')
       }
       
-      console.log('Data formatada para API:', dateStr)
 
       // Validar campos obrigatórios
       if (!eventData.typeId) {
@@ -559,10 +514,6 @@ const Calendario = () => {
         observacoes: eventData.notes || null
       }
 
-      console.log('Payload sendo enviado:', payload)
-      console.log('Professional Type:', eventData.professionalType)
-      console.log('Professional ID:', eventData.professionalId)
-      console.log('ProfissionalId final:', profissionalId)
 
       let response
       if (editingEvent) {
@@ -938,7 +889,6 @@ const EventTypesModal = ({ eventTypes, onClose, onAdd, onEdit, onDelete, editing
           {!showForm ? (
             <>
               <div className="types-list">
-                {console.log('EventTypes no modal:', eventTypes)}
                 {eventTypes && eventTypes.length > 0 ? (
                   eventTypes.map((type) => (
                     <div key={type.id} className="type-item">
@@ -1086,10 +1036,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
         url += `?nome=${encodeURIComponent(term.trim())}`
       }
       
-      console.log('Buscando pacientes:', url)
       const response = await api.get(url)
-      
-      console.log('Resposta completa:', response.data)
       
       // A resposta tem estrutura aninhada: data.data.data.pacientes
       let pacientes = []
@@ -1098,8 +1045,6 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
         // A estrutura é: response.data.data.data.pacientes
         pacientes = response.data.data?.data?.pacientes || response.data.data?.pacientes || []
         
-        console.log('Pacientes encontrados:', pacientes)
-        console.log('Quantidade:', pacientes.length)
         
         if (pacientes.length > 0) {
           setSearchResults(pacientes)
@@ -1158,17 +1103,13 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('handleSubmit chamado', formData)
-    
     if (!formData.typeId) {
-      console.log('Erro: tipo de consulta não selecionado')
       setCustomAlert({ show: true, message: 'Selecione um tipo de consulta/tratamento', type: 'error' })
       setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
       return
     }
 
     if (!formData.patientId) {
-      console.log('Erro: paciente não selecionado')
       setCustomAlert({ show: true, message: 'Selecione um paciente', type: 'error' })
       setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
       return
@@ -1182,9 +1123,6 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
     // Criar data local (sem conversão de timezone)
     const eventDate = new Date(year, month - 1, day, hours, minutes)
     
-    console.log('Data do formulário:', formData.date)
-    console.log('Hora do formulário:', formData.time)
-    console.log('Data criada:', eventDate)
 
     // Buscar nome do paciente
     const selectedCliente = clientes.find(c => c.id === formData.patientId || c.id === String(formData.patientId))
@@ -1240,8 +1178,6 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
       notes: formData.notes
     }
 
-    console.log('EventData preparado:', eventData)
-    console.log('Chamando onSave...')
     
     try {
       onSave(eventData)

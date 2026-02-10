@@ -34,8 +34,6 @@ const AnamneseEntrada = () => {
       const response = await publicApi.get(`/anamneses/publica/${id}`)
       const responseData = response.data?.data || response.data
 
-      console.log('Dados recebidos da API:', responseData)
-
       // Verificar se já está concluída (verificar primeiro)
       if (responseData.concluida === true) {
         setConcluida(true)

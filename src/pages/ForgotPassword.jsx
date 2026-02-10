@@ -34,20 +34,11 @@ const ForgotPassword = () => {
     setLoading(true)
 
     try {
-      console.log('Enviando requisição para /auth/forgot-password')
-      console.log('Email:', emailTrimmed)
-      console.log('Base URL:', api.defaults.baseURL)
-      
       const requestBody = {
         email: emailTrimmed
       }
       
-      console.log('Body da requisição:', requestBody)
-      
       const response = await api.post('/auth/forgot-password', requestBody)
-
-      console.log('Resposta da API forgot-password:', response.data)
-      console.log('Status HTTP:', response.status)
 
       // A API pode retornar { message: "..." } ou { statusCode: 200, message: "..." }
       if (response.data?.message || response.status === 200 || response.data?.statusCode === 200) {

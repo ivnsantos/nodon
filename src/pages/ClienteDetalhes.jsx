@@ -300,7 +300,6 @@ const ClienteDetalhes = () => {
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
-        console.log('clienteMasterId não encontrado')
         setRadiografias([])
         return
       }
@@ -597,7 +596,6 @@ const ClienteDetalhes = () => {
           anamnesesData = response.data
         }
       }
-      console.log('Anamneses vinculadas carregadas:', anamnesesData)
       setAnamnesesVinculadas(anamnesesData || [])
     } catch (error) {
       console.error('Erro ao carregar anamneses vinculadas:', error)

@@ -305,7 +305,6 @@ const DiagnosticoDesenho = () => {
     
     img.onload = () => {
       if (!boardRef.current) {
-        console.log('Board ref não disponível')
         return
       }
       
@@ -342,7 +341,6 @@ const DiagnosticoDesenho = () => {
       
       // Não chamar saveState aqui para evitar erro de canvas tainted
       // O saveState será chamado quando o usuário começar a desenhar
-      console.log('Imagem carregada no canvas:', displayWidth, displayHeight, 'Board:', boardWidth, boardHeight)
     }
     
     img.onerror = (error) => {
@@ -1557,7 +1555,6 @@ const DiagnosticoDesenho = () => {
         const logoHeight = logoSize
         pdf.addImage(logoImg, 'PNG', margin, 8, logoSize, logoHeight)
       } catch (e) {
-        console.log('Erro ao carregar logo:', e)
       }
       
       // Título no cabeçalho
@@ -1659,7 +1656,6 @@ const DiagnosticoDesenho = () => {
               pdf.addImage(denteImg, 'PNG', margin + 3, yPosition + 2, denteImgSize, denteImgHeight)
               hasDenteImage = true
             } catch (e) {
-              console.log('Erro ao carregar imagem do dente:', e)
               // Tentar método alternativo: carregar SVG diretamente como imagem
               try {
                 const denteImg = await loadImage(denteSvg)
@@ -1676,7 +1672,6 @@ const DiagnosticoDesenho = () => {
                 pdf.addImage(imgFromCanvas, 'PNG', margin + 3, yPosition + 2, denteImgSize, denteImgHeight)
                 hasDenteImage = true
               } catch (e2) {
-                console.log('Erro no método alternativo:', e2)
               }
             }
           }
@@ -1836,7 +1831,6 @@ const DiagnosticoDesenho = () => {
         const logoFooterSize = 6
         pdf.addImage(logoFooterImg, 'PNG', margin, footerY + 5, logoFooterSize, logoFooterSize)
       } catch (e) {
-        console.log('Erro ao carregar logo no rodapé:', e)
       }
       
       const dataAtual = new Date().toLocaleDateString('pt-BR')

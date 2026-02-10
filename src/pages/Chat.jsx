@@ -90,7 +90,6 @@ const Chat = () => {
         data = data.data
       }
       
-      console.log('Histórico da API:', data)
       
       // A estrutura pode variar, então vamos tratar diferentes formatos
       let conversationsList = []
@@ -106,8 +105,6 @@ const Chat = () => {
         // Se for um objeto único com conversationId, colocar em um array
         conversationsList = [data]
       }
-      
-      console.log('Lista de conversas:', conversationsList)
       
       if (conversationsList.length === 0) {
         setConversations({})
@@ -148,7 +145,6 @@ const Chat = () => {
         return acc
       }, {})
       
-      console.log('Conversas agrupadas:', grouped)
       setConversations(grouped)
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
@@ -179,7 +175,6 @@ const Chat = () => {
 
   const loadConversation = async (conversationId) => {
     try {
-      console.log('Carregando conversa:', conversationId)
       
       // Buscar conversa específica da API
       const response = await api.get(`/chat/history/${conversationId}`)
@@ -192,7 +187,6 @@ const Chat = () => {
         data = data.data
       }
       
-      console.log('Dados da conversa:', data)
       
       if (data) {
         // Mapear mensagens da API para o formato do componente
@@ -237,7 +231,6 @@ const Chat = () => {
           }
         }
         
-        console.log('Mensagens mapeadas:', messagesList)
         
         if (messagesList.length > 0) {
           setMessages(messagesList)
@@ -577,7 +570,6 @@ const Chat = () => {
             } else if (data.type === 'done') {
               // Resposta completa
               tokensUsed = data.tokensUsed || 0
-              console.log('Tokens usados:', tokensUsed)
               
               // Se a resposta veio junto com o done, usar ela
               if (data.response) {
@@ -696,7 +688,6 @@ const Chat = () => {
     } catch (error) {
       // Se foi abortado pelo usuário, não mostrar erro
       if (error.name === 'AbortError') {
-        console.log('Resposta interrompida pelo usuário')
         return
       }
       

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCreditCard, faMapMarkerAlt, faCheckCircle,
-  faChevronRight, faChevronLeft, faTag, faLock, faChevronDown,
+  faChevronRight, faChevronLeft, faTag, faLock, faChevronDown, faChevronUp,
   faExclamationTriangle, faTimes, faCheck, faPhone
 } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
@@ -29,6 +29,7 @@ const Checkout = () => {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [plans, setPlans] = useState([])
   const [loadingPlans, setLoadingPlans] = useState(true)
+  const [showAllPlans, setShowAllPlans] = useState(false)
   
   // Form data
   const [formData, setFormData] = useState({
@@ -72,90 +73,86 @@ const Checkout = () => {
         // O baseURL já garante que termina com /api, então usamos apenas /planos
         const response = await api.get('/planos')
         
-        // Debug: verificar estrutura da resposta
-        console.log('Resposta completa da API:', response)
-        console.log('response.data:', response.data)
-        
         // A API pode retornar { statusCode, message, data } ou diretamente o array
         const planosBackend = response.data?.data || response.data || []
-        
-        console.log('Planos extraídos:', planosBackend)
 
         // Verificar se é um array
         if (!Array.isArray(planosBackend)) {
-          console.error('Resposta da API não é um array:', planosBackend)
           showAlert('Erro ao carregar planos. Formato inválido.', 'error')
           return
+        }
+
+        // Função auxiliar para formatar tokens
+        const formatarTokensAux = (tokens) => {
+          const numTokens = parseInt(tokens) || 0
+          if (numTokens >= 1000000) {
+            return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
+          } else if (numTokens >= 1000) {
+            return `${(numTokens / 1000).toFixed(0)} mil`
+          }
+          return numTokens.toString()
         }
 
         // Mapear planos do backend para o formato esperado no frontend
         const planosMapeados = planosBackend.map((plano) => {
           // Validar campos obrigatórios
           if (!plano.id || !plano.nome) {
-            console.warn('Plano com dados incompletos:', plano)
+            // Plano com dados incompletos - será filtrado depois
           }
 
-          // Determinar features baseado no nome do plano
+          // Determinar features baseado no ID ou nome do plano (mesma lógica do LPDentista)
           let features = []
           let featured = false
           let badge = null
 
-          switch (plano.nome) {
-            case 'Plano Inicial':
-              features = [
-                'Análise de radiografias',
-                'Relatórios detalhados',
-                'Suporte por email',
-                'Armazenamento na nuvem',
-                '1 milhão de tokens no chat da NODON'
-              ]
-              break
-            case 'Plano Básico':
-              featured = true
-              features = [
-                'Tudo do Plano Inicial',
-                'Análise avançada com IA',
-                'Suporte prioritário',
-                'Múltiplos profissionais',
-                'Relatórios personalizados',
-                '1 milhão de tokens no chat da NODON'
-              ]
-              break
-            case 'Plano Premium':
-              badge = 'Novo'
-              features = [
-                'Tudo do Plano Básico',
-                'Suporte 24/7',
-                'Treinamento dedicado',
-                '1.5 milhão de tokens no chat da NODON',
-                'Gerente de Conta especializado'
-              ]
-              break
-            case 'Plano Essencial':
-              badge = 'Mais Vendido'
-              features = [
-                'Tudo do Plano Premium',
-                'Suporte 24/7',
-                'Treinamento dedicado',
-                '1.5 milhão de tokens no chat da NODON',
-                'Gerente de Conta especializado'
-              ]
-              break
-            case 'Plano Enterprise':
-              features = [
-                'Tudo do Plano Essencial',
-                'Suporte 24/7',
-                'Treinamento dedicado',
-                '1.5 milhão de tokens no chat da NODON',
-                'Gerente de Conta especializado'
-              ]
-              break
-            default:
-              features = [
-                'Análise de radiografias',
-                'Relatórios detalhados',
-                'Suporte por email'
-              ]
+          // Identifica o plano pelo ID ou nome
+          const isPlanoInicial = plano.id === '3521d057-f3b3-4ae5-9966-a5bdeddc38f2' || plano.nome?.toLowerCase().includes('inicial')
+          const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('chat')
+
+          if (isPlanoChat) {
+            // Plano Chat - Apenas Chat
+            badge = 'Ideal para Consultórios Pequenos'
+            features = [
+              'Chat especializado em odontologia 24/7',
+              'IA treinada especificamente para odontologia',
+              'Tire dúvidas sobre diagnósticos e tratamentos',
+              'Suporte para técnicas odontológicas',
+              'Respostas instantâneas e precisas',
+              plano.tokenChat || plano.token_chat || plano.tokensChat ? `${formatarTokensAux(plano.tokenChat || plano.token_chat || plano.tokensChat)} de tokens` : '1 milhão de tokens',
+              'Acesso mobile completo',
+              'Sem fidelidade - cancele quando quiser'
+            ]
+          } else if (isPlanoInicial) {
+            // Plano Inicial - Ideal para Dentistas Iniciantes
+            badge = 'Ideal para Dentistas Iniciantes'
+            features = [
+              'Diagnósticos com IA avançada',
+              `Até ${plano.limiteAnalises || plano.limite_analises || 12} análises por mês`,
+              'Agendamento de consultas',
+              'Anamneses personalizadas',
+              'Chat especializado em odontologia 24/7',
+              'Gestão completa de pacientes',
+              'Relatórios detalhados e profissionais',
+              'Armazenamento ilimitado na nuvem',
+              plano.tokenChat || plano.token_chat || plano.tokensChat ? `${formatarTokensAux(plano.tokenChat || plano.token_chat || plano.tokensChat)} de tokens` : '1 milhão de tokens',
+              'Acesso mobile completo',
+              'Sem fidelidade - cancele quando quiser'
+            ]
+          } else {
+            // Features completas para outros planos
+            features = [
+              'Diagnósticos com IA avançada',
+              plano.limiteAnalises || plano.limite_analises ? `Até ${plano.limiteAnalises || plano.limite_analises} análises por mês` : 'Análises ilimitadas',
+              'Agendamento de consultas',
+              'Anamneses personalizadas',
+              'Chat especializado em odontologia 24/7',
+              'Gestão completa de pacientes',
+              'Relatórios detalhados e profissionais',
+              'Armazenamento ilimitado na nuvem',
+              plano.tokenChat || plano.token_chat || plano.tokensChat ? `${formatarTokensAux(plano.tokenChat || plano.token_chat || plano.tokensChat)} de tokens` : '1 milhão de tokens',
+              'Acesso mobile completo',
+              'Sem fidelidade - cancele quando quiser'
+            ]
           }
 
           // Valores padrão baseados no nome do plano (quando API retorna null)
@@ -211,16 +208,6 @@ const Checkout = () => {
           const price = pricePromocional !== null && pricePromocional > 0 ? pricePromocional : priceOriginal
           const oldPrice = pricePromocional !== null && pricePromocional > 0 && priceOriginal > pricePromocional ? priceOriginal : null
 
-          console.log('Plano processado:', {
-            nome: plano.nome,
-            valorOriginal,
-            valorPromocional,
-            priceOriginal,
-            pricePromocional,
-            price,
-            oldPrice
-          })
-
           return {
             id: plano.id,
             name: plano.nome,
@@ -269,25 +256,32 @@ const Checkout = () => {
     setIsApplyingCoupon(true)
     try {
       const response = await api.get(`/cupons/name/${code.toUpperCase().trim()}`)
-      const cupom = response.data
+      // A API pode retornar { message, data } ou diretamente o cupom
+      const cupom = response.data?.data || response.data
 
-      if (!cupom || !cupom.active) {
+      // Verificar se o cupom existe e está ativo (verificação estrita)
+      if (!cupom || cupom.active !== true) {
         showAlert('Cupom inválido ou inativo', 'error')
         setIsApplyingCoupon(false)
+        setCouponApplied(false)
+        setAppliedCoupon(null)
+        setDiscount(0)
+        setDiscountValue(0)
         return false
       }
 
       // O cupom retorna discountValue em porcentagem
       setAppliedCoupon(cupom)
-      const discountPercent = Number(cupom.discountValue) || 0
+      const discountPercent = parseFloat(cupom.discountValue) || 0
       setDiscount(discountPercent)
       
       // Calcular valor em reais do desconto (baseado no plano selecionado)
+      // SEM arredondamento - manter precisão decimal
       if (selectedPlan) {
-        const planPrice = Number(selectedPlan.price) || 0
+        const planPrice = parseFloat(selectedPlan.price) || 0
         if (planPrice > 0) {
           const discountInReais = (planPrice * discountPercent) / 100
-          setDiscountValue(discountInReais)
+          setDiscountValue(discountInReais) // Mantém precisão decimal completa
         }
       }
       
@@ -296,12 +290,17 @@ const Checkout = () => {
       return true
     } catch (error) {
       console.error('Erro ao validar cupom:', error)
+      setIsApplyingCoupon(false)
+      setCouponApplied(false)
+      setAppliedCoupon(null)
+      setDiscount(0)
+      setDiscountValue(0)
+      
       if (error.response?.status === 404) {
         showAlert('Cupom não encontrado', 'error')
       } else {
         showAlert('Erro ao validar cupom. Tente novamente.', 'error')
       }
-      setIsApplyingCoupon(false)
       return false
     }
   }
@@ -338,16 +337,17 @@ const Checkout = () => {
   // Recalcular desconto quando o plano mudar ou quando o cupom for aplicado
   useEffect(() => {
     if (appliedCoupon && selectedPlan) {
-      const discountPercent = Number(appliedCoupon.discountValue) || 0
-      const planPrice = Number(selectedPlan.price) || 0
+      const discountPercent = parseFloat(appliedCoupon.discountValue) || 0
+      const planPrice = parseFloat(selectedPlan.price) || 0
       setDiscount(discountPercent)
       if (planPrice > 0) {
+        // SEM arredondamento - manter precisão decimal completa
         const discountInReais = (planPrice * discountPercent) / 100
         setDiscountValue(discountInReais)
       }
     } else if (appliedCoupon && !selectedPlan) {
       // Se tem cupom mas ainda não tem plano, mantém o desconto percentual
-      const discountPercent = Number(appliedCoupon.discountValue) || 0
+      const discountPercent = parseFloat(appliedCoupon.discountValue) || 0
       setDiscount(discountPercent)
       setDiscountValue(0) // Valor em reais será calculado quando o plano for selecionado
     }
@@ -498,9 +498,10 @@ const Checkout = () => {
 
   const calculateTotal = () => {
     if (!selectedPlan) return 0
-    const subtotal = Number(selectedPlan.price) || 0
+    const subtotal = parseFloat(selectedPlan.price) || 0
     // discountValue agora é calculado em reais baseado na porcentagem
-    const discountAmount = Number(discountValue) || 0
+    // SEM arredondamento - manter precisão decimal completa
+    const discountAmount = parseFloat(discountValue) || 0
     const total = subtotal - discountAmount
     return total > 0 ? total : 0 // Garantir que não seja negativo
   }
@@ -514,6 +515,9 @@ const Checkout = () => {
     
     // Evento GTM - Seleção de plano
     trackPlanSelection(plan.name, plan.id, plan.price)
+    
+    // Ocultar outros planos quando selecionar um
+    setShowAllPlans(false)
     
     // Avançar automaticamente para o próximo step
     if (currentStep === 1) {
@@ -824,7 +828,7 @@ const Checkout = () => {
                     <FontAwesomeIcon icon={faCheckCircle} />
                     <span>
                       Cupom {appliedCoupon.name} aplicado! 
-                      Desconto de {Number(discount || 0).toFixed(1)}% (R$ {Number(discountValue || 0).toFixed(2)})
+                      Desconto de {parseFloat(discount || 0).toFixed(1)}%
                     </span>
                     <button 
                       className="coupon-remove"
@@ -850,11 +854,34 @@ const Checkout = () => {
                 </div>
               ) : (
                 <div className="plans-grid-checkout">
-                  {plans.map(plan => {
-                  const planPrice = Number(plan.price) || 0
-                  const discountPercent = Number(discount) || 0
+                  {(() => {
+                    // Ordenar planos: se tiver plano selecionado, ele vem primeiro
+                    // Caso contrário, ordenar por preço (do menor para o maior)
+                    const sortedPlans = [...plans].sort((a, b) => {
+                      // Se há plano selecionado, ele sempre vem primeiro
+                      if (selectedPlan) {
+                        if (a.id === selectedPlan.id) return -1
+                        if (b.id === selectedPlan.id) return 1
+                      }
+                      // Caso contrário, ordenar por preço
+                      const priceA = parseFloat(a.price) || 0
+                      const priceB = parseFloat(b.price) || 0
+                      return priceA - priceB
+                    })
+                    
+                    // Se há plano selecionado e não está mostrando todos, mostrar apenas o selecionado
+                    const plansToShow = selectedPlan && !showAllPlans 
+                      ? sortedPlans.filter(plan => plan.id === selectedPlan.id)
+                      : sortedPlans
+                    
+                    return (
+                      <>
+                        {plansToShow.map(plan => {
+                  const planPrice = parseFloat(plan.price) || 0
+                  const discountPercent = parseFloat(discount) || 0
+                  // SEM arredondamento - manter precisão decimal completa
                   const finalPrice = couponApplied && discountPercent > 0
-                    ? Math.max(0, Math.round(planPrice - (planPrice * discountPercent / 100)))
+                    ? Math.max(0, planPrice - (planPrice * discountPercent / 100))
                     : planPrice
                   
                   return (
@@ -874,16 +901,16 @@ const Checkout = () => {
                         <div className="plan-price">
                           {plan.oldPrice && !couponApplied ? (
                             <>
-                              <span className="price-old">De: R$ {plan.oldPrice}/mês*</span>
-                              <span className="price-new">Por: R$ {plan.price}/mês*</span>
+                              <span className="price-old">De: R$ {parseFloat(plan.oldPrice || 0).toFixed(2)}/mês*</span>
+                              <span className="price-new">Por: R$ {parseFloat(plan.price || 0).toFixed(2)}/mês*</span>
                             </>
                           ) : couponApplied && plan.price !== finalPrice ? (
                             <>
-                              <span className="price-old">De: R$ {plan.price}/mês*</span>
-                              <span className="price-new">Por: R$ {finalPrice}/mês*</span>
+                              <span className="price-old">De: R$ {parseFloat(plan.price || 0).toFixed(2)}/mês*</span>
+                              <span className="price-new">Por: R$ {parseFloat(finalPrice || 0).toFixed(2)}/mês*</span>
                             </>
                           ) : (
-                            <span className="price-single">R$ {finalPrice}/mês*</span>
+                            <span className="price-single">R$ {parseFloat(finalPrice || 0).toFixed(2)}/mês*</span>
                           )}
                         </div>
                         <div className="plan-feature-count">{plan.patients}</div>
@@ -909,9 +936,62 @@ const Checkout = () => {
                         </ul>
                       </div>
                       <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+                      
+                      {/* Botão "Continuar" dentro do card quando selecionado */}
+                      {selectedPlan?.id === plan.id && currentStep === 1 && (
+                        <button 
+                          className="btn-continue-in-card" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleNext()
+                          }}
+                        >
+                          Continuar
+                          <FontAwesomeIcon icon={faChevronRight} />
+                        </button>
+                      )}
                     </div>
                   )
-                })}
+                  })}
+                  
+                  {/* Botão "Ver mais planos" quando há plano selecionado e não está mostrando todos */}
+                  {selectedPlan && !showAllPlans && plans.length > 1 && (
+                    <div className="show-more-plans-container">
+                      <button 
+                        type="button"
+                        className="show-more-plans-btn"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setShowAllPlans(true)
+                        }}
+                      >
+                        <span>Ver mais planos</span>
+                        <FontAwesomeIcon icon={faChevronDown} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Botão "Ocultar planos" quando está mostrando todos e há plano selecionado */}
+                  {selectedPlan && showAllPlans && plans.length > 1 && (
+                    <div className="show-more-plans-container">
+                      <button 
+                        type="button"
+                        className="show-more-plans-btn"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setShowAllPlans(false)
+                        }}
+                      >
+                        <span>Ocultar outros planos</span>
+                        <FontAwesomeIcon icon={faChevronUp} />
+                      </button>
+                    </div>
+                  )}
+                      </>
+                    )
+                  })()}
                 </div>
               )}
             </div>
@@ -1140,17 +1220,17 @@ const Checkout = () => {
                   <h3>Resumo do Pedido</h3>
                   <div className="summary-item">
                     <span>Plano: {selectedPlan.name}</span>
-                    <span>R$ {Number(selectedPlan.price || 0).toFixed(2)}</span>
+                    <span>R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}</span>
                   </div>
                   {couponApplied && appliedCoupon && (
                     <div className="summary-item discount">
                       <span>Desconto ({appliedCoupon.name})</span>
-                      <span>- R$ {Number(discountValue || 0).toFixed(2)}</span>
+                      <span>- R$ {parseFloat(discountValue || 0).toFixed(2)}</span>
                     </div>
                   )}
                   <div className="summary-total">
                     <span>Total</span>
-                    <span>R$ {calculateTotal().toFixed(2)}</span>
+                    <span>R$ {parseFloat(calculateTotal()).toFixed(2)}</span>
                   </div>
                 </div>
               )}
@@ -1173,7 +1253,7 @@ const Checkout = () => {
                     <FontAwesomeIcon icon={faCheckCircle} />
                     <span>
                       Cupom {appliedCoupon.name} aplicado! 
-                      Desconto de {Number(discount || 0).toFixed(1)}% (R$ {Number(discountValue || 0).toFixed(2)})
+                      Desconto de {parseFloat(discount || 0).toFixed(1)}%
                     </span>
                     <button 
                       className="coupon-remove"
@@ -1264,24 +1344,29 @@ const Checkout = () => {
                 Voltar
               </button>
             )}
-            {currentStep < 3 ? (
-              <button 
-                className="btn-next" 
-                onClick={handleNext}
-                disabled={currentStep === 1 && !selectedPlan}
-              >
-                Continuar
-                <FontAwesomeIcon icon={faChevronRight} />
-              </button>
-            ) : (
-              <button 
-                className="btn-submit" 
-                onClick={handleSubmit}
-                disabled={isSubmitting || isPolling}
-              >
-                <FontAwesomeIcon icon={faLock} />
-                {isPolling ? 'Verificando pagamento...' : isSubmitting ? 'Processando...' : 'Finalizar Assinatura'}
-              </button>
+            {/* Não mostrar botão Continuar no Step 1 se há plano selecionado e não está mostrando todos (já está acima do plano) */}
+            {!(currentStep === 1 && selectedPlan && !showAllPlans) && (
+              <>
+                {currentStep < 3 ? (
+                  <button 
+                    className="btn-next" 
+                    onClick={handleNext}
+                    disabled={currentStep === 1 && !selectedPlan}
+                  >
+                    Continuar
+                    <FontAwesomeIcon icon={faChevronRight} />
+                  </button>
+                ) : (
+                  <button 
+                    className="btn-submit" 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || isPolling}
+                  >
+                    <FontAwesomeIcon icon={faLock} />
+                    {isPolling ? 'Verificando pagamento...' : isSubmitting ? 'Processando...' : 'Finalizar Assinatura'}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

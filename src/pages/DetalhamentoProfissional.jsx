@@ -208,7 +208,6 @@ const DetalhamentoProfissional = () => {
         const logoHeight = logoSize
         pdf.addImage(logoImg, 'PNG', margin, 8, logoSize, logoHeight)
       } catch (e) {
-        console.log('Erro ao carregar logo:', e)
       }
       
       // Título no cabeçalho
@@ -358,7 +357,6 @@ const DetalhamentoProfissional = () => {
               pdf.addImage(denteImg, 'PNG', margin + 3, yPosition + 2, denteImgSize, denteImgHeight)
               hasDenteImage = true
             } catch (e) {
-              console.log('Erro ao carregar imagem do dente:', e)
             }
           }
           
@@ -518,7 +516,6 @@ const DetalhamentoProfissional = () => {
         const logoFooterSize = 6
         pdf.addImage(logoFooterImg, 'PNG', margin, footerY + 5, logoFooterSize, logoFooterSize)
       } catch (e) {
-        console.log('Erro ao carregar logo no rodapé:', e)
       }
       
       const dataAtual = new Date().toLocaleDateString('pt-BR')

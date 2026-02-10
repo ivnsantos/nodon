@@ -26,6 +26,7 @@ const LPEstudante = () => {
   const [cupomValido, setCupomValido] = useState(false)
   const [validandoCupom, setValidandoCupom] = useState(false)
   const [cupomData, setCupomData] = useState(null) // Armazena dados do cupom (discountValue, etc)
+  const [loading, setLoading] = useState(true) // Loading geral
 
   useEffect(() => {
     // Verificar se há cupom na URL
@@ -33,6 +34,9 @@ const LPEstudante = () => {
     if (cupom) {
       setCupomCode(cupom.toUpperCase())
       validarCupom(cupom.toUpperCase())
+    } else {
+      // Se não há cupom, marca como não validando
+      setValidandoCupom(false)
     }
     
     loadPlanos()
@@ -50,6 +54,13 @@ const LPEstudante = () => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [searchParams])
+
+  // Loading geral - só desaparece quando planos e cupom terminarem
+  useEffect(() => {
+    if (!loadingPlanos && !validandoCupom) {
+      setLoading(false)
+    }
+  }, [loadingPlanos, validandoCupom])
 
   const loadPlanos = async () => {
     try {
@@ -136,6 +147,7 @@ const LPEstudante = () => {
     if (!codigo || !codigo.trim()) {
       setCupomValido(false)
       setCupomData(null)
+      setValidandoCupom(false)
       return
     }
 
@@ -202,12 +214,41 @@ const LPEstudante = () => {
     return numTokens.toString()
   }
 
+  // Determina qual imagem usar
+  const getHeroImage = () => {
+    if (cupomCode === 'XL20' && cupomValido) {
+      return xl20Img
+    }
+    return estudanteImg
+  }
+
+  const getHeroImageAlt = () => {
+    if (cupomCode === 'XL20' && cupomValido) {
+      return "Cupom XL20"
+    }
+    return "Estudantes de Odontologia"
+  }
+
+  if (loading) {
+    return (
+      <div className="lp-loading-overlay">
+        <div className="lp-loading-spinner">
+          <div className="spinner"></div>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="lp-estudante">
       {/* Tag de Cupom Ativo */}
       {cupomCode && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
+            {cupomCode === 'XL20' && cupomValido && (
+              <img src={xl20Img} alt="Cupom XL20" className="cupom-image" />
+            )}
             <FontAwesomeIcon icon={faTag} />
             {validandoCupom ? (
               <span>Validando cupom <strong>{cupomCode}</strong>...</span>
@@ -283,8 +324,9 @@ const LPEstudante = () => {
             <div className="hero-side">
               <div className="hero-image-wrapper">
                 <img 
-                  src={cupomCode === 'XL20' && cupomValido ? xl20Img : estudanteImg} 
-                  alt={cupomCode === 'XL20' && cupomValido ? "Cupom XL20" : "Estudantes de Odontologia"} 
+                  key={`hero-img-${cupomCode}-${cupomValido}`}
+                  src={getHeroImage()} 
+                  alt={getHeroImageAlt()} 
                   className="hero-image" 
                 />
                 <div className="image-overlay"></div>

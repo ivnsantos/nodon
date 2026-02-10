@@ -130,7 +130,6 @@ const Diagnosticos = () => {
 
           todosResponsaveis = usuariosNormalizados
         } catch (usuariosError) {
-          console.log('Erro ao buscar usuarios:', usuariosError)
         }
       }
 
@@ -490,26 +489,11 @@ const Diagnosticos = () => {
         responsavel: selectedResponsavel.id // ID do responsável selecionado
       }
 
-      // Log detalhado para debug
-      console.log('=== DEBUG POST RADIOGRAFIA ===')
-      console.log('Payload completo:', JSON.stringify(payload, null, 2))
-      console.log('clienteMasterId:', clienteMasterId)
-      console.log('Paciente selecionado:', selectedCliente)
-      console.log('Responsável selecionado:', selectedResponsavel)
-      console.log('URL:', `/radiografias?clienteMasterId=${clienteMasterId}`)
-      console.log('Número de imagens:', imagens.length)
-      if (imagens.length > 0) {
-        console.log('Primeira imagem (primeiros 100 chars):', imagens[0].url.substring(0, 100))
-      }
-      console.log('================================')
-
       // Ativar loading
       setSavingRadiografia(true)
 
       // Fazer POST para criar radiografia
       const response = await api.post(`/radiografias?clienteMasterId=${clienteMasterId}`, payload)
-      
-      console.log('Resposta da API:', response.data)
       
       // Limpar formulário
       setShowForm(false)

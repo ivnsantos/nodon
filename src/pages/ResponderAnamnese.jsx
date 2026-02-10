@@ -39,9 +39,6 @@ const ResponderAnamnese = () => {
       // A API retorna { statusCode, message, data: { ... } }
       const data = response.data?.data || response.data
 
-      console.log('Dados recebidos da API:', data)
-      console.log('Status ativa:', data.ativa)
-
       // Verificar se a anamnese está ativa
       if (data.ativa === false) {
         setError('Esta anamnese não está ativa no momento. Entre em contato com o consultório.')

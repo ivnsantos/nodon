@@ -358,8 +358,6 @@ const ClienteNovo = () => {
         informacoesClinicas: informacoesClinicas
       }
 
-      // Log para debug
-      console.log('Payload enviado:', JSON.stringify(payload, null, 2))
 
       let response
       if (isEditMode) {
