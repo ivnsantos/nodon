@@ -29,19 +29,36 @@ const Chat = () => {
   const [audioBlob, setAudioBlob] = useState(null)
   const [attachedImages, setAttachedImages] = useState([])
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const abortControllerRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const fileInputRef = useRef(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  // Verifica se o usuário está próximo do final do chat (dentro de 200px do final)
+  const isNearBottom = () => {
+    if (!messagesContainerRef.current) return true
+    
+    const container = messagesContainerRef.current
+    const scrollTop = container.scrollTop
+    const scrollHeight = container.scrollHeight
+    const clientHeight = container.clientHeight
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+    
+    // Se estiver dentro de 200px do final, considera que está "próximo do final"
+    return distanceFromBottom < 200
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+  const scrollToBottom = (force = false) => {
+    // Só faz scroll se o usuário estiver próximo do final ou se for forçado
+    if (force || isNearBottom()) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  // Removido o useEffect que fazia scroll a cada mudança de mensagens
+  // Agora o scroll só acontece quando necessário (durante streaming, se o usuário estiver no final)
 
   useEffect(() => {
     loadConversations()
@@ -429,6 +446,8 @@ const Chat = () => {
     }
 
     setMessages(prev => [...prev, userMessage])
+    // Forçar scroll quando o usuário envia uma mensagem
+    setTimeout(() => scrollToBottom(true), 100)
     const messageToSend = input
     const imagesToSend = [...attachedImages]
     const audioToSend = audioBlob
@@ -514,6 +533,8 @@ const Chat = () => {
         content: '',
         isTyping: true
       }])
+      // Forçar scroll quando a resposta começar
+      setTimeout(() => scrollToBottom(true), 100)
 
       let chatText = ''
       let tokensUsed = 0
@@ -565,7 +586,7 @@ const Chat = () => {
                 return newMessages
               })
               
-              // Scroll suave a cada atualização
+              // Scroll suave a cada atualização (só se o usuário estiver no final)
               scrollToBottom()
             } else if (data.type === 'done') {
               // Resposta completa
@@ -654,8 +675,8 @@ const Chat = () => {
         }
       }
       
-      // Scroll final
-      scrollToBottom()
+      // Scroll final (forçar quando a mensagem estiver completa)
+      scrollToBottom(true)
       
       // Salvar no histórico local
       const savedHistory = JSON.parse(localStorage.getItem('mockChatHistory') || '[]')
@@ -748,7 +769,7 @@ const Chat = () => {
           }
         }
         
-        scrollToBottom()
+        scrollToBottom(true)
         
         setMessages(prev => {
           const newMessages = [...prev]
@@ -884,7 +905,7 @@ const Chat = () => {
             </div>
           )}
 
-          <div className="chat-messages-modern">
+          <div className="chat-messages-modern" ref={messagesContainerRef}>
             {/* Aviso dentro da área de mensagens */}
             <div className="chat-disclaimer-message">
               <div className="disclaimer-icon">
