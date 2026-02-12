@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCreditCard, faMapMarkerAlt, faCheckCircle,
   faChevronRight, faChevronLeft, faTag, faLock, faChevronDown, faChevronUp,
-  faExclamationTriangle, faTimes, faCheck, faPhone
+  faExclamationTriangle, faTimes, faCheck, faPhone, faUsers, faShieldAlt
 } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
@@ -368,12 +368,23 @@ const Checkout = () => {
 
   const formatPhone = (value) => {
     // Remove tudo que não é dígito
-    const numbers = value.replace(/\D/g, '')
+    let numbers = value.replace(/\D/g, '')
     
-    // Formata conforme o tamanho
+    // Se começar com 55, remover para processar
+    let hasCountryCode = false
+    if (numbers.startsWith('55')) {
+      hasCountryCode = true
+      numbers = numbers.substring(2)
+    }
+    
+    // Limitar a 11 dígitos (DDD + número)
+    numbers = numbers.substring(0, 11)
+    
+    // Formatar conforme o tamanho
+    let formatted = ''
     if (numbers.length <= 10) {
       // Telefone fixo: (00) 0000-0000
-      return numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, (match, ddd, part1, part2) => {
+      formatted = numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, (match, ddd, part1, part2) => {
         if (part2) return `(${ddd}) ${part1}-${part2}`
         if (part1) return `(${ddd}) ${part1}`
         if (ddd) return `(${ddd})`
@@ -381,13 +392,20 @@ const Checkout = () => {
       })
     } else {
       // Celular: (00) 00000-0000
-      return numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, (match, ddd, part1, part2) => {
+      formatted = numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, (match, ddd, part1, part2) => {
         if (part2) return `(${ddd}) ${part1}-${part2}`
         if (part1) return `(${ddd}) ${part1}`
         if (ddd) return `(${ddd})`
         return numbers
       })
     }
+    
+    // Adicionar código do país 55 no início
+    if (formatted) {
+      return `55 ${formatted}`
+    }
+    
+    return formatted
   }
 
   const formatCpfCnpj = (value) => {
@@ -546,10 +564,17 @@ const Checkout = () => {
         showAlert('Por favor, preencha todos os campos obrigatórios')
         return
       }
-      // Validar telefone com DDD (mínimo 10 dígitos para fixo, 11 para celular)
-      const phoneNumbers = formData.telefone.replace(/\D/g, '')
-      if (phoneNumbers.length < 10 || phoneNumbers.length > 11) {
-        showAlert('Por favor, informe um telefone válido com DDD (ex: (11) 98765-4321)')
+      // Validar telefone com DDD e código do país
+      let phoneNumbers = formData.telefone.replace(/\D/g, '')
+      
+      // Se não começar com 55, adicionar
+      if (!phoneNumbers.startsWith('55')) {
+        phoneNumbers = '55' + phoneNumbers
+      }
+      
+      // Validar tamanho: 55 (código país) + 2 (DDD) + 8 ou 9 (número) = 12 ou 13 dígitos
+      if (phoneNumbers.length < 12 || phoneNumbers.length > 13) {
+        showAlert('Por favor, informe um telefone válido com DDD (ex: 55 (11) 98765-4321)')
         return
       }
       if (!formData.password || formData.password.length < 6) {
@@ -619,8 +644,15 @@ const Checkout = () => {
       }
       
       // Validar telefone antes de enviar
-      const phoneNumbers = formData.telefone.replace(/\D/g, '')
-      if (!phoneNumbers || phoneNumbers.length < 10) {
+      let phoneNumbers = formData.telefone.replace(/\D/g, '')
+      
+      // Se não começar com 55, adicionar
+      if (!phoneNumbers.startsWith('55')) {
+        phoneNumbers = '55' + phoneNumbers
+      }
+      
+      // Validar tamanho: 55 (código país) + 2 (DDD) + 8 ou 9 (número) = 12 ou 13 dígitos
+      if (!phoneNumbers || phoneNumbers.length < 12 || phoneNumbers.length > 13) {
         showAlert('Por favor, informe um telefone válido com DDD')
         setIsSubmitting(false)
         return
@@ -1046,7 +1078,7 @@ const Checkout = () => {
                         name="telefone"
                         value={formData.telefone}
                         onChange={handleInputChange}
-                        placeholder="(00) 00000-0000"
+                        placeholder="55 (00) 00000-0000"
                         required
                       />
                     </div>
@@ -1215,125 +1247,172 @@ const Checkout = () => {
             <div className="checkout-step">
               <h2>Pagamento</h2>
               
-              {selectedPlan && (
-                <div className="order-summary">
-                  <h3>Resumo do Pedido</h3>
-                  <div className="summary-item">
-                    <span>Plano: {selectedPlan.name}</span>
-                    <span>R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}</span>
-                  </div>
-                  {couponApplied && appliedCoupon && (
-                    <div className="summary-item discount">
-                      <span>Desconto ({appliedCoupon.name})</span>
-                      <span>- R$ {parseFloat(discountValue || 0).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="summary-total">
-                    <span>Total</span>
-                    <span>R$ {parseFloat(calculateTotal()).toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
+              <div className="payment-layout">
+                {/* Coluna Esquerda: Resumo do Pedido */}
+                {selectedPlan && (
+                  <div className="payment-column payment-summary-column">
+                    <div className="order-summary">
+                      <h3>Resumo do Pedido</h3>
+                      
+                      <div className="summary-title">
+                        <h4>NODON Sistema Inteligente de Odontologia</h4>
+                        <p className="summary-subtitle">Você está contratando:</p>
+                      </div>
 
-              <div className="coupon-section">
-                <form onSubmit={handleCouponSubmit} className="coupon-form">
-                  <input
-                    type="text"
-                    placeholder="Código do cupom"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    disabled={couponApplied || isApplyingCoupon}
-                  />
-                  <button type="submit" disabled={couponApplied || !couponCode || isApplyingCoupon}>
-                    {isApplyingCoupon ? 'Aplicando...' : couponApplied ? 'Aplicado' : 'Aplicar'}
-                  </button>
-                </form>
-                {couponApplied && appliedCoupon && (
-                  <div className="coupon-success">
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                    <span>
-                      Cupom {appliedCoupon.name} aplicado! 
-                      Desconto de {parseFloat(discount || 0).toFixed(1)}%
-                    </span>
-                    <button 
-                      className="coupon-remove"
-                      onClick={() => {
-                        setCouponApplied(false)
-                        setAppliedCoupon(null)
-                        setDiscount(0)
-                        setDiscountValue(0)
-                        setCouponCode('')
-                        showAlert('Cupom removido', 'success')
-                      }}
-                      title="Remover cupom"
-                    >
-                      <FontAwesomeIcon icon={faTimes} />
-                    </button>
+                      <div className="summary-plan-info">
+                        <div className="summary-plan-header">
+                          <h4>{selectedPlan.name}</h4>
+                          <span className="summary-plan-price">R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}/mês</span>
+                        </div>
+                        
+                        <div className="summary-plan-details">
+                          {selectedPlan.patients && (
+                            <div className="summary-detail-item">
+                              <FontAwesomeIcon icon={faUsers} />
+                              <span>{selectedPlan.patients}</span>
+                            </div>
+                          )}
+                          {selectedPlan.features && selectedPlan.features.length > 0 && (
+                            <div className="summary-plan-features">
+                              {selectedPlan.features.slice(0, 3).map((feature, idx) => (
+                                <div key={idx} className="summary-feature-item">
+                                  <FontAwesomeIcon icon={faCheckCircle} />
+                                  <span>{feature}</span>
+                                </div>
+                              ))}
+                              {selectedPlan.features.length > 3 && (
+                                <div className="summary-feature-more">
+                                  + {selectedPlan.features.length - 3} recursos adicionais
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="summary-financial">
+                        <div className="summary-item">
+                          <span>Plano: {selectedPlan.name}</span>
+                          <span>R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}</span>
+                        </div>
+                        {couponApplied && appliedCoupon && (
+                          <div className="summary-item discount">
+                            <span>Desconto ({appliedCoupon.name})</span>
+                            <span>- R$ {parseFloat(discountValue || 0).toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="summary-total">
+                          <span>Total</span>
+                          <span>R$ {parseFloat(calculateTotal()).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
 
-              <form className="checkout-form" onSubmit={handleSubmit}>
-                <div className="form-section">
-                  <h3>
-                    <FontAwesomeIcon icon={faLock} /> Dados do Cartão
-                  </h3>
-                  <div className="form-group">
-                    <label>Número do Cartão *</label>
-                    <input
-                      type="text"
-                      name="numeroCartao"
-                      value={formData.numeroCartao}
-                      onChange={(e) => {
-                        const formatted = formatCardNumber(e.target.value)
-                        setFormData(prev => ({ ...prev, numeroCartao: formatted }))
-                      }}
-                      maxLength="19"
-                      placeholder="0000 0000 0000 0000"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Nome no Cartão *</label>
-                    <input
-                      type="text"
-                      name="nomeCartao"
-                      value={formData.nomeCartao}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Validade *</label>
+                {/* Coluna Direita: Dados do Cartão */}
+                <div className="payment-column payment-form-column">
+                  <div className="coupon-section">
+                    <form onSubmit={handleCouponSubmit} className="coupon-form">
                       <input
                         type="text"
-                        name="validade"
-                        value={formData.validade}
-                        onChange={(e) => {
-                          const formatted = formatExpiry(e.target.value)
-                          setFormData(prev => ({ ...prev, validade: formatted }))
-                        }}
-                        maxLength="5"
-                        placeholder="MM/AA"
-                        required
+                        placeholder="Código do cupom"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        disabled={couponApplied || isApplyingCoupon}
                       />
-                    </div>
-                    <div className="form-group">
-                      <label>CVV *</label>
-                      <input
-                        type="text"
-                        name="cvv"
-                        value={formData.cvv}
-                        onChange={handleInputChange}
-                        maxLength="4"
-                        placeholder="000"
-                        required
-                      />
-                    </div>
+                      <button type="submit" disabled={couponApplied || !couponCode || isApplyingCoupon}>
+                        {isApplyingCoupon ? 'Aplicando...' : couponApplied ? 'Aplicado' : 'Aplicar'}
+                      </button>
+                    </form>
+                    {couponApplied && appliedCoupon && (
+                      <div className="coupon-success">
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                        <span>
+                          Cupom {appliedCoupon.name} aplicado! 
+                          Desconto de {parseFloat(discount || 0).toFixed(1)}%
+                        </span>
+                        <button 
+                          className="coupon-remove"
+                          onClick={() => {
+                            setCouponApplied(false)
+                            setAppliedCoupon(null)
+                            setDiscount(0)
+                            setDiscountValue(0)
+                            setCouponCode('')
+                            showAlert('Cupom removido', 'success')
+                          }}
+                          title="Remover cupom"
+                        >
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  <form className="checkout-form" onSubmit={handleSubmit}>
+                    <div className="form-section card-data-section">
+                      <h3>
+                        <FontAwesomeIcon icon={faLock} /> Dados do Cartão
+                      </h3>
+                      <div className="form-group">
+                        <label>Número do Cartão *</label>
+                        <input
+                          type="text"
+                          name="numeroCartao"
+                          value={formData.numeroCartao}
+                          onChange={(e) => {
+                            const formatted = formatCardNumber(e.target.value)
+                            setFormData(prev => ({ ...prev, numeroCartao: formatted }))
+                          }}
+                          maxLength="19"
+                          placeholder="0000 0000 0000 0000"
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Nome no Cartão *</label>
+                        <input
+                          type="text"
+                          name="nomeCartao"
+                          value={formData.nomeCartao}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div className="form-row card-fields-row">
+                        <div className="form-group">
+                          <label>Validade *</label>
+                          <input
+                            type="text"
+                            name="validade"
+                            value={formData.validade}
+                            onChange={(e) => {
+                              const formatted = formatExpiry(e.target.value)
+                              setFormData(prev => ({ ...prev, validade: formatted }))
+                            }}
+                            maxLength="5"
+                            placeholder="MM/AA"
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>CVV *</label>
+                          <input
+                            type="text"
+                            name="cvv"
+                            value={formData.cvv}
+                            onChange={handleInputChange}
+                            maxLength="4"
+                            placeholder="000"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
                 </div>
-              </form>
+              </div>
             </div>
           )}
 
@@ -1363,7 +1442,7 @@ const Checkout = () => {
                     disabled={isSubmitting || isPolling}
                   >
                     <FontAwesomeIcon icon={faLock} />
-                    {isPolling ? 'Verificando pagamento...' : isSubmitting ? 'Processando...' : 'Finalizar Assinatura'}
+                    {isPolling ? 'Verificando pagamento...' : isSubmitting ? 'Processando...' : 'Finalizar'}
                   </button>
                 )}
               </>

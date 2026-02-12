@@ -400,9 +400,16 @@ const LPDentista = () => {
   if (loading) {
     return (
       <div className="lp-loading-overlay">
-        <div className="lp-loading-spinner">
-          <div className="spinner"></div>
-          <p>Carregando...</p>
+        <div className="lp-loading-container">
+          <div className="lp-loading-logo">
+            <img src={nodoLogo} alt="NODON" />
+          </div>
+          <div className="lp-loading-spinner-modern">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+          </div>
+          <p className="lp-loading-text">Carregando...</p>
         </div>
       </div>
     )

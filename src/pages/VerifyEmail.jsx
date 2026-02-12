@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEnvelope, faArrowRight, faSpinner, faCheckCircle, faXRay, faFileMedical, faSearch, faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
+import { faPhone, faArrowRight, faSpinner, faCheckCircle, faXRay, faFileMedical, faSearch, faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
@@ -15,56 +15,69 @@ const VerifyEmail = () => {
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [email, setEmail] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
   const inputRefs = useRef([])
-  const { verifyEmail, resendVerificationCode, logout } = useAuth()
+  const hasSentCodeRef = useRef(false)
+  const { user, verifyPhone, resendVerificationCode, logout } = useAuth()
   const { alertConfig, showSuccess, hideAlert } = useAlert()
+
+  // Priorizar telefone do usuário logado (que fez login), depois query string, depois location state
+  const telefoneFromUser = user?.telefone || user?.phone || user?.telefoneCelular || ''
+  const telefoneFromQuery = new URLSearchParams(location.search).get('telefone')
+  const telefoneFromState = location.state?.telefone
+  
+  // Priorizar telefone do usuário logado
+  const telefone = telefoneFromUser || telefoneFromQuery || telefoneFromState
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
   }
 
+  // Não precisa verificar aqui - o ProtectedRoute já faz essa verificação
+  // Apenas garantir que temos telefone para exibir e enviar código
+
+  // Enviar código automaticamente quando a página carregar e telefone estiver disponível
   useEffect(() => {
-    // Pegar email da query string ou do location state
-    const emailFromQuery = new URLSearchParams(location.search).get('email')
-    const emailFromState = location.state?.email
+    if (hasSentCodeRef.current) return
     
-    if (emailFromQuery) {
-      setEmail(emailFromQuery)
-    } else if (emailFromState) {
-      setEmail(emailFromState)
-    } else {
-      // Se não tiver email, redirecionar para login
-      navigate('/login')
-    }
-  }, [location, navigate])
-
-  // Enviar código automaticamente quando a página carregar
-  useEffect(() => {
-    const sendCodeAutomatically = async () => {
-      if (!email) return
-
-      try {
-        await resendVerificationCode(email)
-        // Não mostrar alerta, apenas enviar silenciosamente
-      } catch (error) {
-        console.error('Erro ao enviar código automaticamente:', error)
-        // Não mostrar erro para o usuário, apenas logar
+    // Função para enviar o código
+    const sendCode = () => {
+      // Priorizar telefone do usuário logado (que fez login)
+      const telefoneAtual = (user?.telefone || user?.phone || user?.telefoneCelular || '') || telefoneFromQuery || telefoneFromState
+      
+      if (!telefoneAtual || !resendVerificationCode) {
+        return false // Ainda não está pronto
       }
+      
+      // Limpar telefone (remover caracteres não numéricos e garantir que comece com 55)
+      let telefoneLimpo = telefoneAtual.replace(/\D/g, '')
+      if (!telefoneLimpo.startsWith('55')) {
+        telefoneLimpo = '55' + telefoneLimpo
+      }
+      
+      // Enviar código
+      hasSentCodeRef.current = true
+      resendVerificationCode(telefoneLimpo).catch((error) => {
+        console.error('Erro ao enviar código automaticamente:', error)
+        hasSentCodeRef.current = false // Permitir tentar novamente em caso de erro
+      })
+      return true // Código enviado
     }
-
-    // Aguardar um pouco para garantir que o email foi definido
-    if (email) {
+    
+    // Tentar enviar imediatamente
+    if (!sendCode()) {
+      // Se não conseguiu, aguardar um pouco e tentar novamente (aguardar usuário carregar)
       const timer = setTimeout(() => {
-        sendCodeAutomatically()
-      }, 500)
-
+        if (!hasSentCodeRef.current) {
+          sendCode()
+        }
+      }, 300)
+      
       return () => clearTimeout(timer)
     }
-  }, [email, resendVerificationCode])
+  }, [user, telefoneFromQuery, telefoneFromState, resendVerificationCode])
 
   const handleCodeChange = (index, value) => {
     // Aceitar apenas números
@@ -116,7 +129,7 @@ const VerifyEmail = () => {
     setLoading(true)
 
     try {
-      const result = await verifyEmail(email, codeString)
+      const result = await verifyPhone(telefone, codeString)
 
       if (result.success) {
         setSuccess(true)
@@ -143,7 +156,7 @@ const VerifyEmail = () => {
         inputRefs.current[0]?.focus()
       }
     } catch (error) {
-      console.error('Erro ao verificar email:', error)
+      console.error('Erro ao verificar telefone:', error)
       setError('Erro ao verificar código. Tente novamente.')
       // Limpar código em caso de erro
       setCode(['', '', '', '', '', ''])
@@ -158,11 +171,11 @@ const VerifyEmail = () => {
     setResending(true)
 
     try {
-      const result = await resendVerificationCode(email)
+      const result = await resendVerificationCode(telefone)
 
       if (result.success) {
         setError('')
-        showSuccess('Código reenviado com sucesso! Verifique seu e-mail.')
+        showSuccess('Código reenviado com sucesso! Verifique seu telefone.')
         setCode(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       } else {
@@ -251,15 +264,27 @@ const VerifyEmail = () => {
                   size="3x" 
                   style={{ color: '#10b981', marginBottom: '1rem' }} 
                 />
-                <h2>E-mail verificado com sucesso!</h2>
+                <h2>Telefone verificado com sucesso!</h2>
                 <p>Redirecionando para a plataforma...</p>
               </div>
             </div>
           ) : (
             <>
               <div className="auth-header-modern">
-                <h2>Verifique seu e-mail</h2>
-                <p>Enviamos um código de 6 dígitos para <strong>{email}</strong></p>
+                <h2>Verifique seu telefone</h2>
+                <p>Enviamos um código de 6 dígitos para</p>
+                <p style={{ marginTop: '0.5rem', fontSize: '1.125rem', fontWeight: '600', color: '#0ea5e9' }}>
+                  {telefone ? (() => {
+                    // Formatar telefone: 5511999999999 -> +55 (11) 99999-9999
+                    const cleaned = telefone.replace(/\D/g, '')
+                    if (cleaned.length >= 13) {
+                      return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 9)}-${cleaned.slice(9)}`
+                    } else if (cleaned.length >= 11) {
+                      return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 8)}-${cleaned.slice(8)}`
+                    }
+                    return telefone
+                  })() : 'seu telefone'}
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className="auth-form-modern">

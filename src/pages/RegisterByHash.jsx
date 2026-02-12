@@ -260,11 +260,18 @@ const RegisterByHash = () => {
     setFormErrors({})
 
     try {
+      let telefoneLimpo = formData.telefone.replace(/\D/g, '')
+      
+      // Se não começar com 55, adicionar código do país
+      if (!telefoneLimpo.startsWith('55')) {
+        telefoneLimpo = '55' + telefoneLimpo
+      }
+      
       const payload = {
         nome: formData.nome,
         email: formData.email,
         cpf: formData.cpf.replace(/\D/g, ''),
-        telefone: formData.telefone.replace(/\D/g, ''),
+        telefone: telefoneLimpo,
         cro: formData.cro,
         postalCode: formData.postalCode.replace(/\D/g, ''),
         address: formData.address,

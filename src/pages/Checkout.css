@@ -122,6 +122,30 @@
   text-align: center;
 }
 
+/* Payment Layout - Duas Colunas */
+.payment-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.payment-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.payment-summary-column {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+}
+
+.payment-form-column {
+  flex: 1;
+}
+
 /* Plans Grid */
 .plans-grid-checkout {
   display: grid;
@@ -447,8 +471,8 @@
 
 /* Form Styles */
 .checkout-form {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 .form-section {
@@ -465,12 +489,215 @@
   gap: 0.75rem;
 }
 
+/* Estilos específicos para seção de dados do cartão */
+.card-data-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  padding-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0;
+}
+
+.card-data-section > *:last-child {
+  margin-bottom: 0;
+}
+
+.card-data-section h3 {
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-data-section h3 svg {
+  color: #0ea5e9;
+  font-size: 1rem;
+}
+
+.card-data-section .form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.card-data-section .form-group:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Garantir que form-row não seja afetado pelo margin-bottom padrão */
+.card-data-section .form-row:last-child,
+.card-data-section .card-fields-row:last-child {
+  margin-bottom: 0;
+}
+
+.card-data-section .form-group label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.75rem;
+}
+
+.card-data-section .form-group input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.card-data-section .form-group input[name="numeroCartao"] {
+  font-family: 'Courier New', 'Monaco', monospace;
+  letter-spacing: 0.1em;
+}
+
+.card-data-section .form-group input[name="nomeCartao"] {
+  text-transform: uppercase;
+}
+
+.card-data-section .form-group input[name="validade"],
+.card-data-section .form-group input[name="cvv"] {
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+.card-data-section .form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.card-data-section .form-group input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+.card-data-section .form-group input:hover:not(:focus):not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.card-data-section .form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Garantir que validade e CVV fiquem lado a lado - DESKTOP E MOBILE */
+.card-data-section .form-row,
+.card-fields-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 1.75rem !important;
+  margin-bottom: 2rem !important;
+  margin-top: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  align-items: start !important;
+}
+
+.card-data-section .form-row > .form-group,
+.card-fields-row > .form-group {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+
+.card-data-section .form-row > .form-group label,
+.card-fields-row > .form-group label {
+  margin-bottom: 0.75rem !important;
+  width: 100% !important;
+  display: block !important;
+  height: auto !important;
+}
+
+.card-data-section .form-row > .form-group input,
+.card-fields-row > .form-group input {
+  width: 100% !important;
+  margin-bottom: 0 !important;
+  height: auto !important;
+  min-height: 2.75rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Avisos de Segurança */
+.security-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.security-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 0.5rem;
+  color: #10b981;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.security-badge svg {
+  font-size: 0.875rem;
+}
+
+.security-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 0.75rem;
+  border-left: 3px solid #0ea5e9;
+}
+
+.security-message svg {
+  color: #0ea5e9;
+  font-size: 1.125rem;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.security-message p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.security-message strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
+
 
 .form-group {
   display: flex;
@@ -533,16 +760,120 @@
 .order-summary {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 1rem;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .order-summary h3 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.summary-title {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-title h4 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.375rem;
+}
+
+.summary-subtitle {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.summary-plan-info {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.summary-plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-plan-header h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.summary-plan-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0ea5e9;
+}
+
+.summary-plan-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.summary-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9375rem;
+}
+
+.summary-detail-item svg {
+  color: #0ea5e9;
+  font-size: 1rem;
+}
+
+.summary-plan-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.summary-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.summary-feature-item svg {
+  color: #10b981;
+  font-size: 0.875rem;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.summary-feature-more {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+  padding-left: 1.5rem;
+}
+
+.summary-financial {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .summary-item {
@@ -560,17 +891,17 @@
 .summary-total {
   display: flex;
   justify-content: space-between;
-  padding: 1.5rem 0 0;
-  margin-top: 1rem;
+  padding: 1.25rem 0 0;
+  margin-top: 0.875rem;
   border-top: 2px solid rgba(255, 255, 255, 0.2);
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #ffffff;
 }
 
 /* Coupon Section */
 .coupon-section {
-  margin-bottom: 2rem;
+  margin-bottom: 0;
 }
 
 .coupon-section-step1 {
@@ -763,6 +1094,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-top: 3rem;
   padding-top: 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -774,46 +1106,86 @@
   padding: 1rem 2rem;
   border-radius: 0.75rem;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   border: none;
+  min-width: 140px;
+  white-space: nowrap;
 }
 
 .btn-back {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 2rem;
+  font-size: 1rem;
 }
 
-.btn-back:hover {
+.btn-back:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-next {
   background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: #ffffff;
   margin-left: auto;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
 }
 
-.btn-next:hover {
+.btn-next:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.5);
+}
+
+.btn-next:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: #ffffff;
   margin-left: auto;
-  padding: 1.25rem 2.5rem;
+  padding: 1.25rem 3rem;
   font-size: 1.125rem;
+  font-weight: 700;
+  min-width: 220px;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  letter-spacing: 0.025em;
 }
 
-.btn-submit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 40px rgba(16, 185, 129, 0.4);
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(14, 165, 233, 0.6);
+  background: linear-gradient(135deg, #0d94d9 0%, #05a5c4 100%);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-back svg,
+.btn-next svg {
+  font-size: 0.875rem;
+}
+
+.btn-submit svg {
+  font-size: 1rem;
 }
 
 /* Responsive */
@@ -888,6 +1260,49 @@
   .checkout-step h2 {
     font-size: 1.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  /* Payment Layout - Mobile: Uma coluna */
+  .payment-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .payment-summary-column {
+    position: static;
+  }
+
+  .order-summary {
+    padding: 1.25rem;
+  }
+
+  .order-summary h3 {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
+
+  .summary-title h4 {
+    font-size: 1rem;
+  }
+
+  .summary-subtitle {
+    font-size: 0.8125rem;
+  }
+
+  .summary-plan-info {
+    padding: 0.875rem;
+  }
+
+  .summary-plan-header h4 {
+    font-size: 0.9375rem;
+  }
+
+  .summary-plan-price {
+    font-size: 0.9375rem;
+  }
+
+  .summary-total {
+    font-size: 1rem;
   }
 
   .coupon-section-step1 {
@@ -1008,10 +1423,93 @@
     padding: 0;
   }
 
+  .card-data-section {
+    padding: 1.25rem;
+    margin-bottom: 0;
+    border-radius: 1rem;
+  }
+
+  .card-data-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+    gap: 0.625rem;
+  }
+
+  .card-data-section h3 svg {
+    font-size: 0.875rem;
+  }
+
+  .card-data-section .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .card-data-section .form-group label {
+    font-size: 0.875rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .card-data-section .form-group input {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9375rem;
+    border-radius: 0.625rem;
+  }
+
+  .card-data-section .form-group input[name="numeroCartao"] {
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+  }
+
+  .card-data-section .form-group input[name="nomeCartao"] {
+    letter-spacing: 0.03em;
+  }
+
+  .card-data-section .form-group input[name="validade"],
+  .card-data-section .form-group input[name="cvv"] {
+    letter-spacing: 0.08em;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 1rem;
     width: 100%;
+  }
+
+  /* Manter validade e CVV lado a lado mesmo no mobile */
+  .card-data-section .form-row,
+  .card-fields-row {
+    grid-template-columns: 1fr 1fr !important;
+    display: grid !important;
+    gap: 1rem !important;
+    margin-bottom: 1.5rem !important;
+    margin-top: 0 !important;
+    align-items: start !important;
+    width: 100% !important;
+  }
+
+  .card-data-section .form-row > .form-group,
+  .card-fields-row > .form-group {
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .card-data-section .form-row > .form-group label,
+  .card-fields-row > .form-group label {
+    margin-bottom: 0.625rem !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  .card-data-section .form-row > .form-group input,
+  .card-fields-row > .form-group input {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+    min-height: 2.5rem !important;
+    box-sizing: border-box !important;
   }
 
   .form-group {
@@ -1052,11 +1550,14 @@
   .checkout-actions {
     padding: 0;
     margin-top: 2rem;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .checkout-actions button {
     width: 100%;
     box-sizing: border-box;
+    margin-left: 0 !important;
   }
 
   .order-summary {
@@ -1067,6 +1568,36 @@
   .order-summary h3 {
     font-size: 1.25rem;
     margin-bottom: 1rem;
+  }
+
+  .summary-title h4 {
+    font-size: 1.125rem;
+  }
+
+  .summary-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .summary-plan-info {
+    padding: 1rem;
+  }
+
+  .summary-plan-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .summary-plan-header h4 {
+    font-size: 1rem;
+  }
+
+  .summary-plan-price {
+    font-size: 1rem;
+  }
+
+  .summary-total {
+    font-size: 1.125rem;
   }
 }
 
@@ -1194,9 +1725,47 @@
     grid-template-columns: 1fr;
   }
 
+  .card-data-section .form-row,
+  .card-fields-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+  }
+
+  .security-badges {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+  }
+
+  .security-badge {
+    min-width: 100%;
+    justify-content: flex-start;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .security-message {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .security-message svg {
+    align-self: flex-start;
+    font-size: 1.25rem;
+  }
+
+  .security-message p {
+    font-size: 0.875rem;
+  }
+
   .checkout-actions {
     flex-direction: column;
     gap: 1rem;
+    padding: 0 1rem;
   }
 
   .btn-back,
@@ -1204,6 +1773,9 @@
   .btn-submit {
     width: 100%;
     justify-content: center;
+    margin-left: 0 !important;
+    padding: 1rem 1.5rem;
+    font-size: 0.9375rem;
   }
 }
 

@@ -40,34 +40,10 @@ const Login = () => {
       const result = await login(email, password)
       
       if (result.success) {
-        // Verificar se o email está validado
-        // A API retorna isEmailVerified, mas normalizamos para emailVerified no AuthContext
-        const emailVerified = result.user?.emailVerified || false
-        
-        if (!emailVerified) {
-          // Email não verificado, redirecionar para verificação
-          navigate(`/verify-email?email=${encodeURIComponent(email)}`)
-        } else {
-          // Email verificado, verificar se é master e precisa completar dados
-          if (result.user?.tipo === 'master') {
-            // Verificar se já existe pelo menos um cliente master com dados completos
-            try {
-              // Buscar dados do cliente master (userBaseId vem do token JWT)
-              const clinicsResult = await api.get(`/auth/get-client-token`)
-              const clinics = clinicsResult.data?.data?.clientesMaster || []
-              
-              // Sempre redirecionar para seleção de consultório
-              navigate('/select-clinic')
-            } catch (error) {
-              console.error('Erro ao verificar dados do cliente master:', error)
-              // Em caso de erro, ir para seleção de consultório
-              navigate('/select-clinic')
-            }
-          } else {
-            // Se não for master, ir para seleção de consultório
-            navigate('/select-clinic')
-          }
-        }
+        // Após login bem-sucedido, deixar o ProtectedRoute cuidar do redirecionamento
+        // Ele vai verificar se precisa verificar telefone, selecionar consultório, etc.
+        // Por padrão, redirecionar para /app que será protegido pelo ProtectedRoute
+        navigate('/app')
       } else {
         setError(result.message || 'Erro ao fazer login. Verifique suas credenciais.')
       }

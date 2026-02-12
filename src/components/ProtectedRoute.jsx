@@ -4,12 +4,9 @@ import { AuthContext } from '../context/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation()
-  
-  // Usar useContext diretamente para evitar problemas de contexto
   const authContext = useContext(AuthContext)
   
   if (!authContext) {
-    // Se o contexto não estiver disponível, mostrar loading
     return <div style={{ 
       display: 'flex', 
       justifyContent: 'center', 
@@ -37,59 +34,49 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  // 1. PRIMEIRO: Verificar se o email está validado
-  const emailVerified = user.emailVerified || false
+  const pathname = location.pathname
+  const phoneVerified = user.phoneVerified || user.emailVerified || false
   const allowedPathsWithoutVerification = ['/verify-email', '/select-clinic', '/assinatura-pendente', '/usuario-inativo']
   
-  if (!allowedPathsWithoutVerification.includes(location.pathname) && !emailVerified) {
-    return <Navigate to={`/verify-email?email=${encodeURIComponent(user.email || '')}`} replace />
+  // 1. PRIMEIRO: Verificar se o telefone está validado
+  if (!allowedPathsWithoutVerification.includes(pathname) && !phoneVerified) {
+    const telefone = user.telefone || user.phone || user.telefoneCelular || ''
+    if (telefone) {
+      return <Navigate to={`/verify-email?telefone=${encodeURIComponent(telefone)}`} replace />
+    } else {
+      return <Navigate to="/verify-email" replace />
+    }
   }
 
-  // 2. SEGUNDO: Se email verificado e for master, verificar se precisa completar dados
-  // (A verificação se já completou os dados será feita pela API ou pode ser adicionada aqui)
-  // Por enquanto, permitir acesso a complete-master-data e select-clinic após email verificado
-
   // 3. TERCEIRO: Verificar se precisa selecionar consultório
-  const needsClinicSelection = emailVerified && !selectedClinicId && location.pathname !== '/verify-email' && location.pathname !== '/select-clinic' && location.pathname !== '/assinatura-pendente'
+  const needsClinicSelection = phoneVerified && !selectedClinicId && pathname !== '/verify-email' && pathname !== '/select-clinic' && pathname !== '/assinatura-pendente'
   
-  if (needsClinicSelection && location.pathname.startsWith('/app')) {
+  if (needsClinicSelection && pathname.startsWith('/app')) {
     return <Navigate to="/select-clinic" replace />
   }
 
   // 4. QUARTO: Verificar se o relacionamento está inativo (para usuários comuns)
-  if (selectedClinicId && selectedClinicData && location.pathname !== '/usuario-inativo' && location.pathname !== '/select-clinic') {
+  if (selectedClinicId && selectedClinicData && pathname !== '/usuario-inativo' && pathname !== '/select-clinic') {
     const relacionamento = selectedClinicData.relacionamento
-    
-    // Se o relacionamento tiver status "inativo", redirecionar para página de usuário inativo
     if (relacionamento?.status === 'inativo') {
       const allowedPaths = ['/verify-email', '/select-clinic', '/usuario-inativo']
-      if (!allowedPaths.includes(location.pathname)) {
+      if (!allowedPaths.includes(pathname)) {
         return <Navigate to="/usuario-inativo" replace />
       }
     }
   }
 
   // 5. QUINTO: Verificar assinatura pendente (após selecionar consultório)
-  // Verificar se o cliente master ou assinatura não estão ativos
-  if (selectedClinicId && selectedClinicData && location.pathname !== '/assinatura-pendente' && location.pathname !== '/select-clinic' && location.pathname !== '/usuario-inativo') {
-    // A estrutura pode ser: { clienteMaster: {...}, assinatura: {...} } ou diretamente os dados
+  if (selectedClinicId && selectedClinicData && pathname !== '/assinatura-pendente' && pathname !== '/select-clinic' && pathname !== '/usuario-inativo') {
     const clienteMaster = selectedClinicData.clienteMaster || selectedClinicData
     const assinatura = selectedClinicData.assinatura
     
-    // Verificar se cliente master está inativo
-    const clienteMasterInativo = 
-      clienteMaster?.ativo === false || 
-      clienteMaster?.status === 'INACTIVE'
+    const clienteMasterInativo = clienteMaster?.ativo === false || clienteMaster?.status === 'INACTIVE'
+    const assinaturaInativa = assinatura?.status !== 'ACTIVE'
     
-    // Verificar se assinatura não está ativa
-    const assinaturaStatus = assinatura?.status
-    const assinaturaInativa = assinaturaStatus !== 'ACTIVE'
-    
-    // Se cliente master inativo OU assinatura não ativa, redirecionar para assinatura pendente
     if (clienteMasterInativo || assinaturaInativa) {
-      // Não redirecionar se já estiver em rotas permitidas
       const allowedPaths = ['/verify-email', '/select-clinic', '/assinatura-pendente', '/add-clinic', '/usuario-inativo']
-      if (!allowedPaths.includes(location.pathname)) {
+      if (!allowedPaths.includes(pathname)) {
         return <Navigate to="/assinatura-pendente" replace />
       }
     }

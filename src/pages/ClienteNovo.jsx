@@ -191,22 +191,41 @@ const ClienteNovo = () => {
   }
 
   const formatTelefone = (value) => {
-    const cleaned = value.replace(/\D/g, '')
-    if (cleaned.length === 0) {
-      return ''
-    } else if (cleaned.length <= 2) {
-      return `(${cleaned}`
-    } else if (cleaned.length <= 6) {
-      return cleaned.replace(/(\d{2})(\d)/, '($1) $2')
-    } else if (cleaned.length <= 10) {
-      // Telefone fixo (10 dígitos)
-      return cleaned.replace(/(\d{2})(\d{4})(\d)/, '($1) $2-$3')
-    } else if (cleaned.length <= 11) {
-      // Celular (11 dígitos)
-      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    // Remove tudo que não é dígito
+    let numbers = value.replace(/\D/g, '')
+    
+    // Se começar com 55, remover para processar
+    let hasCountryCode = false
+    if (numbers.startsWith('55')) {
+      hasCountryCode = true
+      numbers = numbers.substring(2)
     }
-    // Limitar a 11 dígitos
-    return cleaned.substring(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    
+    // Limitar a 11 dígitos (DDD + número)
+    numbers = numbers.substring(0, 11)
+    
+    // Formatar conforme o tamanho
+    let formatted = ''
+    if (numbers.length === 0) {
+      return ''
+    } else if (numbers.length <= 2) {
+      formatted = `(${numbers}`
+    } else if (numbers.length <= 6) {
+      formatted = numbers.replace(/(\d{2})(\d)/, '($1) $2')
+    } else if (numbers.length <= 10) {
+      // Telefone fixo (10 dígitos)
+      formatted = numbers.replace(/(\d{2})(\d{4})(\d)/, '($1) $2-$3')
+    } else {
+      // Celular (11 dígitos)
+      formatted = numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    }
+    
+    // Adicionar código do país 55 no início
+    if (formatted) {
+      return `55 ${formatted}`
+    }
+    
+    return formatted
   }
 
   const handleInputChange = (e) => {
@@ -316,7 +335,13 @@ const ClienteNovo = () => {
 
       // Preparar dados para a API seguindo a estrutura do curl de exemplo
       const cpfLimpo = formData.cpf.replace(/\D/g, '')
-      const telefoneLimpo = formData.telefone.replace(/\D/g, '')
+      let telefoneLimpo = formData.telefone.replace(/\D/g, '')
+      
+      // Se não começar com 55, adicionar código do país
+      if (!telefoneLimpo.startsWith('55')) {
+        telefoneLimpo = '55' + telefoneLimpo
+      }
+      
       const cepLimpo = formData.cep.replace(/\D/g, '')
 
       // Construir dadosPessoais - seguindo exatamente a estrutura do curl
@@ -504,8 +529,8 @@ const ClienteNovo = () => {
                 value={formData.telefone}
                 onChange={handleInputChange}
                 required
-                maxLength="15"
-                placeholder="(00) 00000-0000"
+                maxLength="18"
+                placeholder="55 (00) 00000-0000"
               />
             </div>
             <div className="form-group">

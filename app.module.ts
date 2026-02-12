@@ -35,7 +35,6 @@ export class AppModule {
       await this.planosService.seedPlanos();
       console.log('✅ Planos inicializados');
     } catch (error) {
-      console.log('ℹ️ Planos já existem ou erro ao inicializar');
     }
   }
 }

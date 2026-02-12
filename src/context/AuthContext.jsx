@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react'
+import { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react'
 import api from '../utils/api'
 
 export const AuthContext = createContext()
@@ -144,10 +144,13 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // Normalizar campo de verificação de email (pode vir como isEmailVerified, emailVerified ou email_verified)
+      // Normalizar campos do usuário
       const normalizedUser = {
         ...userData,
-        emailVerified: userData.isEmailVerified || userData.emailVerified || userData.email_verified || false
+        // Normalizar campo de verificação (pode vir como isEmailVerified, emailVerified, email_verified ou phoneVerified)
+        phoneVerified: userData.phoneVerified || userData.isEmailVerified || userData.emailVerified || userData.email_verified || false,
+        // Garantir que telefone está presente (pode vir como telefone, phone ou telefoneCelular)
+        telefone: userData.telefone || userData.phone || userData.telefoneCelular || ''
       }
 
       // Salvar token e usuário no sessionStorage (mais seguro que localStorage)
@@ -270,10 +273,16 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const verifyEmail = async (email, code) => {
+  const verifyPhone = useCallback(async (telefone, code) => {
     try {
-      const response = await api.post('/auth/verify-email', {
-        email,
+      // Garantir que o telefone tenha apenas números e comece com 55
+      let telefoneLimpo = telefone.replace(/\D/g, '')
+      if (!telefoneLimpo.startsWith('55')) {
+        telefoneLimpo = '55' + telefoneLimpo
+      }
+      
+      const response = await api.post('/auth/verify-phone', {
+        telefone: telefoneLimpo,
         code
       })
 
@@ -282,7 +291,8 @@ export const AuthProvider = ({ children }) => {
         // Atualizar status de verificação do usuário
         const savedUser = JSON.parse(sessionStorage.getItem('user') || '{}')
         if (savedUser) {
-          savedUser.emailVerified = true
+          savedUser.phoneVerified = true
+          savedUser.emailVerified = true // Manter compatibilidade
           sessionStorage.setItem('user', JSON.stringify(savedUser))
           setUser({ ...savedUser })
         }
@@ -296,7 +306,7 @@ export const AuthProvider = ({ children }) => {
         message: errorMessage
       }
     } catch (error) {
-      console.error('Erro ao verificar email:', error)
+      console.error('Erro ao verificar telefone:', error)
       console.error('Resposta do erro:', error.response?.data)
       const errorMessage = error.response?.data?.message || error.response?.data?.data?.message || 'Código inválido'
       return { 
@@ -304,12 +314,18 @@ export const AuthProvider = ({ children }) => {
         message: errorMessage
       }
     }
-  }
+  }, [])
 
-  const resendVerificationCode = async (email) => {
+  const resendVerificationCode = useCallback(async (telefone) => {
     try {
+      // Garantir que o telefone tenha apenas números e comece com 55
+      let telefoneLimpo = telefone.replace(/\D/g, '')
+      if (!telefoneLimpo.startsWith('55')) {
+        telefoneLimpo = '55' + telefoneLimpo
+      }
+      
       const response = await api.post('/auth/resend-verification-code', {
-        email
+        telefone: telefoneLimpo
       })
 
       if (response.data.statusCode === 200) {
@@ -323,7 +339,7 @@ export const AuthProvider = ({ children }) => {
         message: errorMessage
       }
     }
-  }
+  }, [])
 
   const getClinicsByEmail = async (email) => {
     try {
@@ -472,39 +488,41 @@ export const AuthProvider = ({ children }) => {
   }
 
   // Função para limpar userComumId quando voltar para clínicas
-  const clearUserComumId = () => {
+  const clearUserComumId = useCallback(() => {
     setUserComumId(null)
     sessionStorage.removeItem('userComumId')
-  }
+  }, [])
 
   // Função helper para verificar se o usuário é ClienteMaster
-  const isClienteMaster = () => {
+  const isClienteMaster = useCallback(() => {
     if (!selectedClinicData) return false
     const relacionamento = selectedClinicData.relacionamento
     return relacionamento?.tipo === 'clienteMaster'
-  }
+  }, [selectedClinicData])
 
   // Função helper para verificar se o usuário é Usuario comum
-  const isUsuario = () => {
+  const isUsuario = useCallback(() => {
     if (!selectedClinicData) return false
     const relacionamento = selectedClinicData.relacionamento
     return relacionamento?.tipo === 'usuario'
-  }
+  }, [selectedClinicData])
 
   // Função helper para obter o relacionamento atual
-  const getRelacionamento = () => {
+  const getRelacionamento = useCallback(() => {
     if (!selectedClinicData) return null
     return selectedClinicData.relacionamento || null
-  }
+  }, [selectedClinicData])
 
-  const value = {
+  // Memoizar o objeto value para evitar re-renders desnecessários
+  // Apenas valores primitivos e objetos que realmente mudam precisam estar nas dependências
+  const value = useMemo(() => ({
     user,
     setUser,
     login,
     logout,
     register,
     refreshUser,
-    verifyEmail,
+    verifyPhone,
     resendVerificationCode,
     getClinicsByEmail,
     selectedClinicId,
@@ -517,7 +535,20 @@ export const AuthProvider = ({ children }) => {
     clearUserComumId,
     planoAcesso,
     loading
-  }
+  }), [
+    user,
+    selectedClinicId,
+    selectedClinicData,
+    userComumId,
+    planoAcesso,
+    loading,
+    verifyPhone,
+    resendVerificationCode,
+    isClienteMaster,
+    isUsuario,
+    getRelacionamento,
+    clearUserComumId
+  ])
 
   return (
     <AuthContext.Provider value={value}>

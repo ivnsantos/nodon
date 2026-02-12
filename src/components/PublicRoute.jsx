@@ -14,19 +14,19 @@ const PublicRoute = ({ children }) => {
     }}>Carregando...</div>
   }
 
+  const pathname = location.pathname
+  const allowedPathsWhenLoggedIn = ['/verify-email', '/select-clinic', '/assinatura-pendente', '/usuario-inativo', '/checkout']
+
   // Se o usuário estiver logado, redirecionar apenas de login/register para /app
   // Mas permitir acesso a verify-email mesmo logado (pode estar verificando email)
   if (user) {
-    // Rotas que podem ser acessadas mesmo logado
-    const allowedPathsWhenLoggedIn = ['/verify-email', '/select-clinic', '/assinatura-pendente', '/usuario-inativo', '/checkout']
-    
     // Se estiver em uma rota que precisa ser acessível mesmo logado, permitir acesso
-    if (allowedPathsWhenLoggedIn.includes(location.pathname)) {
+    if (allowedPathsWhenLoggedIn.includes(pathname)) {
       return children
     }
     
     // Apenas redirecionar de login/register se já estiver logado
-    if (location.pathname === '/login' || location.pathname === '/register') {
+    if (pathname === '/login' || pathname === '/register') {
       return <Navigate to="/app" replace />
     }
   }
