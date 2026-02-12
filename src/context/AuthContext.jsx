@@ -328,12 +328,21 @@ export const AuthProvider = ({ children }) => {
         telefone: telefoneLimpo
       })
 
-      if (response.data.statusCode === 200) {
+      // Aceitar tanto statusCode 200 quanto 201, ou status HTTP 201
+      const statusCode = response.data?.statusCode || response.status
+      if (statusCode === 200 || statusCode === 201) {
         return { success: true }
+      }
+      
+      // Se não for sucesso, retornar erro
+      const errorMessage = response.data?.message || 'Erro ao reenviar código'
+      return { 
+        success: false, 
+        message: errorMessage
       }
     } catch (error) {
       console.error('Erro ao reenviar código:', error)
-      const errorMessage = error.response?.data?.message || 'Erro ao reenviar código'
+      const errorMessage = error.response?.data?.message || error.response?.data?.data?.message || 'Erro ao reenviar código'
       return { 
         success: false, 
         message: errorMessage

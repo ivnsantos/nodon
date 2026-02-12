@@ -59,7 +59,13 @@ const VerifyEmail = () => {
       
       // Enviar código
       hasSentCodeRef.current = true
-      resendVerificationCode(telefoneLimpo).catch((error) => {
+      resendVerificationCode(telefoneLimpo).then((result) => {
+        if (!result || !result.success) {
+          console.error('Erro ao enviar código automaticamente:', result?.message || 'Erro desconhecido')
+          hasSentCodeRef.current = false // Permitir tentar novamente em caso de erro
+        }
+        // Se sucesso, não fazer nada (código enviado silenciosamente)
+      }).catch((error) => {
         console.error('Erro ao enviar código automaticamente:', error)
         hasSentCodeRef.current = false // Permitir tentar novamente em caso de erro
       })
