@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUserPlus, faSearch, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faEdit,
-  faEye, faTrash, faFilter, faChevronDown
+  faEye, faTrash, faFilter, faChevronDown, faCheck
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -21,7 +21,7 @@ const Clientes = () => {
   const isMaster = relacionamento?.tipo === 'clienteMaster' || isClienteMaster()
   
   // Hook para modal de alerta
-  const { alertConfig, showError, hideAlert } = useAlert()
+  const { alertConfig, showError, showSuccess, hideAlert } = useAlert()
   
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,6 +31,8 @@ const Clientes = () => {
   const [clienteToDelete, setClienteToDelete] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState({})
+  const statusDropdownRefs = useRef({})
 
   const statusOptions = [
     { value: 'all', label: 'Todos os Status' },
@@ -47,10 +49,22 @@ const Clientes = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false)
       }
+      
+      // Fechar todos os dropdowns de status
+      Object.keys(statusDropdownOpen).forEach(clienteId => {
+        const ref = statusDropdownRefs.current[clienteId]
+        if (ref && !ref.contains(event.target)) {
+          setStatusDropdownOpen(prev => {
+            const newState = { ...prev }
+            delete newState[clienteId]
+            return newState
+          })
+        }
+      })
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [statusDropdownOpen])
 
   useEffect(() => {
     if (selectedClinicData) {
@@ -74,7 +88,7 @@ const Clientes = () => {
       const pacientes = response.data?.data || response.data || []
       
       // Normalizar dados dos pacientes para o formato esperado
-      // A API retorna os dados diretamente no objeto, não aninhados
+      // A API agora retorna formato simplificado com apenas campos básicos
       const clientesNormalizados = pacientes.map(paciente => ({
         id: paciente.id,
         nome: paciente.nome || '',
@@ -84,7 +98,7 @@ const Clientes = () => {
         dataNascimento: paciente.dataNascimento || '',
         status: (() => {
           // Normalizar status do backend
-          const statusRaw = paciente.status || paciente.dadosPessoais?.status || 'avaliacao-realizada'
+          const statusRaw = paciente.status || 'avaliacao-realizada'
           // Normalizar valores comuns que podem vir do backend
           const statusNormalizado = String(statusRaw).toLowerCase().trim()
           
@@ -100,18 +114,19 @@ const Clientes = () => {
           
           return statusMap[statusNormalizado] || statusRaw
         })(),
-        necessidades: paciente.necessidades || '',
-        observacoes: paciente.observacoes || '',
+        // Campos não disponíveis no formato simplificado - serão carregados quando necessário
+        necessidades: '',
+        observacoes: '',
         endereco: {
-          rua: paciente.rua || '',
-          numero: paciente.numero || '',
-          complemento: paciente.complemento || '',
-          bairro: paciente.bairro || '',
-          cidade: paciente.cidade || '',
-          estado: paciente.estado || '',
-          cep: paciente.cep || ''
+          rua: '',
+          numero: '',
+          complemento: '',
+          bairro: '',
+          cidade: '',
+          estado: '',
+          cep: ''
         },
-        createdAt: paciente.createdAt || new Date().toISOString()
+        createdAt: new Date().toISOString()
       }))
       
       setClientes(clientesNormalizados)
@@ -197,6 +212,67 @@ const Clientes = () => {
   const handleCancelDelete = () => {
     setShowDeleteModal(false)
     setClienteToDelete(null)
+  }
+
+  const handleToggleStatusDropdown = (clienteId) => {
+    setStatusDropdownOpen(prev => ({
+      ...prev,
+      [clienteId]: !prev[clienteId]
+    }))
+  }
+
+  const handleUpdateStatus = async (clienteId, novoStatusValue) => {
+    const cliente = clientes.find(c => c.id === clienteId)
+    if (!cliente || !novoStatusValue || novoStatusValue === cliente.status) {
+      setStatusDropdownOpen(prev => {
+        const newState = { ...prev }
+        delete newState[clienteId]
+        return newState
+      })
+      return
+    }
+
+    // Fechar dropdown imediatamente para melhor UX
+    setStatusDropdownOpen(prev => {
+      const newState = { ...prev }
+      delete newState[clienteId]
+      return newState
+    })
+
+    try {
+      const payload = {
+        dadosPessoais: {
+          status: novoStatusValue
+        }
+      }
+
+      await api.put(`/pacientes/${clienteId}`, payload)
+      
+      // Se chegou aqui, a requisição foi bem-sucedida (axios só lança erro para status >= 400)
+      // Atualizar estado local
+      setClientes(clientes.map(c => 
+        c.id === clienteId 
+          ? { ...c, status: novoStatusValue }
+          : c
+      ))
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error)
+      
+      // Só mostrar erro se realmente for um erro da API (status >= 400)
+      if (error.response && error.response.status >= 400) {
+        const errorMessage = error.response.data?.message || 
+                           error.response.data?.error || 
+                           `Erro ${error.response.status}: ${error.response.statusText}`
+        showError(errorMessage)
+      } else if (error.request) {
+        // A requisição foi feita, mas não houve resposta
+        showError('Erro de conexão. Verifique sua internet e tente novamente.')
+      } else {
+        // Erro ao configurar a requisição
+        const errorMessage = error.message || 'Erro ao atualizar status. Tente novamente.'
+        showError(errorMessage)
+      }
+    }
   }
 
   if (!selectedClinicData) {
@@ -308,12 +384,46 @@ const Clientes = () => {
                 </div>
                 <div className="cliente-info-header">
                   <h3>{cliente.nome}</h3>
-                  <span 
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(cliente.status) }}
-                  >
-                    {getStatusLabel(cliente.status)}
-                  </span>
+                  {isMaster ? (
+                    <div 
+                      className="status-dropdown-container" 
+                      ref={el => statusDropdownRefs.current[cliente.id] = el}
+                    >
+                      <span 
+                        className="status-badge status-badge-clickable"
+                        style={{ backgroundColor: getStatusColor(cliente.status) }}
+                        onClick={() => handleToggleStatusDropdown(cliente.id)}
+                        title="Clique para alterar status"
+                      >
+                        {getStatusLabel(cliente.status)}
+                        <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen[cliente.id] ? 'open' : ''}`} />
+                      </span>
+                      {statusDropdownOpen[cliente.id] && (
+                        <div className="status-dropdown-menu">
+                          {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
+                            <div
+                              key={statusOption}
+                              className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
+                              style={{ backgroundColor: getStatusColor(statusOption) }}
+                              onClick={() => handleUpdateStatus(cliente.id, statusOption)}
+                            >
+                              <span>{getStatusLabel(statusOption)}</span>
+                              {cliente.status === statusOption && (
+                                <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span 
+                      className="status-badge"
+                      style={{ backgroundColor: getStatusColor(cliente.status) }}
+                    >
+                      {getStatusLabel(cliente.status)}
+                    </span>
+                  )}
                 </div>
               </div>
               

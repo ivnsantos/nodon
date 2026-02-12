@@ -82,7 +82,13 @@ const ClienteNovo = () => {
   const loadPacienteData = async () => {
     setLoadingData(true)
     try {
-      const response = await api.get(`/pacientes/${id}`)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      if (!clienteMasterId) {
+        showError('Cliente Master não encontrado')
+        setLoadingData(false)
+        return
+      }
+      const response = await api.get(`/pacientes/${id}/completo?clienteMasterId=${clienteMasterId}`)
       const paciente = response.data?.data || response.data
       
       if (paciente) {

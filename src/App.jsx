@@ -34,6 +34,11 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ResponderAnamnese from './pages/ResponderAnamnese'
 import AnamneseEntrada from './pages/AnamneseEntrada'
+import Feedback from './pages/Feedback'
+import FeedbackNovo from './pages/FeedbackNovo'
+import FeedbackRespostas from './pages/FeedbackRespostas'
+import ResponderQuestionario from './pages/ResponderQuestionario'
+import ResponderQuestionarioForm from './pages/ResponderQuestionarioForm'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -118,6 +123,16 @@ function AppRoutes() {
             <ResponderAnamnese />
           </PublicRoute>
         } />
+        <Route path="/responder-questionario/:id" element={
+          <PublicRoute>
+            <ResponderQuestionario />
+          </PublicRoute>
+        } />
+        <Route path="/responder-questionario/:id/iniciar" element={
+          <PublicRoute>
+            <ResponderQuestionarioForm />
+          </PublicRoute>
+        } />
         <Route path="/app" element={
           <ProtectedRoute>
             <Layout />
@@ -130,6 +145,10 @@ function AppRoutes() {
           <Route path="diagnosticos/:id/desenho" element={<DiagnosticoDesenho />} />
           <Route path="diagnosticos/:id/detalhamento-profissional" element={<DetalhamentoProfissional />} />
           <Route path="calendario" element={<Calendario />} />
+          <Route path="feedback" element={<Feedback />} />
+          <Route path="feedback/novo" element={<FeedbackNovo />} />
+          <Route path="feedback/:id/editar" element={<FeedbackNovo />} />
+          <Route path="feedback/:id/respostas" element={<FeedbackRespostas />} />
           <Route path="chat" element={<Chat />} />
           <Route path="perfil" element={<Perfil />} />
           <Route path="clientes" element={<Clientes />} />

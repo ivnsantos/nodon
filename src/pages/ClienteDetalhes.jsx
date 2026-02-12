@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -8,7 +8,7 @@ import {
   faCheckCircle, faClock, faTimesCircle, faExclamationTriangle,
   faXRay, faEye, faCheck, faTrash, faSave, faTimes,
   faClipboardQuestion, faPowerOff, faToggleOn, faToggleOff,
-  faCopy, faShareAlt, faSpinner
+  faCopy, faShareAlt, faSpinner, faComment, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
@@ -34,9 +34,7 @@ const ClienteDetalhes = () => {
   const [radiografias, setRadiografias] = useState([])
   const [loading, setLoading] = useState(true)
   const [showNecessidadesModal, setShowNecessidadesModal] = useState(false)
-  const [showStatusModal, setShowStatusModal] = useState(false)
   const [novaNecessidade, setNovaNecessidade] = useState('')
-  const [novoStatus, setNovoStatus] = useState('')
   const [necessidadesRadiografias, setNecessidadesRadiografias] = useState([])
   const [isEditingNecessidades, setIsEditingNecessidades] = useState(false)
   const [editedNecessidades, setEditedNecessidades] = useState([])
@@ -49,6 +47,14 @@ const ClienteDetalhes = () => {
   const [showRespostasModal, setShowRespostasModal] = useState(false)
   const [respostasAnamnese, setRespostasAnamnese] = useState(null)
   const [loadingRespostas, setLoadingRespostas] = useState(false)
+  const [questionarios, setQuestionarios] = useState([])
+  const [temFeedback, setTemFeedback] = useState(false)
+  const [totalQuestionarios, setTotalQuestionarios] = useState(0)
+  const [questionariosPendentes, setQuestionariosPendentes] = useState(0)
+  const [questionariosConcluidos, setQuestionariosConcluidos] = useState(0)
+  const [enderecoExpandido, setEnderecoExpandido] = useState(false)
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
+  const statusDropdownRef = useRef(null)
 
   useEffect(() => {
     loadCliente()
@@ -67,10 +73,32 @@ const ClienteDetalhes = () => {
     }
   }, [cliente, id])
 
+  // Fechar dropdown de status ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setStatusDropdownOpen(false)
+      }
+    }
+
+    if (statusDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [statusDropdownOpen])
+
   const loadCliente = async () => {
     try {
-      // Fazer GET para buscar dados do paciente
-      const response = await api.get(`/pacientes/${id}`)
+      // Fazer GET para buscar dados completos do paciente
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      if (!clienteMasterId) {
+        setError('Cliente Master não encontrado')
+        return
+      }
+      const response = await api.get(`/pacientes/${id}/completo?clienteMasterId=${clienteMasterId}`)
       const paciente = response.data?.data || response.data
       
       if (paciente) {
@@ -154,6 +182,13 @@ const ClienteDetalhes = () => {
         }
         
         setCliente(clienteNormalizado)
+        
+        // Salvar dados de feedback/questionários
+        setTemFeedback(paciente.temFeedback || false)
+        setQuestionarios(paciente.questionarios || [])
+        setTotalQuestionarios(paciente.totalQuestionarios || 0)
+        setQuestionariosPendentes(paciente.questionariosPendentes || 0)
+        setQuestionariosConcluidos(paciente.questionariosConcluidos || 0)
       } else {
         showError('Paciente não encontrado')
         navigate('/app/clientes')
@@ -753,6 +788,56 @@ const ClienteDetalhes = () => {
     }
   }
 
+  const handleCopiarLinkQuestionario = async (respostaQuestionarioId) => {
+    try {
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/responder-questionario/${respostaQuestionarioId}`
+      
+      await navigator.clipboard.writeText(link)
+      showSuccess('Link copiado para a área de transferência!')
+    } catch (error) {
+      console.error('Erro ao copiar link:', error)
+      // Fallback para navegadores que não suportam clipboard API
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/responder-questionario/${respostaQuestionarioId}`
+      const textArea = document.createElement('textarea')
+      textArea.value = link
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        showSuccess('Link copiado para a área de transferência!')
+      } catch (err) {
+        showError('Não foi possível copiar o link. Por favor, copie manualmente: ' + link)
+      }
+      document.body.removeChild(textArea)
+    }
+  }
+
+  const handleCompartilharLinkQuestionario = async (respostaQuestionarioId) => {
+    try {
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/responder-questionario/${respostaQuestionarioId}`
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Questionário de Feedback',
+          text: 'Por favor, responda este questionário',
+          url: link
+        })
+      } else {
+        // Fallback: copiar link
+        await handleCopiarLinkQuestionario(respostaQuestionarioId)
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Erro ao compartilhar link:', error)
+        // Se falhar, tentar copiar
+        await handleCopiarLinkQuestionario(respostaQuestionarioId)
+      }
+    }
+  }
+
   const handleVerRespostas = async (respostaAnamneseId) => {
     try {
       setLoadingRespostas(true)
@@ -796,41 +881,54 @@ const ClienteDetalhes = () => {
     return valor
   }
 
-  const handleUpdateStatus = async () => {
-    if (!novoStatus) return
+  const handleUpdateStatus = async (novoStatusValue) => {
+    if (!novoStatusValue || novoStatusValue === cliente.status) {
+      setStatusDropdownOpen(false)
+      return
+    }
+
+    // Fechar dropdown imediatamente para melhor UX
+    setStatusDropdownOpen(false)
 
     try {
       // Preparar payload para a API - status deve estar dentro de dadosPessoais
       const payload = {
         dadosPessoais: {
-          status: novoStatus
+          status: novoStatusValue
         }
       }
 
       // Fazer PUT para atualizar o status do paciente
       await api.put(`/pacientes/${id}`, payload)
       
+      // Se chegou aqui, a requisição foi bem-sucedida (axios só lança erro para status >= 400)
       // Atualizar estado local
-      setCliente({ ...cliente, status: novoStatus })
+      if (cliente) {
+        setCliente({ ...cliente, status: novoStatusValue })
+      }
       
-      // Adicionar ao histórico
-      const savedHistorico = JSON.parse(localStorage.getItem(`mockHistorico_${id}`) || '[]')
-      savedHistorico.unshift({
-        id: Date.now(),
-        tipo: 'status',
-        descricao: `Status alterado para ${getStatusLabel(novoStatus)}`,
-        data: new Date().toISOString(),
-        usuario: 'Dr. Usuário'
+      // Recarregar histórico da API (sem bloquear em caso de erro)
+      // Não usar await para não bloquear o fluxo de sucesso
+      loadHistorico().catch(histError => {
+        console.warn('Erro ao recarregar histórico (não crítico):', histError)
+        // Não mostrar erro se o histórico falhar, pois o status já foi atualizado
       })
-      localStorage.setItem(`mockHistorico_${id}`, JSON.stringify(savedHistorico))
-      
-      setNovoStatus('')
-      setShowStatusModal(false)
-      loadHistorico()
     } catch (error) {
-      console.error('Erro ao atualizar status:', error)
-      const errorMessage = error.response?.data?.message || 'Erro ao atualizar status. Tente novamente.'
-      showError(errorMessage)
+      // Só mostrar erro se realmente for um erro da API (status >= 400)
+      // Verificar se é um erro de resposta da API
+      if (error.response && error.response.status >= 400) {
+        const errorMessage = error.response.data?.message || 
+                           error.response.data?.error || 
+                           `Erro ${error.response.status}: ${error.response.statusText}`
+        showError(errorMessage)
+      } else if (error.request) {
+        // A requisição foi feita, mas não houve resposta
+        showError('Erro de conexão. Verifique sua internet e tente novamente.')
+      } else {
+        // Erro ao configurar a requisição
+        const errorMessage = error.message || 'Erro ao atualizar status. Tente novamente.'
+        showError(errorMessage)
+      }
     }
   }
 
@@ -944,41 +1042,106 @@ const ClienteDetalhes = () => {
                   </label>
                   <p>{formatTelefone(cliente.telefone)}</p>
                 </div>
+                <div className="ficha-item">
+                  <label>
+                    <FontAwesomeIcon icon={getStatusIcon(cliente.status)} /> Status
+                  </label>
+                  {isMaster ? (
+                    <div className="status-dropdown-container" ref={statusDropdownRef}>
+                      <span 
+                        className="status-badge-large status-badge-clickable"
+                        style={{ backgroundColor: getStatusColor(cliente.status) }}
+                        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                        title="Clique para alterar status"
+                      >
+                        <FontAwesomeIcon icon={getStatusIcon(cliente.status)} />
+                        {getStatusLabel(cliente.status)}
+                        <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen ? 'open' : ''}`} />
+                      </span>
+                      {statusDropdownOpen && (
+                        <div className="status-dropdown-menu">
+                          {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
+                            <div
+                              key={statusOption}
+                              className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
+                              style={{ backgroundColor: getStatusColor(statusOption) }}
+                              onClick={() => handleUpdateStatus(statusOption)}
+                            >
+                              <FontAwesomeIcon icon={getStatusIcon(statusOption)} />
+                              <span>{getStatusLabel(statusOption)}</span>
+                              {cliente.status === statusOption && (
+                                <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p>
+                      <span 
+                        className="status-badge-large"
+                        style={{ backgroundColor: getStatusColor(cliente.status) }}
+                      >
+                        <FontAwesomeIcon icon={getStatusIcon(cliente.status)} />
+                        {getStatusLabel(cliente.status)}
+                      </span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
             {cliente.endereco && (
               <div className="ficha-section">
-                <h2>
-                  <FontAwesomeIcon icon={faMapMarkerAlt} />
-                  Endereço
-                </h2>
-                <div className="ficha-grid">
-                  <div className="ficha-item">
-                    <label>Rua</label>
-                    <p>
-                      {cliente.endereco.rua}
-                      {cliente.endereco.numero && `, ${cliente.endereco.numero}`}
-                      {cliente.endereco.complemento && ` - ${cliente.endereco.complemento}`}
-                    </p>
-                  </div>
-                  {cliente.endereco.bairro && (
-                    <div className="ficha-item">
-                      <label>Bairro</label>
-                      <p>{cliente.endereco.bairro}</p>
-                    </div>
-                  )}
-                  <div className="ficha-item">
-                    <label>Cidade</label>
-                    <p>{cliente.endereco.cidade} - {cliente.endereco.estado}</p>
-                  </div>
-                  {cliente.endereco.cep && (
-                    <div className="ficha-item">
-                      <label>CEP</label>
-                      <p>{formatCEP(cliente.endereco.cep)}</p>
-                    </div>
-                  )}
+                <div className="section-header-actions">
+                  <h2>
+                    <FontAwesomeIcon icon={faMapMarkerAlt} />
+                    Endereço
+                  </h2>
+                  <button
+                    className="btn-expand-endereco"
+                    onClick={() => setEnderecoExpandido(!enderecoExpandido)}
+                    title={enderecoExpandido ? 'Minimizar' : 'Expandir'}
+                  >
+                    <FontAwesomeIcon icon={enderecoExpandido ? faChevronUp : faChevronDown} />
+                  </button>
                 </div>
+                {enderecoExpandido && (
+                  <div className="ficha-grid">
+                    {cliente.endereco.rua && (
+                      <div className="ficha-item">
+                        <label>Rua</label>
+                        <p>
+                          {cliente.endereco.rua}
+                          {cliente.endereco.numero && `, ${cliente.endereco.numero}`}
+                          {cliente.endereco.complemento && ` - ${cliente.endereco.complemento}`}
+                        </p>
+                      </div>
+                    )}
+                    {cliente.endereco.bairro && (
+                      <div className="ficha-item">
+                        <label>Bairro</label>
+                        <p>{cliente.endereco.bairro}</p>
+                      </div>
+                    )}
+                    {(cliente.endereco.cidade || cliente.endereco.estado) && (
+                      <div className="ficha-item">
+                        <label>Cidade</label>
+                        <p>
+                          {cliente.endereco.cidade}
+                          {cliente.endereco.estado && ` - ${cliente.endereco.estado}`}
+                        </p>
+                      </div>
+                    )}
+                    {cliente.endereco.cep && (
+                      <div className="ficha-item">
+                        <label>CEP</label>
+                        <p>{formatCEP(cliente.endereco.cep)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1227,6 +1390,85 @@ const ClienteDetalhes = () => {
             </div>
 
             <div className="ficha-section">
+              <div className="section-header-actions">
+                <h2>
+                  <FontAwesomeIcon icon={faComment} />
+                  Feedback / Questionários
+                </h2>
+                {isMaster && (
+                  <button
+                    className="btn-add-anamnese"
+                    onClick={() => navigate('/app/feedback')}
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Gerenciar Questionários
+                  </button>
+                )}
+              </div>
+
+              {questionarios.length === 0 ? (
+                <p className="empty-text">Nenhum questionário enviado para este paciente ainda.</p>
+              ) : (
+                <div className="questionarios-list">
+                  {questionarios.map((questionarioResposta) => (
+                    <div 
+                      key={questionarioResposta.id} 
+                      className={`questionario-item ${questionarioResposta.concluida ? 'concluida' : ''}`}
+                    >
+                      <div className="questionario-item-header">
+                        <div className="questionario-info">
+                          <div className="questionario-title-row">
+                            <h4>{questionarioResposta.questionario?.titulo || 'Questionário'}</h4>
+                            <div className="questionario-status-header">
+                              {questionarioResposta.concluida ? (
+                                <span className="status-badge-concluida">
+                                  <FontAwesomeIcon icon={faCheckCircle} />
+                                  Concluído
+                                </span>
+                              ) : (
+                                <span className="status-badge-pendente">
+                                  <FontAwesomeIcon icon={faClock} />
+                                  Pendente
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {questionarioResposta.questionario?.descricao && (
+                            <p className="questionario-descricao">{questionarioResposta.questionario.descricao}</p>
+                          )}
+                        </div>
+                        {isMaster && !questionarioResposta.concluida && (
+                          <div className="questionario-actions">
+                            <button
+                              className="btn-compartilhar-anamnese"
+                              onClick={() => handleCompartilharLinkQuestionario(questionarioResposta.id)}
+                              title="Compartilhar link"
+                            >
+                              <FontAwesomeIcon icon={faShareAlt} />
+                            </button>
+                            <button
+                              className="btn-copiar-link-anamnese"
+                              onClick={() => handleCopiarLinkQuestionario(questionarioResposta.id)}
+                              title="Copiar link"
+                            >
+                              <FontAwesomeIcon icon={faCopy} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="questionario-meta">
+                        <span>Enviado em: {new Date(questionarioResposta.createdAt).toLocaleDateString('pt-BR')}</span>
+                        {questionarioResposta.concluida && questionarioResposta.updatedAt && (
+                          <span>Concluído em: {new Date(questionarioResposta.updatedAt).toLocaleDateString('pt-BR')}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="ficha-section">
               <h2>
                 <FontAwesomeIcon icon={faXRay} />
                 Radiografias
@@ -1312,34 +1554,6 @@ const ClienteDetalhes = () => {
               </button>
               <button className="btn-save" onClick={handleAddNecessidade}>
                 Adicionar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Alterar Status */}
-      {showStatusModal && (
-        <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Alterar Status</h3>
-            <select
-              value={novoStatus}
-              onChange={(e) => setNovoStatus(e.target.value)}
-            >
-              <option value="">Selecione um status</option>
-              <option value="avaliacao-realizada">Avaliação Realizada</option>
-              <option value="em-andamento">Em Andamento</option>
-              <option value="aprovado">Aprovado</option>
-              <option value="tratamento-concluido">Tratamento Concluído</option>
-              <option value="perdido">Perdido</option>
-            </select>
-            <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setShowStatusModal(false)}>
-                Cancelar
-              </button>
-              <button className="btn-save" onClick={handleUpdateStatus}>
-                Salvar
               </button>
             </div>
           </div>
