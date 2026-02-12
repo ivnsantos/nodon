@@ -6,7 +6,7 @@ import {
   faCloud, faMobileAlt, faRobot, faStar, faArrowRight,
   faBars, faTimes, faBolt, faXRay, faBookOpen, faRocket,
   faComments, faMessage, faBrain, faAward, faLightbulb,
-  faChartLine, faHandHoldingHeart, faTag
+  faChartLine, faHandHoldingHeart, faTag, faCoins
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -103,7 +103,6 @@ const LPEstudante = () => {
             'IA treinada especificamente para odontologia',
             'Tire dúvidas sobre diagnósticos e tratamentos',
             'Suporte para técnicas odontológicas',
-            'Respostas instantâneas e precisas',
             'Acesso mobile completo',
             'Sem fidelidade - cancele quando quiser'
           ]
@@ -114,6 +113,9 @@ const LPEstudante = () => {
             'Análise de radiografias com IA',
             'Até 12 análises por mês',
             'Relatórios detalhados e didáticos',
+            'Precificação de tratamentos',
+            'Feedbacks e avaliações',
+            'Gráficos customizados para melhor entendimento',
             'Suporte por email',
             'Armazenamento ilimitado na nuvem',
             '1 milhão de tokens no chat IA',
@@ -384,10 +386,10 @@ const LPEstudante = () => {
                 <div className="benefit-number">02</div>
                 <div className="benefit-info">
                   <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faBookOpen} />
+                    <FontAwesomeIcon icon={faCoins} />
                   </div>
-                  <h3>Aprenda na Prática</h3>
-                  <p>Relatórios detalhados e didáticos que ajudam você a entender cada diagnóstico</p>
+                  <h3>Precificação de Tratamentos</h3>
+                  <p><strong>A NODON também oferece ajuda para precificação de tratamentos!</strong> Aprenda a calcular custos, margens de lucro e definir preços competitivos com gráficos e análises detalhadas.</p>
                 </div>
               </div>
             </div>

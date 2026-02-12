@@ -6,9 +6,10 @@ import {
   faCloud, faMobileAlt, faRobot, faArrowRight,
   faBars, faTimes, faBolt, faXRay, faBookOpen, faRocket,
   faComments, faMessage, faBrain, faAward, faLightbulb,
-  faChartLine, faHandHoldingHeart, faTag, faUserMd, faStethoscope,
+  faChartLine, faHandHoldingHeart, faTag, faUserMd, faStethoscope, faCoins,
   faFileMedical, faCalendarAlt, faClipboardList, faChevronDown, faChevronUp,
-  faCalendarCheck, faQuestionCircle, faComments as faCommentsAlt
+  faCalendarCheck, faQuestionCircle, faComments as faCommentsAlt, faPercent,
+  faChartBar, faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -237,15 +238,14 @@ const LPDentista = () => {
 
         if (isPlanoChat) {
           // Plano Chat - Apenas Chat
-          badge = 'Ideal para Consultórios Pequenos'
+          badge = 'Ideal para Estudantes'
           features = [
             'Chat especializado em odontologia 24/7',
             'IA treinada especificamente para odontologia',
             'Tire dúvidas sobre diagnósticos e tratamentos',
             'Suporte para técnicas odontológicas',
-            'Respostas instantâneas e precisas',
             plano.tokenChat ? `${formatarTokensAux(plano.tokenChat)} de tokens` : '1 milhão de tokens',
-            'Acesso mobile completo',
+            'Acesso mobile',
             'Sem fidelidade - cancele quando quiser'
           ]
         } else if (isPlanoInicial) {
@@ -257,6 +257,9 @@ const LPDentista = () => {
             'Agendamento de consultas',
             'Anamneses personalizadas',
             'Chat especializado em odontologia 24/7',
+            'Precificação de tratamentos',
+            'Feedbacks e avaliações',
+            'Gráficos customizados para melhor entendimento',
             'Gestão completa de pacientes',
             'Relatórios detalhados e profissionais',
             'Armazenamento ilimitado na nuvem',
@@ -272,6 +275,9 @@ const LPDentista = () => {
             'Agendamento de consultas',
             'Anamneses personalizadas',
             'Chat especializado em odontologia 24/7',
+            'Precificação de tratamentos',
+            'Feedbacks e avaliações',
+            'Gráficos customizados para melhor entendimento',
             'Gestão completa de pacientes',
             'Relatórios detalhados e profissionais',
             'Armazenamento ilimitado na nuvem',
@@ -483,6 +489,13 @@ const LPDentista = () => {
                     <span>Suporte completo para diagnósticos, tratamentos e gestão de pacientes</span>
                   </div>
                 </div>
+                <div className="chat-badge" style={{ marginTop: '1rem', background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)', padding: '1rem 1.5rem' }}>
+                  <FontAwesomeIcon icon={faCoins} style={{ color: '#f59e0b', fontSize: '1.5rem' }} />
+                  <div className="chat-text">
+                    <strong style={{ fontSize: '1rem' }}>Precificação Inteligente de Tratamentos</strong>
+                    <span style={{ fontSize: '0.875rem' }}>Calcule custos, margens de lucro e defina preços competitivos com gráficos e análises detalhadas</span>
+                  </div>
+                </div>
               </div>
               <div className="hero-actions">
                 <button className="btn-hero-main" onClick={handleCtaClick}>
@@ -619,6 +632,23 @@ const LPDentista = () => {
                 <li><FontAwesomeIcon icon={faCheckCircle} /> Segurança total</li>
               </ul>
             </div>
+
+            <div className="product-card" style={{ border: '2px solid rgba(245, 158, 11, 0.5)', background: 'rgba(245, 158, 11, 0.05)', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '-12px', right: '20px', background: '#f59e0b', color: '#fff', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.6875rem', fontWeight: '700', textTransform: 'uppercase' }}>
+                Novo
+              </div>
+              <div className="product-icon" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
+                <FontAwesomeIcon icon={faCoins} />
+              </div>
+              <h3 style={{ color: '#f59e0b', fontWeight: '700', fontSize: '1.125rem' }}>Precificação de Tratamentos</h3>
+              <p style={{ fontSize: '0.9375rem' }}><strong style={{ color: '#fff', fontSize: '0.9375rem' }}>A NODON oferece ajuda completa para precificação de seus tratamentos!</strong> Calcule custos, margens de lucro e defina preços competitivos com precisão através de gráficos e análises detalhadas.</p>
+              <ul className="product-features">
+                <li><FontAwesomeIcon icon={faCheckCircle} /> Cálculo automático de custos diretos e indiretos</li>
+                <li><FontAwesomeIcon icon={faCheckCircle} /> Análise de margem de lucro em tempo real</li>
+                <li><FontAwesomeIcon icon={faCheckCircle} /> Gráficos e relatórios detalhados</li>
+                <li><FontAwesomeIcon icon={faCheckCircle} /> Alertas visuais para lucro baixo ou sem lucro</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -650,10 +680,10 @@ const LPDentista = () => {
                 <div className="benefit-number">02</div>
                 <div className="benefit-info">
                   <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faUsers} />
+                    <FontAwesomeIcon icon={faCoins} />
                   </div>
-                  <h3>Gestão de Pacientes</h3>
-                  <p>Organize todos os seus pacientes, histórico, anamneses e tratamentos em um só lugar</p>
+                  <h3>Precificação de Tratamentos</h3>
+                  <p style={{ fontSize: '0.9375rem' }}><strong style={{ fontSize: '0.9375rem' }}>A NODON oferece ajuda completa para precificação dos seus tratamentos!</strong> Calcule custos, margens de lucro e defina preços competitivos com gráficos e análises detalhadas em tempo real.</p>
                 </div>
               </div>
             </div>
@@ -750,6 +780,49 @@ const LPDentista = () => {
                   <FontAwesomeIcon icon={faRocket} />
                   <h4>1 Milhão de Tokens</h4>
                   <p>Pergunte quantas vezes precisar durante sua prática clínica</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Precificação Section */}
+      <section className="precificacao-highlight-section">
+        <div className="lp-container">
+          <div className="precificacao-highlight-content">
+            <div className="precificacao-highlight-left">
+              <div className="precificacao-icon-wrapper">
+                <FontAwesomeIcon icon={faCoins} className="precificacao-main-icon" />
+                <div className="precificacao-icon-glow"></div>
+              </div>
+            </div>
+            <div className="precificacao-highlight-right">
+              <div className="precificacao-label">PRECIFICAÇÃO INTELIGENTE</div>
+              <h2 className="precificacao-title">A NODON oferece ajuda completa para precificação de seus tratamentos!</h2>
+              <p className="precificacao-subtitle">
+                Calcule custos, margens de lucro e defina preços competitivos com precisão através de gráficos e análises detalhadas em tempo real.
+              </p>
+              <div className="precificacao-benefits-grid">
+                <div className="precificacao-benefit-box">
+                  <FontAwesomeIcon icon={faChartLine} />
+                  <h4>Cálculo Automático</h4>
+                  <p>Custos diretos e indiretos calculados automaticamente</p>
+                </div>
+                <div className="precificacao-benefit-box">
+                  <FontAwesomeIcon icon={faPercent} />
+                  <h4>Análise de Margem</h4>
+                  <p>Visualize margens de lucro em tempo real com gráficos</p>
+                </div>
+                <div className="precificacao-benefit-box">
+                  <FontAwesomeIcon icon={faChartBar} />
+                  <h4>Gráficos Detalhados</h4>
+                  <p>Análises visuais completas para tomada de decisão</p>
+                </div>
+                <div className="precificacao-benefit-box">
+                  <FontAwesomeIcon icon={faExclamationTriangle} />
+                  <h4>Alertas Inteligentes</h4>
+                  <p>Receba avisos quando o lucro estiver baixo ou ausente</p>
                 </div>
               </div>
             </div>

@@ -7,7 +7,7 @@ import {
   faCamera, faRobot, faClipboardList, faLaptop,
   faMobileAlt, faTv, faDesktop, faUserMd, faUsers,
   faCheckCircle, faComments, faShieldAlt, faCloud,
-  faChevronDown, faTrophy, faStar
+  faChevronDown, faTrophy, faStar, faCoins
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -396,6 +396,10 @@ const Home = () => {
             </h1>
             <p className="hero-subtitle">
               Não fique para trás, conquiste a confiança dos seus pacientes e aumente a sua produtividade com a IA NODON.
+              <br /><br />
+              <strong style={{ color: '#f59e0b', fontSize: '0.9375rem' }}>✨ A NODON também oferece ajuda completa para precificação de seus tratamentos!</strong> 
+              <br />
+              <span style={{ fontSize: '0.875rem' }}>Calcule custos, margens de lucro e defina preços competitivos com gráficos e análises detalhadas.</span>
             </p>
             <div className="hero-buttons">
               <button className="btn-hero-primary" onClick={() => setShowContactForm(true)}>
@@ -479,6 +483,11 @@ const Home = () => {
                 <FontAwesomeIcon icon={faBolt} className="feature-icon" />
                 <h3>Resultados Rápidos</h3>
                 <p>Análise completa em poucos segundos</p>
+              </div>
+              <div className="what-we-do-feature">
+                <FontAwesomeIcon icon={faCoins} className="feature-icon" />
+                <h3>Precificação de Tratamentos</h3>
+                <p>A NODON também oferece ajuda para precificação de seus tratamentos com cálculos automáticos de custos e margens</p>
               </div>
             </div>
           </div>
@@ -752,6 +761,7 @@ const Home = () => {
                 const featured = plano.featured || plano.destaque || false
                 const acesso = plano.acesso || null
                 const isPlanoChat = acesso === 'chat' || nomePlano.toLowerCase().includes('chat')
+                const isPlanoInicial = nomePlano.toLowerCase().includes('inicial')
                 
                 // Formatar valores monetários
                 const formatarValor = (valor) => {
@@ -780,30 +790,54 @@ const Home = () => {
                 // Se for Plano Chat, mostrar apenas features específicas
                 if (isPlanoChat) {
                   if (tokenChat && parseInt(tokenChat) > 0) {
-                    featuresList.push(`${formatarTokens(tokenChat)} de tokens no chat da NODON`)
+                    featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
                   }
-                  featuresList.push('Suporte por email')
-                  featuresList.push('Armazenamento na nuvem')
+                  featuresList.push('Chat especializado em odontologia 24/7')
+                  featuresList.push('IA treinada especificamente para odontologia')
+                  featuresList.push('Tire dúvidas sobre diagnósticos e tratamentos')
+                  featuresList.push('Suporte para técnicas odontológicas')
+                  featuresList.push('Acesso mobile')
+                  featuresList.push('Sem fidelidade - cancele quando quiser')
+                } else if (isPlanoInicial) {
+                  // Plano Inicial - Mesmas features das LPs
+                  featuresList.push('Diagnósticos com IA avançada')
+                  featuresList.push(`Até ${limiteAnalises || 12} análises por mês`)
+                  featuresList.push('Agendamento de consultas')
+                  featuresList.push('Anamneses personalizadas')
+                  featuresList.push('Chat especializado em odontologia 24/7')
+                  featuresList.push('Precificação de tratamentos')
+                  featuresList.push('Feedbacks e avaliações')
+                  featuresList.push('Gráficos customizados para melhor entendimento')
+                  featuresList.push('Gestão completa de pacientes')
+                  featuresList.push('Relatórios detalhados e profissionais')
+                  featuresList.push('Armazenamento ilimitado na nuvem')
+                  if (tokenChat && parseInt(tokenChat) > 0) {
+                    featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
+                  }
+                  featuresList.push('Acesso mobile completo')
+                  featuresList.push('Sem fidelidade - cancele quando quiser')
                 } else {
-                  // Para outros planos, adicionar features padrão
-                  featuresList.push('Análise de radiografias')
-                  featuresList.push('Relatórios detalhados')
-                  
-                  // Usar descricao da API se disponível, senão construir baseado em limiteAnalises
-                  if (plano.descricao) {
-                    featuresList.push(plano.descricao)
-                  } else if (limiteAnalises > 0) {
+                  // Features completas para outros planos - Mesmas features das LPs
+                  featuresList.push('Diagnósticos com IA avançada')
+                  if (limiteAnalises > 0) {
                     featuresList.push(`Até ${limiteAnalises} análises por mês`)
                   } else {
                     featuresList.push('Análises ilimitadas')
                   }
-                  
+                  featuresList.push('Agendamento de consultas')
+                  featuresList.push('Anamneses personalizadas')
+                  featuresList.push('Chat especializado em odontologia 24/7')
+                  featuresList.push('Precificação de tratamentos')
+                  featuresList.push('Feedbacks e avaliações')
+                  featuresList.push('Gráficos customizados para melhor entendimento')
+                  featuresList.push('Gestão completa de pacientes')
+                  featuresList.push('Relatórios detalhados e profissionais')
+                  featuresList.push('Armazenamento ilimitado na nuvem')
                   if (tokenChat && parseInt(tokenChat) > 0) {
-                    featuresList.push(`${formatarTokens(tokenChat)} de tokens no chat da NODON`)
+                    featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
                   }
-                  
-                  featuresList.push('Suporte por email')
-                  featuresList.push('Armazenamento na nuvem')
+                  featuresList.push('Acesso mobile completo')
+                  featuresList.push('Sem fidelidade - cancele quando quiser')
                   
                   // Se houver features adicionais da API, adicionar
                   if (plano.features && Array.isArray(plano.features)) {

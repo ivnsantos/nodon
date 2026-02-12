@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
   faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding,
-  faCalendarAlt, faClipboardQuestion, faComment
+  faCalendarAlt, faClipboardQuestion, faComment, faDollarSign
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -58,6 +58,7 @@ const Layout = () => {
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
     { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/feedback', label: 'Feedback', icon: faComment },
+    { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
     { path: '/app/chat', label: 'Chat IA', icon: faComments },
     { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },

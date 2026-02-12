@@ -39,6 +39,10 @@ import FeedbackNovo from './pages/FeedbackNovo'
 import FeedbackRespostas from './pages/FeedbackRespostas'
 import ResponderQuestionario from './pages/ResponderQuestionario'
 import ResponderQuestionarioForm from './pages/ResponderQuestionarioForm'
+import Precificacao from './pages/Precificacao'
+import PrecificacaoTratamento from './pages/PrecificacaoTratamento'
+import PrecificacaoCategoria from './pages/PrecificacaoCategoria'
+import PrecificacaoProduto from './pages/PrecificacaoProduto'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -149,6 +153,13 @@ function AppRoutes() {
           <Route path="feedback/novo" element={<FeedbackNovo />} />
           <Route path="feedback/:id/editar" element={<FeedbackNovo />} />
           <Route path="feedback/:id/respostas" element={<FeedbackRespostas />} />
+          <Route path="precificacao" element={<Precificacao />} />
+          <Route path="precificacao/tratamento/novo" element={<PrecificacaoTratamento />} />
+          <Route path="precificacao/tratamento/:id/editar" element={<PrecificacaoTratamento />} />
+          <Route path="precificacao/categoria/novo" element={<PrecificacaoCategoria />} />
+          <Route path="precificacao/categoria/:id/editar" element={<PrecificacaoCategoria />} />
+          <Route path="precificacao/produto/novo" element={<PrecificacaoProduto />} />
+          <Route path="precificacao/produto/:id/editar" element={<PrecificacaoProduto />} />
           <Route path="chat" element={<Chat />} />
           <Route path="perfil" element={<Perfil />} />
           <Route path="clientes" element={<Clientes />} />
