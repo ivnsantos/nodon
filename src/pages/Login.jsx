@@ -125,9 +125,11 @@ const Login = () => {
                 required
                 placeholder="••••••••"
               />
-              <Link to="/forgot-password" className="forgot-password-link">
-                Esqueceu a senha?
-              </Link>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <Link to="/forgot-password-phone" className="forgot-password-link">
+                  Esqueceu a senha?
+                </Link>
+              </div>
             </div>
 
             <div className="social-login-buttons">

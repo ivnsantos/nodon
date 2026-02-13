@@ -15,7 +15,11 @@ import {
   faEdit,
   faArrowRight,
   faCrown,
-  faIdCard
+  faIdCard,
+  faChevronDown,
+  faChevronUp,
+  faBars,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import './SelectClinic.css'
@@ -43,6 +47,7 @@ const SelectClinic = () => {
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
   const [editSuccess, setEditSuccess] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -275,13 +280,78 @@ const SelectClinic = () => {
   return (
     <div className="select-clinic-page">
       <div className="select-clinic-container">
+        {/* Header Mobile com Menu Hambúrguer */}
+        <div className="mobile-header">
+          <div className="mobile-header-left">
+            <div className="mobile-user-avatar">
+              {userPhoto ? (
+                <img 
+                  src={userPhoto} 
+                  alt={user?.nome || 'Usuário'} 
+                  className="user-avatar-img"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                    e.target.nextSibling.style.display = 'flex'
+                  }}
+                />
+              ) : null}
+              <span className="user-avatar-initial" style={{ display: userPhoto ? 'none' : 'flex' }}>
+                {user?.nome?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="mobile-header-info">
+              <h1 className="mobile-logo">NODON</h1>
+              <span className="mobile-user-name">{user?.nome || 'Usuário'}</span>
+            </div>
+          </div>
+          <button 
+            className="hamburger-menu-btn"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+          >
+            <FontAwesomeIcon icon={menuOpen ? faTimes : faBars} />
+          </button>
+        </div>
+
+        {/* Overlay para fechar menu no mobile */}
+        {menuOpen && (
+          <div 
+            className="menu-overlay"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
         {/* Sidebar com Perfil do Usuário */}
-        <div className="select-clinic-sidebar">
+        <div className={`select-clinic-sidebar ${menuOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
-            <h1 className="sidebar-logo">NODON</h1>
-            <button className="logout-btn" onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} />
-              <span>Sair</span>
+            <div className="sidebar-header-left">
+              <div className="user-avatar-small">
+                {userPhoto ? (
+                  <img 
+                    src={userPhoto} 
+                    alt={user?.nome || 'Usuário'} 
+                    className="user-avatar-img"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.nextSibling.style.display = 'flex'
+                    }}
+                  />
+                ) : null}
+                <span className="user-avatar-initial" style={{ display: userPhoto ? 'none' : 'flex' }}>
+                  {user?.nome?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="sidebar-header-info">
+                <h1 className="sidebar-logo">NODON</h1>
+                <span className="sidebar-user-name">{user?.nome || 'Usuário'}</span>
+              </div>
+            </div>
+            <button 
+              className="sidebar-close-btn"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+            >
+              <FontAwesomeIcon icon={faTimes} />
             </button>
           </div>
 
@@ -342,6 +412,14 @@ const SelectClinic = () => {
             >
               <FontAwesomeIcon icon={faEdit} />
               <span>{showEditProfile ? 'Cancelar Edição' : 'Editar Perfil'}</span>
+            </button>
+
+            <button 
+              className="logout-btn-menu"
+              onClick={handleLogout}
+            >
+              <FontAwesomeIcon icon={faSignOutAlt} />
+              <span>Sair</span>
             </button>
 
             {/* Formulário de Edição */}

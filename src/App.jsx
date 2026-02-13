@@ -31,6 +31,7 @@ import LPDentista from './pages/LPDentista'
 import LPEstudante from './pages/LPEstudante'
 import GoogleCallback from './pages/GoogleCallback'
 import ForgotPassword from './pages/ForgotPassword'
+import ForgotPasswordPhone from './pages/ForgotPasswordPhone'
 import ResetPassword from './pages/ResetPassword'
 import ResponderAnamnese from './pages/ResponderAnamnese'
 import AnamneseEntrada from './pages/AnamneseEntrada'
@@ -78,6 +79,11 @@ function AppRoutes() {
         <Route path="/forgot-password" element={
           <PublicRoute>
             <ForgotPassword />
+          </PublicRoute>
+        } />
+        <Route path="/forgot-password-phone" element={
+          <PublicRoute>
+            <ForgotPasswordPhone />
           </PublicRoute>
         } />
         <Route path="/reset-password" element={
