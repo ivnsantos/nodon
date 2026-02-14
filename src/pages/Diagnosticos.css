@@ -45,9 +45,21 @@
   white-space: nowrap;
 }
 
-.btn-diagnosticos-primary:hover {
+.btn-diagnosticos-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
+}
+
+.btn-diagnosticos-primary:disabled {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.btn-diagnosticos-primary:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .form-card-modern {

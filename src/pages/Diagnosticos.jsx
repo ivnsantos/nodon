@@ -726,7 +726,12 @@ const Diagnosticos = () => {
           </h2>
           <p>Gerencie e analise radiografias odontológicas</p>
         </div>
-        <button className="btn-diagnosticos-primary" onClick={() => setShowForm(!showForm)}>
+        <button 
+          className="btn-diagnosticos-primary" 
+          onClick={() => setShowForm(!showForm)}
+          disabled={!loadingAnalises && isAnalisesAtLimit() && !showForm}
+          title={!loadingAnalises && isAnalisesAtLimit() ? 'Limite de análises atingido. Entre em contato para mais análises.' : ''}
+        >
           <FontAwesomeIcon icon={faPlus} /> {showForm ? 'Cancelar' : 'Nova Radiografia'}
         </button>
       </div>
