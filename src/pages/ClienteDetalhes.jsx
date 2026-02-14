@@ -8,7 +8,8 @@ import {
   faCheckCircle, faClock, faTimesCircle, faExclamationTriangle,
   faXRay, faEye, faCheck, faTrash, faSave, faTimes,
   faClipboardQuestion, faPowerOff, faToggleOn, faToggleOff,
-  faCopy, faShareAlt, faSpinner, faComment, faChevronDown, faChevronUp
+  faCopy, faShareAlt, faSpinner, faComment, faChevronDown, faChevronUp,
+  faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
@@ -55,12 +56,15 @@ const ClienteDetalhes = () => {
   const [enderecoExpandido, setEnderecoExpandido] = useState(false)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const statusDropdownRef = useRef(null)
+  const [orcamentos, setOrcamentos] = useState([])
+  const [loadingOrcamentos, setLoadingOrcamentos] = useState(false)
 
   useEffect(() => {
     loadCliente()
     loadHistorico()
     loadAnamnesesVinculadas()
     loadAnamnesesDisponiveis()
+    loadOrcamentos()
   }, [id])
 
   // Carregar radiografias quando o cliente for carregado
@@ -672,6 +676,29 @@ const ClienteDetalhes = () => {
     }
   }
 
+  const loadOrcamentos = async () => {
+    try {
+      setLoadingOrcamentos(true)
+      const response = await api.get(`/orcamentos/paciente/${id}`)
+      
+      let orcamentosData = []
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          orcamentosData = response.data
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          orcamentosData = response.data.data
+        }
+      }
+      
+      setOrcamentos(orcamentosData || [])
+    } catch (error) {
+      console.error('Erro ao carregar orçamentos:', error)
+      setOrcamentos([])
+    } finally {
+      setLoadingOrcamentos(false)
+    }
+  }
+
 
   const handleVincularAnamnese = async () => {
     if (!anamneseParaVincular) {
@@ -952,6 +979,70 @@ const ClienteDetalhes = () => {
     return colorMap[tipo] || '#6b7280'
   }
 
+  // Funções para orçamentos
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value || 0)
+  }
+
+  const formatDateOrcamento = (dateString) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  const getOrcamentoStatusColor = (status) => {
+    const colors = {
+      'RASCUNHO': '#6b7280',
+      'ENVIADO': '#0ea5e9',
+      'ACEITO': '#10b981',
+      'EM_ANDAMENTO': '#f59e0b',
+      'FINALIZADO': '#8b5cf6',
+      'RECUSADO': '#ef4444',
+      'CANCELADO': '#6b7280'
+    }
+    return colors[status] || '#9ca3af'
+  }
+
+  const getOrcamentoStatusLabel = (status) => {
+    const labels = {
+      'RASCUNHO': 'Rascunho',
+      'ENVIADO': 'Enviado',
+      'ACEITO': 'Aceito',
+      'EM_ANDAMENTO': 'Em Andamento',
+      'FINALIZADO': 'Finalizado',
+      'RECUSADO': 'Recusado',
+      'CANCELADO': 'Cancelado'
+    }
+    return labels[status] || status
+  }
+
+  const getItemStatusColor = (status) => {
+    const colors = {
+      'EM_ANALISE': '#0ea5e9',
+      'PAGO': '#10b981',
+      'RECUSADO': '#ef4444',
+      'PERDIDO': '#6b7280'
+    }
+    return colors[status] || '#9ca3af'
+  }
+
+  const getItemStatusLabel = (status) => {
+    const labels = {
+      'EM_ANALISE': 'Em Análise',
+      'PAGO': 'Pago',
+      'RECUSADO': 'Recusado',
+      'PERDIDO': 'Perdido'
+    }
+    return labels[status] || status
+  }
+
   if (loading) {
     return (
       <div className="cliente-detalhes-loading">
@@ -981,6 +1072,13 @@ const ClienteDetalhes = () => {
         </button>
         {isMaster && (
           <div className="header-actions">
+            <button
+              className="btn-orcamento-header"
+              onClick={() => navigate(`/app/orcamentos/novo?pacienteId=${id}`)}
+            >
+              <FontAwesomeIcon icon={faFileInvoiceDollar} />
+              Novo Orçamento
+            </button>
             <button
               className="btn-edit-header"
               onClick={() => navigate(`/app/clientes/${id}/editar`)}
@@ -1393,7 +1491,7 @@ const ClienteDetalhes = () => {
               <div className="section-header-actions">
                 <h2>
                   <FontAwesomeIcon icon={faComment} />
-                  Feedback / Questionários
+                  Feedback
                 </h2>
                 {isMaster && (
                   <button
@@ -1465,6 +1563,86 @@ const ClienteDetalhes = () => {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            <div className="ficha-section">
+              <div className="section-header-actions">
+                <h2>
+                  <FontAwesomeIcon icon={faFileInvoiceDollar} />
+                  Orçamentos
+                </h2>
+                {isMaster && (
+                  <button
+                    className="btn-add-anamnese"
+                    onClick={() => navigate(`/app/orcamentos/novo/${id}`)}
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Novo Orçamento
+                  </button>
+                )}
+              </div>
+              {loadingOrcamentos ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                </div>
+              ) : orcamentos.length > 0 ? (
+                <div className="orcamentos-list-cliente">
+                  {orcamentos.map((orcamento) => (
+                    <div key={orcamento.id} className="orcamento-item-cliente">
+                      <div className="orcamento-item-header-cliente">
+                        <div className="orcamento-item-info-cliente">
+                          <div className="orcamento-item-title-cliente">
+                            <span className="orcamento-id-cliente">
+                              Orçamento #{orcamento.id?.substring(0, 8)}
+                            </span>
+                            <span 
+                              className="orcamento-status-badge-cliente"
+                              style={{ backgroundColor: getOrcamentoStatusColor(orcamento.status) }}
+                            >
+                              {getOrcamentoStatusLabel(orcamento.status)}
+                            </span>
+                          </div>
+                          <div className="orcamento-item-meta-cliente">
+                            <span className="orcamento-valor-cliente">
+                              {formatCurrency(orcamento.valorTotal || 0)}
+                            </span>
+                            <span className="orcamento-data-cliente">
+                              {formatDateOrcamento(orcamento.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          className="btn-view-orcamento"
+                          onClick={() => navigate(`/app/orcamentos/${orcamento.id}`)}
+                          title="Ver detalhes"
+                        >
+                          <FontAwesomeIcon icon={faEye} />
+                        </button>
+                      </div>
+                      {orcamento.itens && orcamento.itens.length > 0 && (
+                        <div className="orcamento-itens-cliente">
+                          {orcamento.itens.map((item, idx) => (
+                            <div key={idx} className="orcamento-item-item-cliente">
+                              <div className="item-info-cliente">
+                                <span className="item-nome-cliente">{item.nome || item.descricao}</span>
+                                <span className="item-valor-cliente">{formatCurrency((item.preco || 0) * (item.quantidade || 1))}</span>
+                              </div>
+                              <span 
+                                className="item-status-badge-cliente"
+                                style={{ backgroundColor: getItemStatusColor(item.status) }}
+                              >
+                                {getItemStatusLabel(item.status)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-text">Nenhum orçamento cadastrado para este paciente.</p>
               )}
             </div>
 

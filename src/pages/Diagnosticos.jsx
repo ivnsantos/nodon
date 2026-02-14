@@ -868,7 +868,7 @@ const Diagnosticos = () => {
                   <button 
                     type="button"
                     className="btn-create-cliente"
-                    onClick={() => setShowNewClienteForm(true)}
+                    onClick={() => navigate('/app/clientes/novo')}
                   >
                     <FontAwesomeIcon icon={faPlus} /> Cadastrar Novo Cliente
                   </button>

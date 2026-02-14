@@ -4,7 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
   faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding,
-  faCalendarAlt, faClipboardQuestion, faComment, faDollarSign, faStickyNote
+  faCalendarAlt, faClipboardQuestion, faComment, faDollarSign, faStickyNote,
+  faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -65,6 +66,7 @@ const Layout = () => {
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
     { path: '/app/anamneses', label: 'Anamneses', icon: faClipboardQuestion },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
+    { path: '/app/orcamentos', label: 'Orçamentos', icon: faFileInvoiceDollar },
     { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/feedback', label: 'Feedback', icon: faComment },
     { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
@@ -156,6 +158,9 @@ const Layout = () => {
     if (path.startsWith('/app/anamneses/') && path !== '/app/anamneses') return 'Detalhes da Anamnese'
     if (path.startsWith('/app/diagnosticos/') && path.includes('/desenho')) return 'Desenho Profissional'
     if (path.startsWith('/app/diagnosticos/') && path !== '/app/diagnosticos') return 'Detalhes da Radiografia'
+    if (path === '/app/orcamentos/novo') return 'Novo Orçamento'
+    if (path.startsWith('/app/orcamentos/') && path.includes('/editar')) return 'Editar Orçamento'
+    if (path.startsWith('/app/orcamentos/') && path !== '/app/orcamentos') return 'Detalhes do Orçamento'
     
     // Se limiteAnalises === 0 e estiver em /app, retornar "Chat IA" (será redirecionado)
     if (limiteAnalises === 0 && path === '/app') {

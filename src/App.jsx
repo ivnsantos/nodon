@@ -17,6 +17,9 @@ import Chat from './pages/Chat'
 import Clientes from './pages/Clientes'
 import ClienteDetalhes from './pages/ClienteDetalhes'
 import ClienteNovo from './pages/ClienteNovo'
+import Orcamentos from './pages/Orcamentos'
+import OrcamentoNovo from './pages/OrcamentoNovo'
+import OrcamentoDetalhes from './pages/OrcamentoDetalhes'
 import Anamneses from './pages/Anamneses'
 import AnamneseNovo from './pages/AnamneseNovo'
 import AnamneseDetalhes from './pages/AnamneseDetalhes'
@@ -174,6 +177,10 @@ function AppRoutes() {
           <Route path="clientes/novo" element={<ClienteNovo />} />
           <Route path="clientes/:id" element={<ClienteDetalhes />} />
           <Route path="clientes/:id/editar" element={<ClienteNovo />} />
+          <Route path="orcamentos" element={<Orcamentos />} />
+          <Route path="orcamentos/novo" element={<OrcamentoNovo />} />
+          <Route path="orcamentos/:id" element={<OrcamentoDetalhes />} />
+          <Route path="orcamentos/:id/editar" element={<OrcamentoNovo />} />
           <Route path="anamneses" element={<Anamneses />} />
           <Route path="anamneses/novo" element={<AnamneseNovo />} />
           <Route path="anamneses/:id" element={<AnamneseDetalhes />} />
