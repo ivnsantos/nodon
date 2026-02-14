@@ -44,6 +44,7 @@ import Precificacao from './pages/Precificacao'
 import PrecificacaoTratamento from './pages/PrecificacaoTratamento'
 import PrecificacaoCategoria from './pages/PrecificacaoCategoria'
 import PrecificacaoProduto from './pages/PrecificacaoProduto'
+import Anotacoes from './pages/Anotacoes'
 import { AuthProvider } from './context/AuthContext'
 
 function AppRoutes() {
@@ -166,6 +167,7 @@ function AppRoutes() {
           <Route path="precificacao/categoria/:id/editar" element={<PrecificacaoCategoria />} />
           <Route path="precificacao/produto/novo" element={<PrecificacaoProduto />} />
           <Route path="precificacao/produto/:id/editar" element={<PrecificacaoProduto />} />
+          <Route path="anotacoes" element={<Anotacoes />} />
           <Route path="chat" element={<Chat />} />
           <Route path="perfil" element={<Perfil />} />
           <Route path="clientes" element={<Clientes />} />

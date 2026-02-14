@@ -5,8 +5,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faXRay, faPlus, faImage, faFileMedical, faCalendar, faUser,
   faSearch, faCheck, faTimes, faEnvelope, faIdCard,
-  faExclamationTriangle, faEye, faTrash, faUserMd, faUsers
+  faExclamationTriangle, faEye, faTrash, faUserMd, faUsers,
+  faFileAlt, faChartLine, faCheckCircle
 } from '@fortawesome/free-solid-svg-icons'
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
 import exameImage from '../img/exame.jpg'
 import './Diagnosticos.css'
@@ -67,10 +69,13 @@ const Diagnosticos = () => {
   const [showForm, setShowForm] = useState(false)
   const [selectedImages, setSelectedImages] = useState([])
   
-  // Estados para busca de cliente
+  // Estados para busca de cliente (no formulário)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [selectedCliente, setSelectedCliente] = useState(null)
+  
+  // Estado para busca de radiografias por nome do paciente
+  const [searchRadiografia, setSearchRadiografia] = useState('')
   const [showNewClienteForm, setShowNewClienteForm] = useState(false)
   const [searching, setSearching] = useState(false)
   const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
@@ -85,6 +90,21 @@ const Diagnosticos = () => {
   const [selectedResponsavel, setSelectedResponsavel] = useState(null)
   const [loadingResponsaveis, setLoadingResponsaveis] = useState(false)
   const [pendingFormData, setPendingFormData] = useState(null)
+  
+  // Estado para uso de análises
+  const [analisesUsage, setAnalisesUsage] = useState({
+    limitePlano: 0,
+    analisesUsadas: 0,
+    analisesRestantes: 0,
+    porcentagemUso: 0,
+    passouDoLimite: false,
+    aviso: null,
+    periodo: {
+      dataInicio: null,
+      dataFim: null
+    }
+  })
+  const [loadingAnalises, setLoadingAnalises] = useState(true)
   
   // Formulário de radiografia
   const [formData, setFormData] = useState({
@@ -188,8 +208,50 @@ const Diagnosticos = () => {
   useEffect(() => {
     if (selectedClinicData) {
       fetchDiagnosticos()
+      loadAnalisesUsage()
     }
   }, [selectedClinicData])
+  
+  // Função para carregar uso de análises
+  const loadAnalisesUsage = async () => {
+    try {
+      setLoadingAnalises(true)
+      const response = await api.get('/assinaturas/analises')
+      const data = response.data?.data || response.data
+      
+      if (data) {
+        setAnalisesUsage({
+          limitePlano: data.limitePlano || 0,
+          analisesUsadas: data.analisesUsadas || 0,
+          analisesRestantes: data.analisesRestantes || 0,
+          porcentagemUso: data.porcentagemUso || 0,
+          passouDoLimite: data.passouDoLimite || false,
+          aviso: data.aviso || null,
+          periodo: {
+            dataInicio: data.periodo?.dataInicio || null,
+            dataFim: data.periodo?.dataFim || null
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao carregar uso de análises:', error)
+    } finally {
+      setLoadingAnalises(false)
+    }
+  }
+  
+  // Funções para verificar status das análises
+  const isAnalisesAtLimit = () => {
+    return analisesUsage.porcentagemUso >= 100
+  }
+  
+  const isAnalisesCritical = () => {
+    return analisesUsage.porcentagemUso >= 85 && analisesUsage.porcentagemUso < 100
+  }
+  
+  const isAnalisesPulsing = () => {
+    return analisesUsage.porcentagemUso >= 95
+  }
 
   useEffect(() => {
     if (selectedClinicData) {
@@ -578,6 +640,13 @@ const Diagnosticos = () => {
     navigate(`/app/diagnosticos/${diagnostico.id}`)
   }
 
+  const handleSolicitarMaisAnalises = () => {
+    const phoneNumber = '5511932589622' // Número com código do país (55 = Brasil)
+    const message = encodeURIComponent('Olá, eu quero mais análises da ia nodon')
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+    window.open(whatsappUrl, '_blank')
+  }
+
   const handleDeleteClick = (diagnostico, e) => {
     if (e) {
       e.stopPropagation() // Prevenir navegação ao clicar no botão
@@ -660,6 +729,68 @@ const Diagnosticos = () => {
         <button className="btn-diagnosticos-primary" onClick={() => setShowForm(!showForm)}>
           <FontAwesomeIcon icon={faPlus} /> {showForm ? 'Cancelar' : 'Nova Radiografia'}
         </button>
+      </div>
+
+      {/* Card de Uso de Análises - Minimalista */}
+      {!loadingAnalises && analisesUsage.limitePlano > 0 && analisesUsage.porcentagemUso > 70 && (
+        <div className="analises-usage-wrapper">
+          <div className="analises-usage-minimal">
+            <div className="analises-minimal-content">
+              <FontAwesomeIcon icon={faFileAlt} className="analises-minimal-icon" />
+              <span className="analises-minimal-text">
+                {analisesUsage.analisesUsadas.toLocaleString('pt-BR')} / {analisesUsage.limitePlano.toLocaleString('pt-BR')} análises
+              </span>
+              <div className={`analises-minimal-percent ${isAnalisesAtLimit() ? 'at-limit' : isAnalisesCritical() ? 'critical' : ''} ${isAnalisesPulsing() ? 'pulsing' : ''}`}>
+                {analisesUsage.porcentagemUso ? analisesUsage.porcentagemUso.toFixed(0) : '0'}%
+              </div>
+            </div>
+            <div className={`analises-minimal-bar ${isAnalisesAtLimit() ? 'at-limit' : isAnalisesCritical() ? 'critical' : ''} ${isAnalisesPulsing() ? 'pulsing' : ''}`}>
+              <div 
+                className="analises-minimal-fill"
+                style={{ 
+                  width: `${Math.min(Math.max(analisesUsage.porcentagemUso || 0, 0), 100)}%`,
+                  minWidth: analisesUsage.porcentagemUso > 0 ? '2px' : '0px'
+                }}
+              ></div>
+            </div>
+            {analisesUsage.passouDoLimite && analisesUsage.aviso && (
+              <div className="analises-minimal-warning">
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+                <span>{analisesUsage.aviso}</span>
+              </div>
+            )}
+          </div>
+          <button 
+            className="btn-mais-analises"
+            onClick={handleSolicitarMaisAnalises}
+            title="Solicitar mais análises"
+          >
+            <FontAwesomeIcon icon={faWhatsapp} />
+            <span>Mais Análises</span>
+          </button>
+        </div>
+      )}
+
+      {/* Campo de Busca por Nome do Paciente */}
+      <div className="diagnosticos-search-section">
+        <div className="search-input-wrapper-diagnosticos">
+          <FontAwesomeIcon icon={faSearch} className="search-icon-diagnosticos" />
+          <input
+            type="text"
+            className="search-input-diagnosticos"
+            placeholder="Buscar por nome do paciente..."
+            value={searchRadiografia}
+            onChange={(e) => setSearchRadiografia(e.target.value)}
+          />
+          {searchRadiografia && (
+            <button 
+              className="search-clear-diagnosticos"
+              onClick={() => setSearchRadiografia('')}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -961,14 +1092,33 @@ const Diagnosticos = () => {
       )}
 
       <div className={`diagnosticos-grid ${showForm ? 'form-open' : ''}`}>
-        {diagnosticos.length === 0 ? (
-          <div className="empty-state-diagnosticos">
-            <FontAwesomeIcon icon={faXRay} size="4x" />
-            <h3>Nenhuma radiografia cadastrada</h3>
-            <p>Comece adicionando uma nova radiografia</p>
-          </div>
-        ) : (
-          diagnosticos.map((diagnostico) => (
+        {(() => {
+          // Filtrar diagnósticos por nome do paciente (busca no frontend)
+          const filteredDiagnosticos = searchRadiografia.trim()
+            ? diagnosticos.filter(d => 
+                d.paciente?.toLowerCase().includes(searchRadiografia.toLowerCase().trim())
+              )
+            : diagnosticos
+
+          if (filteredDiagnosticos.length === 0) {
+            return (
+              <div className="empty-state-diagnosticos">
+                <FontAwesomeIcon icon={faXRay} size="4x" />
+                <h3>
+                  {searchRadiografia.trim() 
+                    ? 'Nenhuma radiografia encontrada para esta busca' 
+                    : 'Nenhuma radiografia cadastrada'}
+                </h3>
+                <p>
+                  {searchRadiografia.trim() 
+                    ? 'Tente buscar por outro nome' 
+                    : 'Comece adicionando uma nova radiografia'}
+                </p>
+              </div>
+            )
+          }
+
+          return filteredDiagnosticos.map((diagnostico) => (
             <div key={diagnostico.id} className="diagnostico-card">
               {(isMaster || diagnostico.responsavel === user?.id || diagnostico.responsavel === selectedClinicData?.usuarioId || diagnostico.responsavel === selectedClinicData?.perfil?.id) && (
                 <button 
@@ -1026,7 +1176,7 @@ const Diagnosticos = () => {
               </div>
             </div>
           ))
-        )}
+        })()}
       </div>
 
       {/* Modal de Confirmação de Exclusão */}

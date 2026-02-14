@@ -21,6 +21,7 @@ import {
   faBars,
   faTimes
 } from '@fortawesome/free-solid-svg-icons'
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
 import './SelectClinic.css'
 
@@ -146,6 +147,14 @@ const SelectClinic = () => {
       })
     }
   }, [user])
+
+  // Função para abrir WhatsApp de suporte
+  const handleSuporteWhatsApp = () => {
+    const phoneNumber = '5511932589622' // Número com código do país (55 = Brasil)
+    const message = encodeURIComponent('Olá! Preciso de suporte da NODON.')
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+    window.open(whatsappUrl, '_blank')
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -412,6 +421,14 @@ const SelectClinic = () => {
             >
               <FontAwesomeIcon icon={faEdit} />
               <span>{showEditProfile ? 'Cancelar Edição' : 'Editar Perfil'}</span>
+            </button>
+
+            <button 
+              className="suporte-whatsapp-btn"
+              onClick={handleSuporteWhatsApp}
+            >
+              <FontAwesomeIcon icon={faWhatsapp} />
+              <span>Suporte</span>
             </button>
 
             <button 

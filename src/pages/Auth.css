@@ -220,6 +220,47 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 3rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+  z-index: 1;
+}
+
+.password-toggle-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+  color: #0ea5e9;
+}
+
+.password-toggle-btn svg {
+  font-size: 1rem;
+}
+
 .form-group-modern input:focus,
 .form-group-modern select:focus {
   outline: none;
@@ -1003,6 +1044,47 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 3rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+  z-index: 1;
+}
+
+.password-toggle-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+  color: #0ea5e9;
+}
+
+.password-toggle-btn svg {
+  font-size: 1rem;
+}
+
 .form-group-modern input:focus {
   outline: none;
   border-color: #0ea5e9;
@@ -1286,6 +1368,19 @@
   .form-group-modern input {
     padding: 0.875rem 1rem;
     font-size: 0.9375rem;
+  }
+
+  .password-input-wrapper input {
+    padding-right: 3rem;
+  }
+
+  .password-toggle-btn {
+    right: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .password-toggle-btn svg {
+    font-size: 1.125rem;
   }
 
   .form-hint {

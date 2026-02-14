@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartBar, faUsers, faFileAlt, faComments, faSignOutAlt, faUserFriends,
   faBars, faTimes, faUserMd, faChevronLeft, faChevronRight, faUserCircle, faBuilding,
-  faCalendarAlt, faClipboardQuestion, faComment, faDollarSign
+  faCalendarAlt, faClipboardQuestion, faComment, faDollarSign, faStickyNote
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import nodoLogo from '../../img/nodo.png'
@@ -17,15 +17,25 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   
-  // Recarregar dados do cliente master ao entrar no app apenas se não houver dados carregados
+  // Carregar dados completos do cliente master ao acessar /app
+  // Isso garante que sempre temos os dados atualizados do plano, incluindo limiteAnalises
+  // A API /api/clientes-master/complete retorna: { clienteMaster, user, assinatura, plano, usuarios, relacionamento }
   useEffect(() => {
     let isMounted = true
     
     const loadClinicData = async () => {
-      if (selectedClinicId && location.pathname.startsWith('/app') && !selectedClinicData) {
+      // Carregar dados quando:
+      // 1. Tiver selectedClinicId
+      // 2. Estiver na rota /app
+      // 3. Não tiver selectedClinicData OU não tiver plano (para garantir dados atualizados)
+      const hasPlanoData = selectedClinicData?.plano && selectedClinicData.plano.limiteAnalises !== undefined
+      const needsData = !selectedClinicData || !hasPlanoData
+      
+      if (selectedClinicId && location.pathname.startsWith('/app') && needsData) {
         try {
-          // Buscar dados apenas se não estiverem carregados
           if (isMounted) {
+            // setSelectedClinicId chama a API /api/clientes-master/complete
+            // que retorna todos os dados incluindo plano.limiteAnalises
             await setSelectedClinicId(selectedClinicId)
           }
         } catch (error) {
@@ -34,7 +44,6 @@ const Layout = () => {
       }
     }
     
-    // Executar apenas quando entrar na rota /app e não houver dados
     loadClinicData()
     
     return () => {
@@ -60,37 +69,61 @@ const Layout = () => {
     { path: '/app/feedback', label: 'Feedback', icon: faComment },
     { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
     { path: '/app/chat', label: 'Chat IA', icon: faComments },
+    { path: '/app/anotacoes', label: 'Anotações', icon: faStickyNote },
     { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
     { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
   ]
 
+  // Obter limiteAnalises do plano retornado pela API /api/clientes-master/complete
+  // A estrutura é: selectedClinicData.plano.limiteAnalises
+  const limiteAnalises = selectedClinicData?.plano?.limiteAnalises ?? null
+
   // Filtrar menu items baseado no tipo de relacionamento e acesso do plano
   let menuItems = allMenuItems
   
-  // Se for tipo "usuario", não mostrar a aba "Usuário" e "Anamneses"
-  if (isUsuario()) {
+  /**
+   * REGRA PRINCIPAL DE FILTRO DO MENU:
+   * 
+   * Se limiteAnalises === 0 (plano sem análises):
+   *   - Mostrar APENAS: Chat IA e Perfil
+   *   - Dashboard NÃO deve aparecer
+   *   - Redirecionar /app para /app/chat automaticamente
+   * 
+   * Caso contrário (limiteAnalises > 0 ou null):
+   *   - Aplicar filtros normais (tipo de usuário, planoAcesso, etc.)
+   */
+  if (limiteAnalises === 0) {
+    // Plano sem análises: Chat IA, Anotações e Perfil (sem Dashboard)
     menuItems = menuItems.filter(item => 
-      item.path !== '/app/dentistas' && item.path !== '/app/anamneses'
+      (item.path === '/app/chat' || item.path === '/app/anotacoes' || item.path === '/app/perfil') &&
+      item.path !== '/app' // Excluir Dashboard
     )
-  }
-  
-  // Filtrar baseado no acesso do plano
-  if (planoAcesso === 'chat') {
-    // Se acesso for "chat", mostrar apenas Chat e Perfil
-    menuItems = menuItems.filter(item => 
-      item.path === '/app/chat' || 
-      item.path === '/app/perfil'
-    )
-  } else if (planoAcesso === 'all') {
-    // Se acesso for "all", mostrar todos (já filtrado acima se for usuário comum)
-    // Não precisa fazer nada, já tem todos os itens
-  }
-  // Se planoAcesso for null ou undefined, mostrar todos (compatibilidade)
-  
-  // Anamneses só aparece se Diagnósticos também aparecer
-  const diagnosticosVisivel = menuItems.some(item => item.path === '/app/diagnosticos')
-  if (!diagnosticosVisivel) {
-    menuItems = menuItems.filter(item => item.path !== '/app/anamneses')
+  } else {
+    // Se for tipo "usuario", não mostrar a aba "Usuário" e "Anamneses"
+    if (isUsuario()) {
+      menuItems = menuItems.filter(item => 
+        item.path !== '/app/dentistas' && item.path !== '/app/anamneses'
+      )
+    }
+    
+    // Filtrar baseado no acesso do plano
+    if (planoAcesso === 'chat') {
+      // Se acesso for "chat", mostrar apenas Chat e Perfil
+      menuItems = menuItems.filter(item => 
+        item.path === '/app/chat' || 
+        item.path === '/app/perfil'
+      )
+    } else if (planoAcesso === 'all') {
+      // Se acesso for "all", mostrar todos (já filtrado acima se for usuário comum)
+      // Não precisa fazer nada, já tem todos os itens
+    }
+    // Se planoAcesso for null ou undefined, mostrar todos (compatibilidade)
+    
+    // Anamneses só aparece se Diagnósticos também aparecer
+    const diagnosticosVisivel = menuItems.some(item => item.path === '/app/diagnosticos')
+    if (!diagnosticosVisivel) {
+      menuItems = menuItems.filter(item => item.path !== '/app/anamneses')
+    }
   }
 
   const handleLogout = async () => {
@@ -124,6 +157,11 @@ const Layout = () => {
     if (path.startsWith('/app/diagnosticos/') && path.includes('/desenho')) return 'Desenho Profissional'
     if (path.startsWith('/app/diagnosticos/') && path !== '/app/diagnosticos') return 'Detalhes da Radiografia'
     
+    // Se limiteAnalises === 0 e estiver em /app, retornar "Chat IA" (será redirecionado)
+    if (limiteAnalises === 0 && path === '/app') {
+      return 'Chat IA'
+    }
+    
     // Procurar no menu
     return menuItems.find(item => item.path === path)?.label || 'Dashboard'
   }
@@ -135,6 +173,13 @@ const Layout = () => {
   useEffect(() => {
     setSidebarOpen(false)
   }, [location.pathname])
+
+  // Redirecionar /app para /app/chat quando limiteAnalises === 0
+  useEffect(() => {
+    if (limiteAnalises === 0 && location.pathname === '/app') {
+      navigate('/app/chat', { replace: true })
+    }
+  }, [limiteAnalises, location.pathname, navigate])
 
   // Aplicar cor do cliente master como variável CSS
   useEffect(() => {
@@ -174,17 +219,20 @@ const Layout = () => {
                     {clinicDocumento}
                   </p>
                 )}
+                <button className="minimize-btn" onClick={toggleMinimize} title={sidebarMinimized ? 'Expandir menu' : 'Minimizar menu'}>
+                  <FontAwesomeIcon icon={sidebarMinimized ? faChevronRight : faChevronLeft} />
+                </button>
               </div>
             </>
           )}
           {sidebarMinimized && (
             <div className="logo-minimized">
               <img src={clinicLogo} alt={clinicName} className="logo-image-minimized" />
+              <button className="minimize-btn" onClick={toggleMinimize} title={sidebarMinimized ? 'Expandir menu' : 'Minimizar menu'}>
+                <FontAwesomeIcon icon={sidebarMinimized ? faChevronRight : faChevronLeft} />
+              </button>
             </div>
           )}
-          <button className="minimize-btn" onClick={toggleMinimize} title={sidebarMinimized ? 'Expandir menu' : 'Minimizar menu'}>
-            <FontAwesomeIcon icon={sidebarMinimized ? faChevronRight : faChevronLeft} />
-          </button>
         </div>
         
         <nav className="sidebar-nav">

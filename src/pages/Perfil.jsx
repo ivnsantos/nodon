@@ -5,8 +5,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faUser, faEnvelope, faIdCard, faCreditCard, faCrown,
   faCoins, faChartLine, faCalendar, faShieldAlt, faEdit,
-  faCheckCircle, faUsers, faSpinner, faFileAlt
+  faCheckCircle, faUsers, faSpinner, faFileAlt, faHeadset
 } from '@fortawesome/free-solid-svg-icons'
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
 import './Perfil.css'
 
@@ -14,6 +15,75 @@ const Perfil = () => {
   const { user, selectedClinicData, isClienteMaster, getRelacionamento, planoAcesso } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
+
+  // Função auxiliar para formatar data sem problemas de fuso horário
+  const formatarDataLocal = (dateString) => {
+    if (!dateString) return ''
+    
+    try {
+      // Se a data vem no formato YYYY-MM-DD, parsear diretamente
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+        const [year, month, day] = dateString.split('T')[0].split('-').map(Number)
+        // Criar data local (sem conversão de timezone)
+        const date = new Date(year, month - 1, day)
+        return date.toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })
+      }
+      
+      // Fallback para outros formatos
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return ''
+      
+      return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+    } catch (error) {
+      return ''
+    }
+  }
+
+  // Função para abrir WhatsApp de suporte
+  const handleSuporteWhatsApp = () => {
+    const phoneNumber = '5511932589622' // Número com código do país (55 = Brasil)
+    const message = encodeURIComponent('Olá! Preciso de suporte da NODON.')
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+    window.open(whatsappUrl, '_blank')
+  }
+
+  // Verificar se tokens estão em 100% (vermelho)
+  const isTokensAtLimit = () => {
+    return tokensChat.porcentagemUso >= 100
+  }
+
+  // Verificar se tokens estão acima de 85% mas abaixo de 100% (laranja)
+  const isTokensCritical = () => {
+    return tokensChat.porcentagemUso >= 85 && tokensChat.porcentagemUso < 100
+  }
+
+  // Verificar se tokens estão acima de 95% (para animação de piscar)
+  const isTokensPulsing = () => {
+    return tokensChat.porcentagemUso >= 95
+  }
+
+  // Verificar se análises estão em 100% (vermelho)
+  const isAnalisesAtLimit = () => {
+    return analises.porcentagemUso >= 100
+  }
+
+  // Verificar se análises estão acima de 85% mas abaixo de 100% (laranja)
+  const isAnalisesCritical = () => {
+    return analises.porcentagemUso >= 85 && analises.porcentagemUso < 100
+  }
+
+  // Verificar se análises estão acima de 95% (para animação de piscar)
+  const isAnalisesPulsing = () => {
+    return analises.porcentagemUso >= 95
+  }
   const [tokensChat, setTokensChat] = useState({
     tokensUtilizados: 0,
     tokensUtilizadosMes: 0,
@@ -43,25 +113,10 @@ const Perfil = () => {
       
       let assinaturaFromClinic = null
       
-      // Se for clienteMaster, tentar usar dados do selectedClinicData primeiro
-      if (isClienteMaster() && selectedClinicData) {
-        const assinaturaData = selectedClinicData.assinatura
-        const planoData = selectedClinicData.plano
-        
-        // Mapear dados de assinatura do selectedClinicData
-        if (assinaturaData) {
-          assinaturaFromClinic = {
-            status: assinaturaData.status,
-            valorMensal: assinaturaData.value || planoData?.valorPromocional || planoData?.valorOriginal || 0,
-            dataInicio: assinaturaData.createdAt,
-            proximaRenovacao: assinaturaData.updatedAt || assinaturaData.createdAt
-          }
-        }
-      }
-      
-      // Buscar dados do dashboard da API
+      // Buscar dados do dashboard da API (sempre usar API para dados atualizados)
       const response = await api.get('/assinaturas/dashboard')
-      // A API retorna { statusCode, message, data }, então precisamos acessar response.data.data
+      // A API retorna { statusCode: 200, message: "Success", data: { ... } }
+      // Os dados estão em response.data.data
       const data = response.data?.data || response.data
 
       // Mapear dados de tokens
@@ -77,24 +132,51 @@ const Perfil = () => {
 
       // Mapear dados de análises
       if (data.analises) {
+        const limitePlano = Number(data.analises.limitePlano) || 0
+        const analisesFeitasMes = Number(data.analises.analisesFeitasMes) || 0
+        // Calcular porcentagem localmente baseado em analisesFeitasMes / limitePlano
+        const porcentagemUso = limitePlano > 0 
+          ? Math.round((analisesFeitasMes / limitePlano) * 100 * 10) / 10
+          : 0
+        
+        console.log('=== ANÁLISES DEBUG ===')
+        console.log('limitePlano:', limitePlano)
+        console.log('analisesFeitasMes:', analisesFeitasMes)
+        console.log('porcentagemUso calculada:', porcentagemUso)
+        console.log('isAnalisesAtLimit:', porcentagemUso >= 100)
+        console.log('isAnalisesCritical:', porcentagemUso >= 85 && porcentagemUso < 100)
+        console.log('isAnalisesPulsing:', porcentagemUso >= 95)
+        
         setAnalises({
           analisesFeitas: data.analises.analisesFeitas || 0,
-          analisesFeitasMes: data.analises.analisesFeitasMes || 0,
+          analisesFeitasMes: analisesFeitasMes,
           analisesRestantes: data.analises.analisesRestantes || 0,
-          limitePlano: data.analises.limitePlano || 0,
-          porcentagemUso: data.analises.porcentagemUso || 0
+          limitePlano: limitePlano,
+          porcentagemUso: porcentagemUso
         })
       }
 
-      // Mapear dados de assinatura (priorizar dados do selectedClinicData)
-      if (assinaturaFromClinic) {
-        setAssinatura(assinaturaFromClinic)
-      } else if (data.assinatura) {
+      // Mapear dados de assinatura (sempre usar dados da API que são mais atualizados)
+      // A API retorna: { status, valorMensal, dataInicio, proximaRenovacao, nextDueDate }
+      // Estrutura: response.data.data.assinatura
+      if (data?.assinatura) {
+        const assinaturaFromAPI = data.assinatura
         setAssinatura({
-          status: data.assinatura.status,
-          valorMensal: data.assinatura.valorMensal,
-          dataInicio: data.assinatura.dataInicio,
-          proximaRenovacao: data.assinatura.proximaRenovacao
+          status: assinaturaFromAPI.status,
+          valorMensal: assinaturaFromAPI.valorMensal,
+          proximaRenovacao: assinaturaFromAPI.proximaRenovacao,
+          nextDueDate: assinaturaFromAPI.nextDueDate
+        })
+      } else if (isClienteMaster() && selectedClinicData?.assinatura) {
+        // Fallback: usar dados do selectedClinicData se API não retornar
+        const assinaturaData = selectedClinicData.assinatura
+        const planoData = selectedClinicData.plano
+        
+        setAssinatura({
+          status: assinaturaData.status,
+          valorMensal: assinaturaData.valorMensal || assinaturaData.value || planoData?.valorPromocional || planoData?.valorOriginal || 0,
+          proximaRenovacao: assinaturaData.proximaRenovacao,
+          nextDueDate: assinaturaData.nextDueDate
         })
       } else {
         setAssinatura(null)
@@ -196,6 +278,13 @@ const Perfil = () => {
               PLANO ATIVO
             </button>
           )}
+          <button 
+            className="btn-suporte-whatsapp"
+            onClick={handleSuporteWhatsApp}
+            title="Falar com suporte via WhatsApp"
+          >
+            <FontAwesomeIcon icon={faWhatsapp} /> Suporte
+          </button>
           {isMaster && (
             <button 
               className="btn-edit-perfil"
@@ -223,7 +312,9 @@ const Perfil = () => {
                   <FontAwesomeIcon icon={faCoins} />
                 </div>
                 <div className="token-info">
-                  <div className="token-value">{tokensChat.tokensUtilizados.toLocaleString('pt-BR')}</div>
+                  <div className={`token-value ${isTokensAtLimit() ? 'at-limit' : isTokensCritical() ? 'critical' : ''} ${isTokensPulsing() ? 'pulsing' : ''}`}>
+                    {tokensChat.tokensUtilizadosMes.toLocaleString('pt-BR')}
+                  </div>
                   <div className="token-label">Tokens Utilizados</div>
                 </div>
               </div>
@@ -248,18 +339,18 @@ const Perfil = () => {
               {tokensChat.limitePlano > 0 && (
                 <div className="token-progress-section">
                   <div className="token-progress-header">
-                    <span className="progress-label">Uso deste mês</span>
+                    <span className="progress-label">Uso no período</span>
                     <span className="progress-value">
                       {tokensChat.tokensUtilizadosMes.toLocaleString('pt-BR')} / {tokensChat.limitePlano.toLocaleString('pt-BR')}
                     </span>
                   </div>
                   <div className="token-progress-bar">
                     <div 
-                      className="token-progress-fill" 
+                      className={`token-progress-fill ${isTokensAtLimit() ? 'at-limit' : isTokensCritical() ? 'critical' : ''} ${isTokensPulsing() ? 'pulsing' : ''}`}
                       style={{ width: `${Math.min(tokensChat.porcentagemUso, 100)}%` }}
                     ></div>
                   </div>
-                  <div className="token-progress-percent">
+                  <div className={`token-progress-percent ${isTokensAtLimit() ? 'at-limit' : isTokensCritical() ? 'critical' : ''} ${isTokensPulsing() ? 'pulsing' : ''}`}>
                     {tokensChat.porcentagemUso.toFixed(1)}% utilizado
                   </div>
                 </div>
@@ -269,8 +360,8 @@ const Perfil = () => {
         </div>
         )}
 
-        {/* Análises - Apenas para ClienteMaster e quando acesso não for "chat" */}
-        {isMaster && !isPlanoChat && (
+        {/* Análises - Apenas para ClienteMaster, quando acesso não for "chat" e limitePlano > 0 */}
+        {isMaster && !isPlanoChat && analises.limitePlano > 0 && (
           <div className="perfil-card analises-card">
             <div className="card-header">
               <h2>
@@ -284,7 +375,7 @@ const Perfil = () => {
                     <FontAwesomeIcon icon={faFileAlt} />
                   </div>
                   <div className="token-info">
-                    <div className="token-value">{analises.analisesFeitas.toLocaleString('pt-BR')}</div>
+                    <div className={`token-value ${isAnalisesAtLimit() ? 'at-limit' : isAnalisesCritical() ? 'critical' : ''} ${isAnalisesPulsing() ? 'pulsing' : ''}`}>{analises.analisesFeitas.toLocaleString('pt-BR')}</div>
                     <div className="token-label">Análises Realizadas</div>
                   </div>
                 </div>
@@ -303,19 +394,22 @@ const Perfil = () => {
                 {analises.limitePlano > 0 && (
                   <div className="token-progress-section">
                     <div className="token-progress-header">
-                      <span className="progress-label">Uso deste mês</span>
+                      <span className="progress-label">Uso no período</span>
                       <span className="progress-value">
                         {analises.analisesFeitasMes.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
                       </span>
                     </div>
                     <div className="token-progress-bar">
                       <div 
-                        className="token-progress-fill" 
-                        style={{ width: `${Math.min(analises.porcentagemUso, 100)}%` }}
+                        className={`token-progress-fill ${isAnalisesAtLimit() ? 'at-limit' : isAnalisesCritical() ? 'critical' : ''} ${isAnalisesPulsing() ? 'pulsing' : ''}`}
+                        style={{ 
+                          width: `${Math.min(Math.max(analises.porcentagemUso || 0, 0), 100)}%`,
+                          minWidth: analises.porcentagemUso > 0 ? '2px' : '0px'
+                        }}
                       ></div>
                     </div>
-                    <div className="token-progress-percent">
-                      {analises.porcentagemUso.toFixed(1)}% utilizado
+                    <div className={`token-progress-percent ${isAnalisesAtLimit() ? 'at-limit' : isAnalisesCritical() ? 'critical' : ''} ${isAnalisesPulsing() ? 'pulsing' : ''}`}>
+                      {analises.porcentagemUso ? analises.porcentagemUso.toFixed(1) : '0.0'}% utilizado
                     </div>
                   </div>
                 )}
@@ -364,8 +458,8 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Usuários - Apenas para ClienteMaster e quando acesso não for "chat" */}
-        {isClienteMaster() && !isPlanoChat && usuarios !== null && (
+        {/* Usuários - Apenas para ClienteMaster, quando acesso não for "chat" e limitePlano > 0 */}
+        {isClienteMaster() && !isPlanoChat && analises.limitePlano > 0 && usuarios !== null && (
           <div className="perfil-card usuarios-card">
             <div className="card-header">
               <h2>
@@ -426,11 +520,7 @@ const Perfil = () => {
                           <FontAwesomeIcon icon={faCalendar} /> Data de Início
                         </div>
                         <div className="detail-value">
-                          {new Date(assinatura.dataInicio).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                          })}
+                          {formatarDataLocal(assinatura.dataInicio)}
                         </div>
                       </div>
                     )}
@@ -441,11 +531,18 @@ const Perfil = () => {
                           <FontAwesomeIcon icon={faCalendar} /> Próxima Renovação
                         </div>
                         <div className="detail-value">
-                          {new Date(assinatura.proximaRenovacao).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                          })}
+                          {formatarDataLocal(assinatura.proximaRenovacao)}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {assinatura.nextDueDate && (
+                      <div className="assinatura-detail-item">
+                        <div className="detail-label">
+                          <FontAwesomeIcon icon={faCalendar} /> Data de Inicio
+                        </div>
+                        <div className="detail-value">
+                          {formatarDataLocal(assinatura.nextDueDate)}
                         </div>
                       </div>
                     )}

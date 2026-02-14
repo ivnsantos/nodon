@@ -3,8 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
   faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock, faStop,
-  faMicrophone, faImage, faTrash
+  faMicrophone, faImage, faTrash, faArrowUp
 } from '@fortawesome/free-solid-svg-icons'
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
@@ -24,6 +25,8 @@ const Chat = () => {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [tokensInfo, setTokensInfo] = useState(null)
   const [tokensBlocked, setTokensBlocked] = useState(false)
+  const [showTokenWarning, setShowTokenWarning] = useState(false)
+  const [tokenWarningLevel, setTokenWarningLevel] = useState(null) // 'near' (80-89%) ou 'critical' (90-99%)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [audioBlob, setAudioBlob] = useState(null)
@@ -65,10 +68,19 @@ const Chat = () => {
     checkTokens()
   }, [selectedClinicData])
 
+  // Verificar tokens periodicamente
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkTokens()
+    }, 30000) // Verificar a cada 30 segundos
+
+    return () => clearInterval(interval)
+  }, [])
+
   const checkTokens = async () => {
     try {
       const response = await api.get('/assinaturas/dashboard')
-      const tokensChat = response.data.tokensChat
+      const tokensChat = response.data?.tokensChat || response.data?.data?.tokensChat
       
       if (tokensChat) {
         setTokensInfo(tokensChat)
@@ -79,17 +91,98 @@ const Chat = () => {
           : (tokensChat.tokensUtilizados || 0)
         const limitePlano = tokensChat.limitePlano || 0
         
-        if (limitePlano > 0 && tokensUtilizados >= limitePlano) {
-          setTokensBlocked(true)
+        if (limitePlano > 0) {
+          const percentage = (tokensUtilizados / limitePlano) * 100
+          
+          // Bloquear quando atingir 100% ou mais
+          if (tokensUtilizados >= limitePlano) {
+            setTokensBlocked(true)
+            setShowTokenWarning(false)
+            setTokenWarningLevel(null)
+          } else {
+            setTokensBlocked(false)
+            
+            // Avisar quando próximo do limite
+            if (percentage >= 90) {
+              // Crítico: 90-99%
+              setShowTokenWarning(true)
+              setTokenWarningLevel('critical')
+            } else if (percentage >= 80) {
+              // Próximo: 80-89%
+              setShowTokenWarning(true)
+              setTokenWarningLevel('near')
+            } else {
+              // Abaixo de 80%, não mostrar aviso
+              setShowTokenWarning(false)
+              setTokenWarningLevel(null)
+            }
+          }
         } else {
+          // Plano ilimitado
           setTokensBlocked(false)
+          setShowTokenWarning(false)
+          setTokenWarningLevel(null)
         }
+      } else {
+        // Se não houver tokensChat, definir valores padrão para exibir o componente
+        setTokensInfo({
+          tokensUtilizados: 0,
+          tokensUtilizadosMes: 0,
+          limitePlano: 0
+        })
+        setTokensBlocked(false)
+        setShowTokenWarning(false)
+        setTokenWarningLevel(null)
       }
     } catch (error) {
       console.error('Erro ao verificar tokens:', error)
       // Em caso de erro, não bloquear o chat
       setTokensBlocked(false)
+      setShowTokenWarning(false)
+      setTokenWarningLevel(null)
+      // Definir valores padrão para exibir o componente mesmo com erro
+      setTokensInfo({
+        tokensUtilizados: 0,
+        tokensUtilizadosMes: 0,
+        limitePlano: 0
+      })
     }
+  }
+
+  // Calcular porcentagem de tokens utilizados
+  const getTokensPercentage = () => {
+    if (!tokensInfo || !tokensInfo.limitePlano || tokensInfo.limitePlano === 0) return 0
+    
+    const tokensUtilizados = tokensInfo.tokensUtilizadosMes !== undefined 
+      ? tokensInfo.tokensUtilizadosMes 
+      : (tokensInfo.tokensUtilizados || 0)
+    
+    return Math.min((tokensUtilizados / tokensInfo.limitePlano) * 100, 100)
+  }
+
+  // Verificar se está próximo do limite (80% ou mais)
+  const isNearLimit = () => {
+    const percentage = getTokensPercentage()
+    return percentage >= 80 && percentage < 100
+  }
+
+  // Verificar se está acima de 95% (para animação de piscar)
+  const isCriticalLimit = () => {
+    const percentage = getTokensPercentage()
+    return percentage >= 95
+  }
+
+  // Verificar se atingiu o limite
+  const isAtLimit = () => {
+    return getTokensPercentage() >= 100 || tokensBlocked
+  }
+
+  // Função para abrir WhatsApp para solicitar mais tokens
+  const handleSolicitarMaisTokens = () => {
+    const phoneNumber = '5511932589622' // Número com código do país (55 = Brasil)
+    const message = encodeURIComponent('Olá, eu quero mais tokens da ia nodon')
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+    window.open(whatsappUrl, '_blank')
   }
 
   const loadConversations = async () => {
@@ -592,6 +685,11 @@ const Chat = () => {
               // Resposta completa
               tokensUsed = data.tokensUsed || 0
               
+              // Atualizar tokens após a resposta
+              if (tokensUsed > 0) {
+                await checkTokens()
+              }
+              
               // Se a resposta veio junto com o done, usar ela
               if (data.response) {
                 chatText = data.response
@@ -619,6 +717,11 @@ const Chat = () => {
               // Formato alternativo: resposta direta (sem streaming)
               chatText = data.response
               tokensUsed = data.tokensUsed || 0
+              
+              // Atualizar tokens após a resposta
+              if (tokensUsed > 0) {
+                checkTokens()
+              }
               
               // Atualizar UI com a resposta completa
               setMessages(prev => {
@@ -838,9 +941,50 @@ const Chat = () => {
               <p>Converse sobre casos odontológicos e obtenha insights inteligentes</p>
             </div>
           </div>
-          <div className="chat-status">
-            <span className="status-dot"></span>
-            <span>Online</span>
+          <div className="chat-header-right">
+            {tokensInfo && (
+              <div className="tokens-progress-container-header">
+                <div className="tokens-progress-simple">
+                  <div className="tokens-simple-header">
+                    <span className="tokens-simple-text">
+                      {(tokensInfo.tokensUtilizadosMes !== undefined 
+                        ? tokensInfo.tokensUtilizadosMes 
+                        : (tokensInfo.tokensUtilizados || 0)).toLocaleString('pt-BR')
+                      } / {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 
+                        ? tokensInfo.limitePlano.toLocaleString('pt-BR') 
+                        : 'Ilimitado'}
+                    </span>
+                    {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && (
+                      <span className={`tokens-simple-percentage ${isNearLimit() ? 'near-limit' : ''} ${isAtLimit() ? 'at-limit' : ''} ${isCriticalLimit() ? 'critical-pulse' : ''}`}>
+                        {getTokensPercentage().toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                  {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && (
+                    <div className="tokens-progress-bar-simple">
+                      <div 
+                        className={`tokens-progress-fill-simple ${isNearLimit() ? 'near-limit' : ''} ${isAtLimit() ? 'at-limit' : ''} ${isCriticalLimit() ? 'critical-pulse' : ''}`}
+                        style={{ width: `${getTokensPercentage()}%` }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+                {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && getTokensPercentage() >= 80 && (
+                  <button 
+                    className="btn-mais-tokens"
+                    onClick={handleSolicitarMaisTokens}
+                    title="Solicitar mais tokens"
+                  >
+                    <FontAwesomeIcon icon={faWhatsapp} />
+                    <span>Mais Tokens</span>
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="chat-status">
+              <span className="status-dot"></span>
+              <span>Online</span>
+            </div>
           </div>
         </div>
 
@@ -915,7 +1059,7 @@ const Chat = () => {
                 <strong>Importante:</strong> O NODON deve servir como apoio ao profissional. A decisão final deve ser sempre do responsável.
               </div>
             </div>
-            
+
             {/* Mensagem de bloqueio por tokens */}
             {tokensBlocked && (
               <div className="tokens-blocked-message">

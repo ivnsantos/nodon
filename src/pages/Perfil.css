@@ -119,6 +119,29 @@
   color: #fbbf24;
 }
 
+.btn-suporte-whatsapp {
+  padding: 0.75rem 1.5rem;
+  background: #25d366;
+  border: none;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.btn-suporte-whatsapp:hover {
+  background: #20ba5a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
 .btn-edit-perfil {
   padding: 0.75rem 1.5rem;
   background: #0ea5e9;
@@ -286,6 +309,23 @@
   font-weight: 600;
   color: #ffffff;
   line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.token-value.critical {
+  color: #f97316;
+}
+
+.token-value.critical.pulsing {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+.token-value.at-limit {
+  color: #ef4444;
+}
+
+.token-value.at-limit.pulsing {
+  animation: gentlePulse 2s ease-in-out infinite;
 }
 
 .token-label {
@@ -358,7 +398,23 @@
   height: 100%;
   background: #0ea5e9;
   border-radius: 4px;
-  transition: width 0.5s ease;
+  transition: width 0.5s ease, background 0.3s ease, opacity 0.3s ease;
+}
+
+.token-progress-fill.critical {
+  background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+}
+
+.token-progress-fill.critical.pulsing {
+  animation: gentlePulseBar 2s ease-in-out infinite;
+}
+
+.token-progress-fill.at-limit {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.token-progress-fill.at-limit.pulsing {
+  animation: gentlePulseBar 2s ease-in-out infinite;
 }
 
 .token-progress-percent {
@@ -366,6 +422,43 @@
   font-size: 0.75rem;
   font-weight: 500;
   text-align: right;
+  transition: color 0.3s ease;
+}
+
+.token-progress-percent.critical {
+  color: #f97316 !important;
+}
+
+.token-progress-percent.critical.pulsing {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+.token-progress-percent.at-limit {
+  color: #ef4444 !important;
+}
+
+.token-progress-percent.at-limit.pulsing {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes gentlePulseBar {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 rgba(249, 115, 22, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
+  }
 }
 
 .token-card {
@@ -849,6 +942,11 @@
 
   .perfil-header-info h1 {
     font-size: 1.75rem;
+  }
+
+  .btn-suporte-whatsapp {
+    width: 100%;
+    justify-content: center;
   }
 
   .btn-edit-perfil {
