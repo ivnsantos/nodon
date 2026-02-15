@@ -1210,7 +1210,7 @@ const GraficosSection = ({ selectedClinicData, formatCurrency }) => {
             <FontAwesomeIcon icon={faCoins} />
           </div>
           <div className="stat-content">
-            <span className="stat-label">Custo Total</span>
+            <span className="stat-label">Custo Total dos Tratamentos</span>
             <span className="stat-value">{formatCurrency(resumo.totalCusto || 0)}</span>
           </div>
         </div>

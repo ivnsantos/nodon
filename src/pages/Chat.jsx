@@ -1092,26 +1092,6 @@ const Chat = () => {
               </div>
               <h3>Olá! Sou sua assistente de IA</h3>
               <p>Como posso ajudá-lo hoje com questões odontológicas?</p>
-              <div className="suggestions">
-                <button 
-                  className="suggestion-btn"
-                  onClick={() => setInput('Como analisar uma radiografia panorâmica?')}
-                >
-                  Como analisar uma radiografia panorâmica?
-                </button>
-                <button 
-                  className="suggestion-btn"
-                  onClick={() => setInput('Quais são os principais achados radiográficos?')}
-                >
-                  Quais são os principais achados radiográficos?
-                </button>
-                <button 
-                  className="suggestion-btn"
-                  onClick={() => setInput('Explique sobre cáries em radiografias')}
-                >
-                  Explique sobre cáries em radiografias
-                </button>
-              </div>
             </div>
           ) : (
             messages.map((msg, index) => (

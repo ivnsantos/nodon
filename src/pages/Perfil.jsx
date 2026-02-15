@@ -5,16 +5,28 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faUser, faEnvelope, faIdCard, faCreditCard, faCrown,
   faCoins, faChartLine, faCalendar, faShieldAlt, faEdit,
-  faCheckCircle, faUsers, faSpinner, faFileAlt, faHeadset
+  faCheckCircle, faUsers, faSpinner, faFileAlt, faHeadset,
+  faUserMd, faCopy, faLink, faToggleOn, faToggleOff, faGraduationCap, faPhone, faImage, faPlus
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './Perfil.css'
 
 const Perfil = () => {
-  const { user, selectedClinicData, isClienteMaster, getRelacionamento, planoAcesso } = useAuth()
+  const { user, selectedClinicData, selectedClinicId, isClienteMaster, getRelacionamento, planoAcesso } = useAuth()
   const navigate = useNavigate()
+  const { alertConfig, showError, hideAlert } = useAlert()
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('perfil') // 'perfil' ou 'usuarios'
+  
+  // Estados para aba de Usuários
+  const [usuariosList, setUsuariosList] = useState([])
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false)
+  const [errorUsuarios, setErrorUsuarios] = useState('')
+  const [updatingStatus, setUpdatingStatus] = useState({})
+  const [copied, setCopied] = useState(false)
 
   // Função auxiliar para formatar data sem problemas de fuso horário
   const formatarDataLocal = (dateString) => {
@@ -106,6 +118,13 @@ const Perfil = () => {
     loadPerfilData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClinicData])
+
+  useEffect(() => {
+    if (activeTab === 'usuarios' && selectedClinicId && isMaster) {
+      fetchUsuarios()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedClinicId])
 
   const loadPerfilData = async () => {
     try {
@@ -250,6 +269,98 @@ const Perfil = () => {
   const acessoPlano = planoAcesso || selectedClinicData?.relacionamento?.acesso || selectedClinicData?.plano?.acesso || null
   const isPlanoChat = acessoPlano === 'chat'
 
+  // Obter hash do cliente master para link de convite
+  const clienteMaster = selectedClinicData?.clienteMaster || selectedClinicData
+  const hash = clienteMaster?.hash
+  const inviteUrl = hash ? `${window.location.origin}/profissional/${hash}` : null
+
+  // Funções para aba de Usuários
+  const fetchUsuarios = async () => {
+    if (!selectedClinicId) {
+      setErrorUsuarios('Cliente Master não selecionado')
+      setLoadingUsuarios(false)
+      return
+    }
+
+    try {
+      setLoadingUsuarios(true)
+      setErrorUsuarios('')
+      const response = await api.get(`/clientes-master/${selectedClinicId}/usuarios`)
+      
+      if (response.data.statusCode === 200) {
+        const usuariosData = response.data.data?.usuarios || response.data.usuarios || []
+        setUsuariosList(usuariosData)
+      } else {
+        setErrorUsuarios('Erro ao buscar usuários')
+      }
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error)
+      setErrorUsuarios(error.response?.data?.message || 'Erro ao buscar usuários. Tente novamente.')
+    } finally {
+      setLoadingUsuarios(false)
+    }
+  }
+
+  const handleToggleStatus = async (usuarioId, currentStatus) => {
+    if (!usuarioId) return
+
+    const newStatus = currentStatus === 'ativo' ? 'inativo' : 'ativo'
+
+    setUpdatingStatus(prev => ({ ...prev, [usuarioId]: true }))
+
+    try {
+      const response = await api.patch(`/clientes-master/usuarios/${usuarioId}/status`, {
+        status: newStatus
+      })
+
+      if (response.data.statusCode === 200 || response.status === 200) {
+        const updatedUsuario = response.data.usuario || response.data.data?.usuario
+        setUsuariosList(prev => prev.map(usuario => 
+          usuario.id === usuarioId 
+            ? { 
+                ...usuario, 
+                status: updatedUsuario?.status || newStatus,
+                ativo: updatedUsuario?.ativo !== undefined ? updatedUsuario.ativo : (newStatus === 'ativo')
+              }
+            : usuario
+        ))
+      } else {
+        setErrorUsuarios('Erro ao alterar status do usuário')
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error)
+      setErrorUsuarios(error.response?.data?.message || 'Erro ao alterar status. Tente novamente.')
+    } finally {
+      setUpdatingStatus(prev => ({ ...prev, [usuarioId]: false }))
+    }
+  }
+
+  const handleCopyUrl = async () => {
+    if (!inviteUrl) return
+    
+    try {
+      await navigator.clipboard.writeText(inviteUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Erro ao copiar URL:', error)
+      const textArea = document.createElement('textarea')
+      textArea.value = inviteUrl
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Erro ao copiar:', err)
+      }
+      document.body.removeChild(textArea)
+    }
+  }
+
   return (
     <div className="perfil-page">
       {/* Header com Avatar */}
@@ -296,7 +407,29 @@ const Perfil = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      {isMaster && (
+        <div className="perfil-tabs">
+          <button
+            className={`perfil-tab-button ${activeTab === 'perfil' ? 'active' : ''}`}
+            onClick={() => setActiveTab('perfil')}
+          >
+            <FontAwesomeIcon icon={faUser} />
+            <span>Perfil</span>
+          </button>
+          <button
+            className={`perfil-tab-button ${activeTab === 'usuarios' ? 'active' : ''}`}
+            onClick={() => setActiveTab('usuarios')}
+          >
+            <FontAwesomeIcon icon={faUsers} />
+            <span>Usuários</span>
+          </button>
+        </div>
+      )}
+
       <div className="perfil-content">
+        {activeTab === 'perfil' ? (
+          <>
         {/* Uso de Tokens - Apenas para ClienteMaster */}
         {isMaster && (
         <div className="perfil-card token-card">
@@ -458,30 +591,6 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Usuários - Apenas para ClienteMaster, quando acesso não for "chat" e limitePlano > 0 */}
-        {isClienteMaster() && !isPlanoChat && analises.limitePlano > 0 && usuarios !== null && (
-          <div className="perfil-card usuarios-card">
-            <div className="card-header">
-              <h2>
-                <FontAwesomeIcon icon={faUsers} /> Usuários
-              </h2>
-            </div>
-            <div className="card-body">
-              <div className="clientes-info">
-                <div className="clientes-stat">
-                  <div className="clientes-icon">
-                    <FontAwesomeIcon icon={faUsers} />
-                  </div>
-                  <div className="clientes-data">
-                    <div className="clientes-value">{usuarios.quantidade}</div>
-                    <div className="clientes-label">Usuários Cadastrados</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Assinatura - Apenas para ClienteMaster */}
         {isClienteMaster() && (
           <div className="perfil-card assinatura-card">
@@ -593,7 +702,151 @@ const Perfil = () => {
             </div>
           </div>
         )}
+          </>
+        ) : activeTab === 'usuarios' && isMaster ? (
+          <div className="perfil-usuarios-tab">
+            {inviteUrl && (
+              <div className="invite-link-card">
+                <div className="invite-link-header">
+                  <FontAwesomeIcon icon={faLink} />
+                  <h3>Link de Convite para Dentistas</h3>
+                </div>
+                <p className="invite-link-description">
+                  Compartilhe este link com os dentistas que deseja adicionar à sua clínica. 
+                  Eles poderão se cadastrar ou vincular sua conta existente através deste link.
+                </p>
+                <div className="invite-link-container">
+                  <input
+                    type="text"
+                    value={inviteUrl}
+                    readOnly
+                    className="invite-link-input"
+                    onClick={(e) => e.target.select()}
+                  />
+                  <button 
+                    className="btn-copy-link"
+                    onClick={handleCopyUrl}
+                    title="Copiar link"
+                  >
+                    {copied ? (
+                      <>
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faCopy} />
+                        Copiar
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {errorUsuarios && (
+              <div className="error-message-dentistas">
+                <FontAwesomeIcon icon={faEnvelope} />
+                <span>{errorUsuarios}</span>
+              </div>
+            )}
+
+            {loadingUsuarios ? (
+              <div className="dentistas-loading">
+                <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                <p>Carregando usuários...</p>
+              </div>
+            ) : (
+              <div className="dentistas-grid">
+                {usuariosList.length === 0 ? (
+                  <div className="empty-state-dentistas">
+                    <FontAwesomeIcon icon={faUsers} size="4x" />
+                    <h3>Nenhum usuário vinculado</h3>
+                    <p>Compartilhe o link de convite para adicionar profissionais à sua clínica</p>
+                  </div>
+                ) : (
+                  usuariosList.map((usuario) => {
+                    const userData = usuario.user || {}
+                    const isAtivo = usuario.status === 'ativo'
+                    const isUpdating = updatingStatus[usuario.id]
+
+                    return (
+                      <div key={usuario.id} className={`dentista-card ${!isAtivo ? 'inactive' : ''}`}>
+                        <div className="dentista-image">
+                          <div className="dentista-image-placeholder">
+                            {(userData.nome || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          {!isAtivo && (
+                            <div className="status-badge-inactive">
+                              Inativo
+                            </div>
+                          )}
+                        </div>
+                        <div className="dentista-info">
+                          <div className="dentista-header">
+                            <h4>{userData.nome || 'Nome não informado'}</h4>
+                            {isAtivo && (
+                              <span className="status-badge-active">
+                                <FontAwesomeIcon icon={faCheckCircle} /> Ativo
+                              </span>
+                            )}
+                          </div>
+                          {userData.cro && (
+                            <p className="dentista-crm">
+                              <FontAwesomeIcon icon={faIdCard} /> CRO: {userData.cro}
+                            </p>
+                          )}
+                          <div className="dentista-contact">
+                            <p>
+                              <FontAwesomeIcon icon={faEnvelope} /> {userData.email || 'Email não informado'}
+                            </p>
+                            {userData.telefone && (
+                              <p>
+                                <FontAwesomeIcon icon={faPhone} /> {userData.telefone}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="dentista-actions">
+                          <button 
+                            className={`status-toggle-btn ${isAtivo ? 'active' : 'inactive'}`}
+                            onClick={() => handleToggleStatus(usuario.id, usuario.status)}
+                            disabled={isUpdating}
+                            title={isAtivo ? 'Desativar usuário' : 'Ativar usuário'}
+                          >
+                            {isUpdating ? (
+                              <FontAwesomeIcon icon={faSpinner} spin />
+                            ) : isAtivo ? (
+                              <>
+                                <FontAwesomeIcon icon={faToggleOn} />
+                                Desativar
+                              </>
+                            ) : (
+                              <>
+                                <FontAwesomeIcon icon={faToggleOff} />
+                                Ativar
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
+
+      {/* Modal de Alerta */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        onClose={hideAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   )
 }

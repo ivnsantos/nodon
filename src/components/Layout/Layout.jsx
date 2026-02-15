@@ -76,11 +76,7 @@ const Layout = () => {
     { 
       path: '/app/perfil', 
       label: 'Perfil', 
-      icon: faUserCircle,
-      submenu: [
-        { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
-        { path: '/app/dentistas', label: 'Usuários', icon: faUserMd },
-      ]
+      icon: faUserCircle
     },
   ]
 
@@ -109,17 +105,9 @@ const Layout = () => {
       item.path !== '/app' // Excluir Dashboard
     )
   } else {
-    // Se for tipo "usuario", não mostrar a aba "Usuários" no submenu de Perfil e "Anamneses"
+    // Se for tipo "usuario", não mostrar "Anamneses"
     if (isUsuario()) {
-      menuItems = menuItems.map(item => {
-        if (item.submenu) {
-          return {
-            ...item,
-            submenu: item.submenu.filter(subItem => subItem.path !== '/app/dentistas')
-          }
-        }
-        return item
-      }).filter(item => item.path !== '/app/anamneses')
+      menuItems = menuItems.filter(item => item.path !== '/app/anamneses')
     }
     
     // Filtrar baseado no acesso do plano
@@ -198,9 +186,6 @@ const Layout = () => {
     )
     if (currentItem) {
       setExpandedSubmenu(currentItem.path)
-    } else if (location.pathname === '/app/perfil' || location.pathname === '/app/dentistas') {
-      // Se estiver em uma rota do submenu de Perfil, expandir o submenu
-      setExpandedSubmenu('/app/perfil')
     }
   }, [location.pathname])
 
@@ -327,16 +312,8 @@ const Layout = () => {
 
         <div className="sidebar-footer">
           {!sidebarMinimized && (
-            <div className="user-info">
-              <div className="user-avatar">
-                {userName.charAt(0).toUpperCase()}
-              </div>
-              <div className="user-details">
-                <p className="user-name">{userName}</p>
-                {clinicDocumento && (
-                  <p className="user-role">{clinicDocumento}</p>
-                )}
-              </div>
+            <div className="user-avatar">
+              {userName.charAt(0).toUpperCase()}
             </div>
           )}
           {sidebarMinimized && (
@@ -353,16 +330,16 @@ const Layout = () => {
             }}
             title={sidebarMinimized ? 'Voltar para o Inicio' : ''}
           >
-            <FontAwesomeIcon icon={faBuilding} style={{ marginRight: sidebarMinimized ? '0' : '0.5rem' }} />
-            {!sidebarMinimized && 'Voltar para o Inicio'}
+            <FontAwesomeIcon icon={faBuilding} />
+            {!sidebarMinimized && <span>Voltar para o Inicio</span>}
           </button>
           <button 
             className="logout-btn" 
             onClick={handleLogout}
             title={sidebarMinimized ? 'Sair' : ''}
           >
-            <FontAwesomeIcon icon={faSignOutAlt} style={{ marginRight: sidebarMinimized ? '0' : '0.5rem' }} />
-            {!sidebarMinimized && 'Sair'}
+            <FontAwesomeIcon icon={faSignOutAlt} />
+            {!sidebarMinimized && <span>Sair</span>}
           </button>
         </div>
       </aside>

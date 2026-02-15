@@ -971,6 +971,7 @@
 @media (max-width: 768px) {
   .feedback-container {
     padding: 1rem;
+    overflow-x: hidden;
   }
 
   .feedback-header {
@@ -989,6 +990,54 @@
 
   .feedback-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .feedback-card {
+    padding: 1rem;
+    overflow: visible;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .feedback-card-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .feedback-card-title {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .feedback-card-title h3 {
+    font-size: 1.125rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .feedback-card-actions {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .btn-icon {
+    padding: 0.5rem;
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 0.875rem;
+  }
+
+  .feedback-card-info {
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .info-item {
+    font-size: 0.8125rem;
   }
 
   .modal-overlay {
