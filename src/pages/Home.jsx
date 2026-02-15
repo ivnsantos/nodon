@@ -7,7 +7,7 @@ import {
   faCamera, faRobot, faClipboardList, faLaptop,
   faMobileAlt, faTv, faDesktop, faUserMd, faUsers,
   faCheckCircle, faComments, faShieldAlt, faCloud,
-  faChevronDown, faTrophy, faStar, faCoins
+  faChevronDown, faTrophy, faStar, faCoins, faDollarSign, faChartLine, faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -414,30 +414,6 @@ const Home = () => {
           </div>
           <div className="hero-visual">
             <div className="hero-image-container">
-              <div className="floating-card card-1">
-                <div className="card-icon">
-                  <FontAwesomeIcon icon={faChartBar} size="2x" />
-                </div>
-                <div className="card-text">Análise Inteligente</div>
-              </div>
-              <div className="floating-card card-2">
-                <div className="card-icon">
-                  <FontAwesomeIcon icon={faSearch} size="2x" />
-                </div>
-                <div className="card-text">Detecção Precisa</div>
-              </div>
-              <div className="floating-card card-3">
-                <div className="card-icon">
-                  <FontAwesomeIcon icon={faBolt} size="2x" />
-                </div>
-                <div className="card-text">Resultados Rápidos</div>
-              </div>
-              <div className="floating-card card-4">
-                <div className="card-icon">
-                  <FontAwesomeIcon icon={faMessage} size="2x" />
-                </div>
-                <div className="card-text">Chat Especializado</div>
-              </div>
               <div className="nodo-hero-circle">
                 <div className="nodo-hero">
                   <img src={nodoImage} alt="NODON" className="nodo-hero-image" />
@@ -488,6 +464,16 @@ const Home = () => {
                 <FontAwesomeIcon icon={faCoins} className="feature-icon" />
                 <h3>Precificação de Tratamentos</h3>
                 <p>A NODON também oferece ajuda para precificação de seus tratamentos com cálculos automáticos de custos e margens</p>
+              </div>
+              <div className="what-we-do-feature">
+                <FontAwesomeIcon icon={faDollarSign} className="feature-icon" />
+                <h3>Liberdade Financeira</h3>
+                <p>Gerencie suas finanças com ferramentas inteligentes que ajudam você a ter controle total sobre seus ganhos e despesas</p>
+              </div>
+              <div className="what-we-do-feature">
+                <FontAwesomeIcon icon={faFileInvoiceDollar} className="feature-icon" />
+                <h3>Orçamentos</h3>
+                <p>Crie e gerencie orçamentos profissionais para seus pacientes de forma rápida e organizada</p>
               </div>
             </div>
           </div>
@@ -1211,7 +1197,7 @@ const Home = () => {
           </div>
           <div className="footer-section">
             <h4>Fale Conosco</h4>
-            <p>Av. Indianópolis, 153<br />Moema, São Paulo - SP</p>
+            <p>Av. Paulista, 2173<br />São Paulo - SP</p>
           </div>
           <div className="footer-section">
             <h4>Redes sociais</h4>

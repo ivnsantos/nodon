@@ -9,7 +9,8 @@ import {
   faChartLine, faHandHoldingHeart, faTag, faUserMd, faStethoscope, faCoins,
   faFileMedical, faCalendarAlt, faClipboardList, faChevronDown, faChevronUp,
   faCalendarCheck, faQuestionCircle, faComments as faCommentsAlt, faPercent,
-  faChartBar, faExclamationTriangle
+  faChartBar, faExclamationTriangle, faDollarSign, faFileInvoiceDollar, faClock,
+  faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -364,7 +365,14 @@ const LPDentista = () => {
   const scrollToSection = (id) => {
     const element = document.getElementById(id)
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
+      const headerHeight = 80
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset
+      const offsetPosition = elementPosition - headerHeight
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
       setMobileMenuOpen(false)
     }
   }
@@ -446,15 +454,19 @@ const LPDentista = () => {
       <header className="lp-header">
         <div className="lp-container">
           <div className="header-content">
-            <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <img src={nodoLogo} alt="NODON" />
+            <div className="logo-wrapper">
+              <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <img src={nodoLogo} alt="NODON" />
+              </div>
             </div>
             <nav className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
-              <a href="#produtos" onClick={(e) => { e.preventDefault(); scrollToSection('produtos') }}>Produtos</a>
-              <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>
-              <a href="#beneficios" onClick={(e) => { e.preventDefault(); scrollToSection('beneficios') }}>Benefícios</a>
+              <div className="nav-links">
+                <a href="#sobre" onClick={(e) => { e.preventDefault(); scrollToSection('sobre') }}>Sobre</a>
+                <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>
+                <a href="#contato" onClick={(e) => { e.preventDefault(); scrollToSection('contato') }}>Contato</a>
+              </div>
               <button className="btn-cta-header" onClick={handleCtaClick}>
-                Começar
+                Começar Agora
               </button>
             </nav>
             <button className="mobile-menu-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -464,37 +476,29 @@ const LPDentista = () => {
         </div>
       </header>
 
-      {/* Hero - Layout Diagonal e Criativo */}
+      {/* Hero - Layout Minimalista */}
       <section className="hero-section">
-        <div className="hero-bg-pattern"></div>
         <div className="lp-container">
-          <div className="hero-wrapper">
-            <div className="hero-main">
-              <div className="hero-label">
-                <span>DENTISTAS</span>
-              </div>
+          <div className="hero-content">
+            <div className="hero-text">
               <h1 className="hero-title">
-                <span className="title-line-1">Aumente a aceitação dos</span>
-                <span className="title-line-2">tratamentos</span>
-                <span className="title-line-3">Seu paciente mais confiante ele escolhe você!</span>
+              Mais Tratamentos e Mais Lucro.
               </h1>
               <p className="hero-description">
-                A ferramenta completa para dentistas que estão começando e já possuem seus primeiros clientes. Organize, analise e gerencie tudo em um só lugar.
+                Aumente sua receita, economize tempo e alcance a liberdade financeira. Tudo em uma plataforma completa feita para dentistas.
               </p>
-              <div className="hero-chat-highlight">
-                <div className="chat-badge">
-                  <FontAwesomeIcon icon={faComments} />
-                  <div className="chat-text">
-                    <strong>IA Especializada em Odontologia</strong>
-                    <span>Suporte completo para diagnósticos, tratamentos e gestão de pacientes</span>
-                  </div>
+              <div className="hero-features">
+                <div className="hero-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Diagnósticos em segundos</span>
                 </div>
-                <div className="chat-badge" style={{ marginTop: '1rem', background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)', padding: '1rem 1.5rem' }}>
-                  <FontAwesomeIcon icon={faCoins} style={{ color: '#f59e0b', fontSize: '1.5rem' }} />
-                  <div className="chat-text">
-                    <strong style={{ fontSize: '1rem' }}>Precificação Inteligente de Tratamentos</strong>
-                    <span style={{ fontSize: '0.875rem' }}>Calcule custos, margens de lucro e defina preços competitivos com gráficos e análises detalhadas</span>
-                  </div>
+                <div className="hero-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>+30% na receita</span>
+                </div>
+                <div className="hero-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Assistente IA 24/7</span>
                 </div>
               </div>
               <div className="hero-actions">
@@ -510,22 +514,19 @@ const LPDentista = () => {
                 </button>
               </div>
             </div>
-            <div className="hero-side">
-              <div className="hero-image-wrapper">
-                <img 
-                  key={`hero-img-${cupomCode}-${cupomValido}`}
-                  src={getHeroImage()} 
-                  alt={getHeroImageAlt()} 
-                  className="hero-image" 
-                />
-                <div className="image-overlay"></div>
-              </div>
+            <div className="hero-image-container">
+              <img 
+                key={`hero-img-${cupomCode}-${cupomValido}`}
+                src={getHeroImage()} 
+                alt={getHeroImageAlt()} 
+                className="hero-image" 
+              />
             </div>
           </div>
           <div className="hero-metrics">
             <div className="metric">
               <div className="metric-value">+1.200</div>
-              <div className="metric-label">Dentistas Ativos</div>
+              <div className="metric-label">Dentistas</div>
             </div>
             <div className="metric">
               <div className="metric-value">95%</div>
@@ -539,290 +540,351 @@ const LPDentista = () => {
         </div>
       </section>
 
-      {/* Products Section - Todos os Produtos */}
-      <section className="products-section" id="produtos">
+      {/* Seção: Por que você precisa da NODON - Versão Ultra Persuasiva */}
+      <section className="why-nodon-section" id="sobre">
         <div className="lp-container">
-          <div className="section-label">
-            <span>PRODUTOS</span>
+          {/* Abertura Impactante */}
+          <div className="why-nodon-opener">
+            <div className="opener-badge">
+              <FontAwesomeIcon icon={faFire} />
+              <span>FEITA ESPECIFICAMENTE PARA VOCÊ</span>
+            </div>
+            <h1 className="opener-title">
+              Pare de perder <span className="highlight-red">dinheiro</span>, <span className="highlight-red">tempo</span> e <span className="highlight-red">pacientes</span>.
+              <br />
+              Comece a <span className="highlight-blue">ganhar mais</span>, <span className="highlight-blue">trabalhar menos</span> e <span className="highlight-blue">crescer</span>.
+            </h1>
+            <p className="opener-subtitle">
+              A NODON não é apenas uma ferramenta. É sua <strong>vantagem competitiva</strong> para transformar seu tempo e sua carreia e alcançar a liberdade financeira que você merece.
+            </p>
           </div>
-          <h2 className="section-title">Tudo que você precisa em um só lugar</h2>
-          <p className="section-subtitle">Ferramentas completas para gestão do seu consultório odontológico</p>
-          
-          <div className="products-grid">
-            <div className="product-card">
-              <div className="product-icon">
-                <FontAwesomeIcon icon={faXRay} />
-              </div>
-              <h3>Diagnósticos</h3>
-              <p>Análise precisa de radiografias com IA avançada. Receba diagnósticos detalhados e profissionais em segundos.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Análise de radiografias panorâmicas</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Relatórios detalhados</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Desenho interativo</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Histórico completo</li>
-              </ul>
-            </div>
 
-            <div className="product-card">
-              <div className="product-icon">
-                <FontAwesomeIcon icon={faCalendarCheck} />
-              </div>
-              <h3>Agendamento</h3>
-              <p>Gerencie seus agendamentos de forma simples e eficiente. Calendário completo com lembretes automáticos.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Calendário visual</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Lembretes automáticos</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Gestão de horários</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Sincronização mobile</li>
-              </ul>
+          {/* Comparação Visual: Antes vs Depois */}
+          <div className="before-after-comparison">
+            <div className="comparison-header">
+              <h2>Sua Realidade Atual vs Com a NODON</h2>
+              <p>Veja a diferença que faz na sua prática clínica</p>
             </div>
-
-            <div className="product-card">
-              <div className="product-icon">
-                <FontAwesomeIcon icon={faQuestionCircle} />
-              </div>
-              <h3>Anamneses</h3>
-              <p>Crie questionários personalizados para seus pacientes e receba as respostas automaticamente organizadas.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Questionários personalizados</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Respostas automáticas</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Histórico de anamneses</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Compartilhamento fácil</li>
-              </ul>
-            </div>
-
-            <div className="product-card">
-              <div className="product-icon">
-                <FontAwesomeIcon icon={faCommentsAlt} />
-              </div>
-              <h3>Chat IA</h3>
-              <p>Assistente virtual especializado em odontologia disponível 24/7 para tirar suas dúvidas sobre diagnósticos e tratamentos.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> IA especializada em odontologia</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Disponível 24/7</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Respostas instantâneas</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte completo</li>
-              </ul>
-            </div>
-
-            <div className="product-card">
-              <div className="product-icon">
-                <FontAwesomeIcon icon={faUsers} />
-              </div>
-              <h3>Gestão de Pacientes</h3>
-              <p>Organize todos os seus pacientes, histórico, tratamentos e documentos em um só lugar seguro na nuvem.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Cadastro completo</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Histórico de tratamentos</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Documentos organizados</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Busca avançada</li>
-              </ul>
-            </div>
-
-            <div className="product-card">
-              <div className="product-icon">
-                <FontAwesomeIcon icon={faCloud} />
-              </div>
-              <h3>Armazenamento na Nuvem</h3>
-              <p>Todos os seus exames, documentos e dados seguros na nuvem com acesso de qualquer lugar e dispositivo.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Armazenamento ilimitado</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Backup automático</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Acesso multiplataforma</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Segurança total</li>
-              </ul>
-            </div>
-
-            <div className="product-card" style={{ border: '2px solid rgba(245, 158, 11, 0.5)', background: 'rgba(245, 158, 11, 0.05)', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-12px', right: '20px', background: '#f59e0b', color: '#fff', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.6875rem', fontWeight: '700', textTransform: 'uppercase' }}>
-                Novo
-              </div>
-              <div className="product-icon" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
-                <FontAwesomeIcon icon={faCoins} />
-              </div>
-              <h3 style={{ color: '#f59e0b', fontWeight: '700', fontSize: '1.125rem' }}>Precificação de Tratamentos</h3>
-              <p style={{ fontSize: '0.9375rem' }}><strong style={{ color: '#fff', fontSize: '0.9375rem' }}>A NODON oferece ajuda completa para precificação de seus tratamentos!</strong> Calcule custos, margens de lucro e defina preços competitivos com precisão através de gráficos e análises detalhadas.</p>
-              <ul className="product-features">
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Cálculo automático de custos diretos e indiretos</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Análise de margem de lucro em tempo real</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Gráficos e relatórios detalhados</li>
-                <li><FontAwesomeIcon icon={faCheckCircle} /> Alertas visuais para lucro baixo ou sem lucro</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits - Layout em Zigzag */}
-      <section className="benefits-section" id="beneficios">
-        <div className="lp-container">
-          <div className="section-label">
-            <span>BENEFÍCIOS</span>
-          </div>
-          <h2 className="section-title">Por que escolher a NODON?</h2>
-          
-          <div className="benefits-list">
-            <div className="benefit-row benefit-row-left">
-              <div className="benefit-content">
-                <div className="benefit-number">01</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faRobot} />
-                  </div>
-                  <h3>Análise com IA</h3>
-                  <p>Diagnósticos precisos e rápidos com inteligência artificial especializada em odontologia</p>
+            
+            <div className="comparison-grid">
+              <div className="comparison-column before">
+                <div className="comparison-label">
+                  <FontAwesomeIcon icon={faTimes} />
+                  <span>SEM A NODON</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="benefit-row benefit-row-right">
-              <div className="benefit-content">
-                <div className="benefit-number">02</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faCoins} />
-                  </div>
-                  <h3>Precificação de Tratamentos</h3>
-                  <p style={{ fontSize: '0.9375rem' }}><strong style={{ fontSize: '0.9375rem' }}>A NODON oferece ajuda completa para precificação dos seus tratamentos!</strong> Calcule custos, margens de lucro e defina preços competitivos com gráficos e análises detalhadas em tempo real.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="benefit-row benefit-row-left">
-              <div className="benefit-content">
-                <div className="benefit-number">03</div>
-                <div className="benefit-info">
-                  <div className="benefit-icons-group">
-                    <div className="benefit-icon">
-                      <FontAwesomeIcon icon={faMobileAlt} />
+                <div className="comparison-items">
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faClock} />
                     </div>
-                    <div className="benefit-icon benefit-icon-chat">
-                      <FontAwesomeIcon icon={faComments} />
+                    <div className="item-content">
+                      <h4>3-5 horas por dia</h4>
+                      <p>Analisando, contando gastos, fazendo orçamentos manualmente, perdendo tempo precioso</p>
                     </div>
                   </div>
-                  <h3>Acesso Mobile + Chat IA</h3>
-                  <p>Use em qualquer lugar, a qualquer momento, do seu celular ou tablet. Acesse nosso <strong>chat especializado 24/7</strong> para tirar dúvidas sobre diagnósticos e tratamentos.</p>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faDollarSign} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Precificação no "achismo"</h4>
+                      <p>Deixando dinheiro na mesa por não saber o custo real</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faUsers} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Pacientes perdidos</h4>
+                      <p>Falta de follow-up e organização resulta em vendas perdidas</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faQuestionCircle} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Dúvidas sem resposta</h4>
+                      <p>Sem suporte quando você mais precisa, especialmente fora do horário</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faFileMedical} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Documentos desorganizados</h4>
+                      <p>Informações espalhadas, difícil de encontrar quando precisa</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="benefit-row benefit-row-right">
-              <div className="benefit-content">
-                <div className="benefit-number">04</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faCloud} />
-                  </div>
-                  <h3>Armazenamento Ilimitado</h3>
-                  <p>Todos os exames e documentos dos seus pacientes seguros na nuvem, sem limite de espaço</p>
+              <div className="comparison-column after">
+                <div className="comparison-label good">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>COM A NODON</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="benefit-row benefit-row-left">
-              <div className="benefit-content">
-                <div className="benefit-number">05</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faFileMedical} />
+                <div className="comparison-items">
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faBolt} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Diagnósticos em segundos</h4>
+                      <p>IA especializada analisa radiografias instantaneamente, liberando horas do seu dia</p>
+                    </div>
                   </div>
-                  <h3>Anamneses Personalizadas</h3>
-                  <p>Crie questionários personalizados para seus pacientes e receba as respostas automaticamente</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="benefit-row benefit-row-right">
-              <div className="benefit-content">
-                <div className="benefit-number">06</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faShieldAlt} />
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faChartLine} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Precificação inteligente</h4>
+                      <p>Cálculo automático de custos e margens. Maximize lucros com dados reais</p>
+                    </div>
                   </div>
-                  <h3>Sem Fidelidade</h3>
-                  <p>Cancele quando quiser, sem multas ou taxas adicionais</p>
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faTrophy} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Gestão completa</h4>
+                      <p>Orçamentos, pacientes e follow-ups organizados. Nunca mais perca uma venda</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faBrain} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Assistente IA 24/7</h4>
+                      <p>1 milhão de tokens para tirar dúvidas a qualquer hora, sobre qualquer assunto</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faCloud} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Tudo na nuvem</h4>
+                      <p>Acesso seguro de qualquer lugar, em qualquer dispositivo, sempre organizado</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Chat Especializado */}
-          <div className="chat-section-new">
-            <div className="chat-section-left">
-              <div className="chat-icon-wrapper">
-                <FontAwesomeIcon icon={faBrain} className="chat-main-icon" />
-                <div className="chat-icon-glow"></div>
-              </div>
-            </div>
-            <div className="chat-section-right">
-              <div className="chat-label">IA ESPECIALIZADA</div>
-              <h2 className="chat-title">Seu Assistente Profissional de Odontologia</h2>
-              <p className="chat-subtitle">
-                Uma IA treinada especificamente para odontologia, disponível 24/7 para te ajudar em diagnósticos, planejamento de tratamentos e gestão do seu consultório.
-              </p>
-              <div className="chat-benefits-grid">
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faStethoscope} />
-                  <h4>Suporte em Diagnósticos</h4>
-                  <p>Análise precisa de radiografias e suporte para diagnósticos complexos</p>
-                </div>
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faClipboardList} />
-                  <h4>Planejamento de Tratamentos</h4>
-                  <p>Orientações sobre protocolos e técnicas odontológicas</p>
-                </div>
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faBolt} />
-                  <h4>Disponível 24/7</h4>
-                  <p>Atendimento imediato quando você precisar, a qualquer hora</p>
-                </div>
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faRocket} />
-                  <h4>1 Milhão de Tokens</h4>
-                  <p>Pergunte quantas vezes precisar durante sua prática clínica</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Precificação Section */}
-      <section className="precificacao-highlight-section">
-        <div className="lp-container">
-          <div className="precificacao-highlight-content">
-            <div className="precificacao-highlight-left">
-              <div className="precificacao-icon-wrapper">
-                <FontAwesomeIcon icon={faCoins} className="precificacao-main-icon" />
-                <div className="precificacao-icon-glow"></div>
-              </div>
+          {/* Números que Impactam */}
+          <div className="why-nodon-stats">
+            <div className="stats-header">
+              <h2>Resultados Reais. Transformação Imediata.</h2>
+              <p>Veja o impacto que a NODON tem na prática clínica de dentistas como você</p>
             </div>
-            <div className="precificacao-highlight-right">
-              <div className="precificacao-label">PRECIFICAÇÃO INTELIGENTE</div>
-              <h2 className="precificacao-title">A NODON oferece ajuda completa para precificação de seus tratamentos!</h2>
-              <p className="precificacao-subtitle">
-                Calcule custos, margens de lucro e defina preços competitivos com precisão através de gráficos e análises detalhadas em tempo real.
-              </p>
-              <div className="precificacao-benefits-grid">
-                <div className="precificacao-benefit-box">
+
+            <div className="stats-grid">
+              <div className="stat-card mega">
+                <div className="stat-icon">
+                  <FontAwesomeIcon icon={faClock} />
+                </div>
+                <div className="stat-number">10+</div>
+                <div className="stat-unit">horas/semana</div>
+                <div className="stat-label">Economizadas</div>
+              </div>
+
+              <div className="stat-card mega">
+                <div className="stat-icon">
                   <FontAwesomeIcon icon={faChartLine} />
-                  <h4>Cálculo Automático</h4>
-                  <p>Custos diretos e indiretos calculados automaticamente</p>
                 </div>
-                <div className="precificacao-benefit-box">
-                  <FontAwesomeIcon icon={faPercent} />
-                  <h4>Análise de Margem</h4>
-                  <p>Visualize margens de lucro em tempo real com gráficos</p>
+                <div className="stat-number">30%+</div>
+                <div className="stat-unit">aumento</div>
+                <div className="stat-label">Na Receita</div>
+              </div>
+
+              <div className="stat-card mega">
+                <div className="stat-icon">
+                  <FontAwesomeIcon icon={faRocket} />
                 </div>
-                <div className="precificacao-benefit-box">
-                  <FontAwesomeIcon icon={faChartBar} />
-                  <h4>Gráficos Detalhados</h4>
-                  <p>Análises visuais completas para tomada de decisão</p>
+                <div className="stat-number">1M</div>
+                <div className="stat-unit">tokens</div>
+                <div className="stat-label">De IA Disponível</div>
+              </div>
+
+              <div className="stat-card mega">
+                <div className="stat-icon">
+                  <FontAwesomeIcon icon={faUserCheck} />
                 </div>
-                <div className="precificacao-benefit-box">
-                  <FontAwesomeIcon icon={faExclamationTriangle} />
-                  <h4>Alertas Inteligentes</h4>
-                  <p>Receba avisos quando o lucro estiver baixo ou ausente</p>
+                <div className="stat-number">100%</div>
+                <div className="stat-unit">organizado</div>
+                <div className="stat-label">Tudo na Nuvem</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Transformação Completa */}
+          <div className="transformation-section">
+            <div className="transformation-header">
+              <div className="section-label">
+                <span>SUA TRANSFORMAÇÃO</span>
+              </div>
+              <h2>De sobrecarregado para livre. De inseguro para confiante.</h2>
+              <p>A NODON não é apenas software. É sua jornada para a excelência profissional e liberdade financeira.</p>
+            </div>
+
+            <div className="transformation-grid">
+              <div className="transformation-card">
+                <div className="transformation-number">01</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faXRay} />
+                </div>
+                <h3>Diagnósticos Instantâneos</h3>
+                <p>IA especializada analisa radiografias em <strong>segundos</strong>. O que antes levava horas, agora leva instantes. Mais precisão, menos tempo.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Resultados em tempo real</span>
+                </div>
+              </div>
+
+              <div className="transformation-card">
+                <div className="transformation-number">02</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faCoins} />
+                </div>
+                <h3>Precificação que Gera Lucro</h3>
+                <p>Cálculo automático de custos diretos, indiretos e margens. <strong>Não deixe dinheiro na mesa</strong> por falta de informação.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Gráficos e alertas visuais</span>
+                </div>
+              </div>
+
+              <div className="transformation-card">
+                <div className="transformation-number">03</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faFileInvoiceDollar} />
+                </div>
+                <h3>Orçamentos que Convertem</h3>
+                <p>Crie orçamentos profissionais em <strong>minutos</strong>. Gerencie status, acompanhe aprovações e feche mais vendas.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Gestão completa de itens</span>
+                </div>
+              </div>
+
+              <div className="transformation-card">
+                <div className="transformation-number">04</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faBrain} />
+                </div>
+                <h3>Assistente IA Sempre Disponível</h3>
+                <p>1 milhão de tokens para tirar dúvidas sobre diagnósticos, tratamentos e gestão. <strong>24/7, sempre disponível</strong>.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Especializada em odontologia</span>
+                </div>
+              </div>
+
+              <div className="transformation-card">
+                <div className="transformation-number">05</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faUsers} />
+                </div>
+                <h3>Gestão Total de Pacientes</h3>
+                <p>Todos os seus pacientes, histórico, tratamentos e documentos <strong>organizados e seguros</strong> na nuvem.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Busca avançada e filtros</span>
+                </div>
+              </div>
+
+              <div className="transformation-card">
+                <div className="transformation-number">06</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faDollarSign} />
+                </div>
+                <h3>Liberdade Financeira</h3>
+                <p>Controle total sobre receitas, despesas e planejamento. <strong>Relatórios detalhados</strong> para decisões estratégicas.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Análise em tempo real</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Urgência e CTA Final */}
+          <div className="why-nodon-urgency">
+            <div className="urgency-content">
+              <div className="urgency-badge">
+                <FontAwesomeIcon icon={faFire} />
+                <span>NÃO PERCA MAIS TEMPO</span>
+              </div>
+              <h2 className="urgency-title">
+                Enquanto você espera, seus concorrentes estão <span className="highlight">ganhando mais</span> e <span className="highlight">trabalhando menos</span>
+              </h2>
+              <p className="urgency-subtitle">
+                Dentistas que já usam a NODON estão transformando suas práticas clínicas AGORA. Não fique para trás.
+              </p>
+
+              <div className="urgency-comparison">
+                <div className="urgency-item">
+                  <div className="urgency-icon">
+                    <FontAwesomeIcon icon={faTrophy} />
+                  </div>
+                  <div className="urgency-text">
+                    <strong>Aumentando receita</strong> com precificação inteligente
+                  </div>
+                </div>
+                <div className="urgency-item">
+                  <div className="urgency-icon">
+                    <FontAwesomeIcon icon={faUserCheck} />
+                  </div>
+                  <div className="urgency-text">
+                    <strong>Ganando mais pacientes</strong> com diagnósticos rápidos
+                  </div>
+                </div>
+                <div className="urgency-item">
+                  <div className="urgency-icon">
+                    <FontAwesomeIcon icon={faClock} />
+                  </div>
+                  <div className="urgency-text">
+                    <strong>Economizando tempo</strong> para focar no essencial
+                  </div>
+                </div>
+                <div className="urgency-item">
+                  <div className="urgency-icon">
+                    <FontAwesomeIcon icon={faRocket} />
+                  </div>
+                  <div className="urgency-text">
+                    <strong>Diferencial competitivo</strong> que atrai e fideliza
+                  </div>
+                </div>
+              </div>
+
+              <div className="urgency-cta-box">
+                <div className="cta-box-content">
+                  <h3>Pronto para transformar sua carreira?</h3>
+                  <p>Junte-se a centenas de dentistas que já estão usando a NODON para alcançar a liberdade financeira e profissional que merecem.</p>
+                  <div className="cta-benefits">
+                    <div className="cta-benefit">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Comece hoje</span>
+                    </div>
+                    <div className="cta-benefit">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Sem fidelidade</span>
+                    </div>
+                    <div className="cta-benefit">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Resultados imediatos</span>
+                    </div>
+                  </div>
+                  <button className="btn-hero-main urgency-btn" onClick={handleCtaClick}>
+                    Começar Agora
+                    <FontAwesomeIcon icon={faArrowRight} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -864,14 +926,14 @@ const LPDentista = () => {
       </section>
 
       {/* CTA Form - Layout Dividido Moderno */}
-      <section className="cta-section" id="form-section">
+      <section className="cta-section" id="contato">
         <div className="lp-container">
           <div className="cta-wrapper">
             <div className="cta-left">
               <div className="section-label">
                 <span>COMEÇAR AGORA</span>
               </div>
-              <h2>Pronto para transformar seu consultório?</h2>
+              <h2>Pronto para transformar sua carreira?</h2>
               <p>Preencha o formulário e comece a usar a melhor plataforma de gestão odontológica com IA!</p>
               <div className="cta-points">
                 <div className="cta-point">
@@ -950,9 +1012,9 @@ const LPDentista = () => {
               <img src={nodoLogo} alt="NODON" />
             </div>
             <div className="footer-nav">
-              <a href="#produtos" onClick={(e) => { e.preventDefault(); scrollToSection('produtos') }}>Produtos</a>
+              <a href="#sobre" onClick={(e) => { e.preventDefault(); scrollToSection('sobre') }}>Sobre</a>
               <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>
-              <a href="#beneficios" onClick={(e) => { e.preventDefault(); scrollToSection('beneficios') }}>Benefícios</a>
+              <a href="#contato" onClick={(e) => { e.preventDefault(); scrollToSection('contato') }}>Contato</a>
             </div>
             <div className="footer-social">
               <a href="#" target="_blank" rel="noopener noreferrer">
@@ -976,3 +1038,4 @@ const LPDentista = () => {
 }
 
 export default LPDentista
+

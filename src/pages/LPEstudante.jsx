@@ -6,7 +6,10 @@ import {
   faCloud, faMobileAlt, faRobot, faStar, faArrowRight,
   faBars, faTimes, faBolt, faXRay, faBookOpen, faRocket,
   faComments, faMessage, faBrain, faAward, faLightbulb,
-  faChartLine, faHandHoldingHeart, faTag, faCoins
+  faChartLine, faHandHoldingHeart, faTag, faCoins,
+  faFileAlt, faFileMedical, faClipboardList, faPen,
+  faClock, faFire, faTrophy, faUserCheck, faArrowUp,
+  faChartBar, faHeartbeat
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -176,7 +179,7 @@ const LPEstudante = () => {
 
   const handleCtaClick = () => {
     trackButtonClick('cta_header', 'lp_estudante_header')
-    document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' })
+    scrollToSection('contato')
   }
 
   const handlePlanSelect = (planoNome, planoId) => {
@@ -278,10 +281,13 @@ const LPEstudante = () => {
               <img src={nodoLogo} alt="NODON" />
             </div>
             <nav className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
-              <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>
-              <a href="#beneficios" onClick={(e) => { e.preventDefault(); scrollToSection('beneficios') }}>Benefícios</a>
+              <div className="nav-links">
+                <a href="#sobre" onClick={(e) => { e.preventDefault(); scrollToSection('sobre') }}>Sobre</a>
+                <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>
+                <a href="#contato" onClick={(e) => { e.preventDefault(); scrollToSection('contato') }}>Contato</a>
+              </div>
               <button className="btn-cta-header" onClick={handleCtaClick}>
-                Começar
+                Começar Agora
               </button>
             </nav>
             <button className="mobile-menu-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -291,30 +297,35 @@ const LPEstudante = () => {
         </div>
       </header>
 
-      {/* Hero - Layout Diagonal e Criativo */}
+      {/* Hero - Layout Minimalista e Persuasivo */}
       <section className="hero-section">
-        <div className="hero-bg-pattern"></div>
         <div className="lp-container">
-          <div className="hero-wrapper">
-            <div className="hero-main">
+          <div className="hero-content">
+            <div className="hero-text">
               <div className="hero-label">
-                <span>ESTUDANTES & RECÉM-FORMADOS</span>
+                <FontAwesomeIcon icon={faFire} />
+                <span>FEITA ESPECIFICAMENTE PARA ESTUDANTES</span>
               </div>
               <h1 className="hero-title">
-                <span className="title-line-1">Transforme sua</span>
-                <span className="title-line-2">carreira odontológica</span>
-                <span className="title-line-3">com IA</span>
+                NODON
+                <br />
+                 <span className="gradient-text">seu </span> melhor assistente nos estudos.
               </h1>
               <p className="hero-description">
-                Seu auxiliar nos estudos que ira te acompanhar por toda sua jornada profissional.
+                A NODON não é apenas uma ferramenta. É seu <strong>assistente pessoal de estudos</strong> que vai te ajudar a fazer trabalhos, artigos e estudos com IA especializada em odontologia.
               </p>
-              <div className="hero-chat-highlight">
-                <div className="chat-badge">
-                  <FontAwesomeIcon icon={faComments} />
-                  <div className="chat-text">
-                    <strong>Chat Especializado em Odontologia</strong>
-                    <span>Tire suas dúvidas com IA treinada especificamente para odontologia</span>
-                  </div>
+              <div className="hero-features">
+                <div className="hero-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>IA para trabalhos e artigos acadêmicos</span>
+                </div>
+                <div className="hero-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Estude mais rápido e aprenda melhor</span>
+                </div>
+                <div className="hero-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Professor particular 24/7</span>
                 </div>
               </div>
               <div className="hero-actions">
@@ -330,22 +341,19 @@ const LPEstudante = () => {
                 </button>
               </div>
             </div>
-            <div className="hero-side">
-              <div className="hero-image-wrapper">
-                <img 
-                  key={`hero-img-${cupomCode}-${cupomValido}`}
-                  src={getHeroImage()} 
-                  alt={getHeroImageAlt()} 
-                  className="hero-image" 
-                />
-                <div className="image-overlay"></div>
-              </div>
+            <div className="hero-image-container">
+              <img 
+                key={`hero-img-${cupomCode}-${cupomValido}`}
+                src={getHeroImage()} 
+                alt={getHeroImageAlt()} 
+                className="hero-image" 
+              />
             </div>
           </div>
           <div className="hero-metrics">
             <div className="metric">
               <div className="metric-value">+850</div>
-              <div className="metric-label">Estudantes e Recém-Formados</div>
+              <div className="metric-label">Estudantes</div>
             </div>
             <div className="metric">
               <div className="metric-value">98%</div>
@@ -359,133 +367,304 @@ const LPEstudante = () => {
         </div>
       </section>
 
-      {/* Benefits - Layout em Zigzag */}
-      <section className="benefits-section" id="beneficios">
+      {/* Seção: Por que você precisa da NODON - Versão Ultra Persuasiva para Estudantes */}
+      <section className="why-nodon-section" id="sobre">
         <div className="lp-container">
-          <div className="section-label">
-            <span>BENEFÍCIOS</span>
+          {/* Abertura Impactante */}
+          <div className="why-nodon-opener">
+            <div className="opener-badge">
+              <FontAwesomeIcon icon={faFire} />
+              <span>FEITA ESPECIFICAMENTE PARA ESTUDANTES</span>
+            </div>
+            <h2 className="opener-title">
+              Pare de <span className="highlight-red">perder noites</span> fazendo trabalhos e artigos.
+              <br />
+              Use IA e <span className="highlight-blue">seja mais produtivo.</span>
+            </h2>
+            <p className="opener-subtitle">
+              A NODON não é apenas uma ferramenta. É seu <strong>assistente pessoal de estudos</strong> para transformar sua jornada acadêmica e alcançar o sucesso que você merece.
+            </p>
           </div>
-          <h2 className="section-title">Por que escolher a NODON?</h2>
-          
-          <div className="benefits-list">
-            <div className="benefit-row benefit-row-left">
-              <div className="benefit-content">
-                <div className="benefit-number">01</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faRobot} />
-                  </div>
-                  <h3>IA Avançada</h3>
-                  <p>Análise precisa de radiografias com inteligência artificial de última geração</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="benefit-row benefit-row-right">
-              <div className="benefit-content">
-                <div className="benefit-number">02</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faCoins} />
-                  </div>
-                  <h3>Precificação de Tratamentos</h3>
-                  <p><strong>A NODON também oferece ajuda para precificação de tratamentos!</strong> Aprenda a calcular custos, margens de lucro e definir preços competitivos com gráficos e análises detalhadas.</p>
-                </div>
-              </div>
+          {/* Comparação Visual: Antes vs Depois */}
+          <div className="before-after-comparison">
+            <div className="comparison-header">
+              <h2>Antes vs. Depois da NODON</h2>
+              <p>Veja a diferença que a IA faz na sua vida acadêmica</p>
             </div>
-
-            <div className="benefit-row benefit-row-left">
-              <div className="benefit-content">
-                <div className="benefit-number">03</div>
-                <div className="benefit-info">
-                  <div className="benefit-icons-group">
-                    <div className="benefit-icon">
-                      <FontAwesomeIcon icon={faMobileAlt} />
+            <div className="comparison-grid">
+              <div className="comparison-column before">
+                <div className="comparison-label">
+                  <FontAwesomeIcon icon={faTimes} />
+                  <span>SEM NODON</span>
+                </div>
+                <div className="comparison-items">
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faClock} />
                     </div>
-                    <div className="benefit-icon benefit-icon-chat">
-                      <FontAwesomeIcon icon={faComments} />
+                    <div className="item-content">
+                      <h4>Noites sem dormir</h4>
+                      <p>Fazendo trabalhos e artigos até de madrugada</p>
                     </div>
                   </div>
-                  <h3>Acesso Mobile + Chat Especializado</h3>
-                  <p>Use em qualquer lugar, a qualquer momento, do seu celular ou tablet. Acesse nosso <strong>chat especializado em odontologia 24/7</strong>, com IA treinada especificamente para tirar suas dúvidas sobre diagnósticos, tratamentos e técnicas odontológicas.</p>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faTimes} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Dúvidas sem resposta</h4>
+                      <p>Professores indisponíveis, livros confusos</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faTimes} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Notas medianas</h4>
+                      <p>Trabalhos sem profundidade, artigos superficiais</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon bad">
+                      <FontAwesomeIcon icon={faTimes} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Estresse constante</h4>
+                      <p>Prazos apertados, conteúdo difícil de entender</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="benefit-row benefit-row-right">
-              <div className="benefit-content">
-                <div className="benefit-number">04</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faCloud} />
-                  </div>
-                  <h3>Armazenamento Ilimitado</h3>
-                  <p>Todos os seus exames seguros na nuvem, sem limite de espaço</p>
+              <div className="comparison-column after">
+                <div className="comparison-label good">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>COM NODON</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="benefit-row benefit-row-left">
-              <div className="benefit-content">
-                <div className="benefit-number">05</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faUsers} />
+                <div className="comparison-items">
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Trabalhos em minutos</h4>
+                      <p>IA escreve e estrutura seus trabalhos e artigos</p>
+                    </div>
                   </div>
-                  <h3>Comunidade Ativa</h3>
-                  <p>Conecte-se com outros estudantes e profissionais em nossa comunidade</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="benefit-row benefit-row-right">
-              <div className="benefit-content">
-                <div className="benefit-number">06</div>
-                <div className="benefit-info">
-                  <div className="benefit-icon">
-                    <FontAwesomeIcon icon={faShieldAlt} />
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Professor 24/7</h4>
+                      <p>IA especializada responde todas suas dúvidas</p>
+                    </div>
                   </div>
-                  <h3>Sem Fidelidade</h3>
-                  <p>Cancele quando quiser, sem multas ou taxas adicionais</p>
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Notas excelentes</h4>
+                      <p>Trabalhos profundos, artigos científicos de qualidade</p>
+                    </div>
+                  </div>
+                  <div className="comparison-item">
+                    <div className="item-icon good">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                    </div>
+                    <div className="item-content">
+                      <h4>Estude tranquilo</h4>
+                      <p>Mais tempo livre, menos estresse, melhor aprendizado</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Chat Especializado - Novo Formato */}
-          <div className="chat-section-new">
-            <div className="chat-section-left">
-              <div className="chat-icon-wrapper">
-                <FontAwesomeIcon icon={faBrain} className="chat-main-icon" />
-                <div className="chat-icon-glow"></div>
-              </div>
+
+          {/* Números que Impactam */}
+          <div className="why-nodon-stats">
+            <div className="stats-header">
+              <h2>O Impacto Real na Sua Vida Acadêmica</h2>
+              <p>Números que fazem a diferença</p>
             </div>
-            <div className="chat-section-right">
-              <div className="chat-label">IA ESPECIALIZADA</div>
-              <h2 className="chat-title">Seu Professor Particular de Odontologia</h2>
-              <p className="chat-subtitle">
-                Uma IA treinada especificamente para odontologia, disponível 24/7 para te ajudar nos estudos e na sua formação profissional.
-              </p>
-              <div className="chat-benefits-grid">
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faGraduationCap} />
-                  <h4>Aprenda Enquanto Estuda</h4>
-                  <p>Explicações didáticas sobre qualquer tema odontológico</p>
+            <div className="stats-grid">
+              <div className="stat-card mega">
+                <div className="stat-icon">
+                  <FontAwesomeIcon icon={faClock} />
                 </div>
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faBookOpen} />
-                  <h4>Suporte Completo</h4>
-                  <p>Diagnósticos, tratamentos e técnicas odontológicas</p>
+                <div className="stat-number">10+</div>
+                <div className="stat-unit">horas</div>
+                <div className="stat-label">Economizadas por semana</div>
+                <p>Mais tempo para estudar o que realmente importa</p>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon">
+                  <FontAwesomeIcon icon={faFileAlt} />
                 </div>
-                <div className="chat-benefit-box">
-                  <FontAwesomeIcon icon={faBolt} />
-                  <h4>Disponível 24/7</h4>
-                  <p>Estude no seu ritmo, quando e onde quiser</p>
-                </div>
-                <div className="chat-benefit-box">
+                <div className="stat-number">100%</div>
+                <div className="stat-unit">dos trabalhos</div>
+                <div className="stat-label">Com IA especializada</div>
+                <p>Trabalhos e artigos com qualidade profissional</p>
+              </div>
+              <div className="stat-card mega">
+                <div className="stat-icon">
                   <FontAwesomeIcon icon={faRocket} />
-                  <h4>1 Milhão de Tokens</h4>
-                  <p>Pergunte quantas vezes precisar durante sua formação</p>
+                </div>
+                <div className="stat-number">1M</div>
+                <div className="stat-unit">tokens</div>
+                <div className="stat-label">Para estudos</div>
+                <p>Pergunte quantas vezes precisar</p>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon">
+                  <FontAwesomeIcon icon={faTrophy} />
+                </div>
+                <div className="stat-number">98%</div>
+                <div className="stat-unit">satisfação</div>
+                <div className="stat-label">Dos estudantes</div>
+                <p>Melhorias reais nas notas e aprendizado</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Transformação Completa */}
+          <div className="transformation-section">
+            <div className="transformation-header">
+              <h2>Sua Jornada de Sucesso em 6 Passos</h2>
+              <p>Como a NODON transforma sua vida acadêmica</p>
+            </div>
+            <div className="transformation-grid">
+              <div className="transformation-card">
+                <div className="transformation-number">01</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faFileAlt} />
+                </div>
+                <h3>Trabalhos Perfeitos</h3>
+                <p>IA escreve e estrutura seus trabalhos acadêmicos com <strong>qualidade profissional</strong>. Pare de perder noites fazendo trabalhos.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Economize 10+ horas por semana</span>
+                </div>
+              </div>
+              <div className="transformation-card">
+                <div className="transformation-number">02</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faFileMedical} />
+                </div>
+                <h3>Artigos Científicos</h3>
+                <p>Crie artigos científicos <strong>com referências e metodologia correta</strong>. IA especializada em odontologia te ajuda em cada etapa.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Qualidade de publicação</span>
+                </div>
+              </div>
+              <div className="transformation-card">
+                <div className="transformation-number">03</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faBrain} />
+                </div>
+                <h3>Estudos Inteligentes</h3>
+                <p>Professor particular 24/7 para <strong>tirar dúvidas sobre qualquer tema</strong>. Aprenda mais rápido e melhor.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Compreensão profunda</span>
+                </div>
+              </div>
+              <div className="transformation-card">
+                <div className="transformation-number">04</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faXRay} />
+                </div>
+                <h3>Análise de Radiografias</h3>
+                <p>Analise radiografias com IA e <strong>entenda cada achado</strong>. Perfeito para estudos práticos e trabalhos.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Diagnósticos precisos</span>
+                </div>
+              </div>
+              <div className="transformation-card">
+                <div className="transformation-number">05</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faMobileAlt} />
+                </div>
+                <h3>Estude em Qualquer Lugar</h3>
+                <p>Acesse do celular, tablet ou computador. <strong>Estude quando e onde quiser</strong>, sem limitações.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Máxima flexibilidade</span>
+                </div>
+              </div>
+              <div className="transformation-card">
+                <div className="transformation-number">06</div>
+                <div className="transformation-icon">
+                  <FontAwesomeIcon icon={faTrophy} />
+                </div>
+                <h3>Seja o Melhor</h3>
+                <p>Com trabalhos e artigos de qualidade, <strong>suas notas vão disparar</strong>. Destaque-se na turma.</p>
+                <div className="transformation-benefit">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Sucesso garantido</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Urgência e CTA Final */}
+          <div className="why-nodon-urgency">
+            <div className="urgency-content">
+              <div className="urgency-badge">
+                <FontAwesomeIcon icon={faFire} />
+                <span>OPORTUNIDADE ÚNICA</span>
+              </div>
+              <h2 className="urgency-title">
+                Não fique para trás enquanto seus colegas <span className="highlight">já estão usando IA</span>
+              </h2>
+              <p className="urgency-subtitle">
+                Enquanto você perde noites fazendo trabalhos, outros estudantes já estão usando IA e se destacando. Não seja o último a descobrir essa vantagem competitiva.
+              </p>
+              <div className="urgency-comparison">
+                <div className="urgency-item">
+                  <div className="urgency-icon">
+                    <FontAwesomeIcon icon={faTrophy} />
+                  </div>
+                  <div className="urgency-text">
+                    <strong>Seus colegas com NODON:</strong> Trabalhos prontos em minutos, notas altas, tempo livre
+                  </div>
+                </div>
+                <div className="urgency-item">
+                  <div className="urgency-icon">
+                    <FontAwesomeIcon icon={faUserCheck} />
+                  </div>
+                  <div className="urgency-text">
+                    <strong>Você sem NODON:</strong> Noites sem dormir, trabalhos medianos, estresse constante
+                  </div>
+                </div>
+              </div>
+              <div className="urgency-cta-box">
+                <div className="cta-box-content">
+                  <h3>Pronto para transformar sua vida acadêmica?</h3>
+                  <p>Comece agora e veja a diferença na sua próxima nota</p>
+                  <div className="cta-benefits">
+                    <div className="cta-benefit">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Trabalhos em minutos</span>
+                    </div>
+                    <div className="cta-benefit">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Artigos científicos</span>
+                    </div>
+                    <div className="cta-benefit">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Professor 24/7</span>
+                    </div>
+                  </div>
+                  <button className="btn-hero-main urgency-btn" onClick={handleCtaClick}>
+                    Começar Agora
+                    <FontAwesomeIcon icon={faArrowRight} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -597,7 +776,7 @@ const LPEstudante = () => {
       </section>
 
       {/* CTA Form - Layout Dividido Moderno */}
-      <section className="cta-section" id="form-section">
+      <section className="cta-section" id="contato">
         <div className="lp-container">
           <div className="cta-wrapper">
             <div className="cta-left">

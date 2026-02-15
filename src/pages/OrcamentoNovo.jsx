@@ -148,8 +148,11 @@ const OrcamentoNovo = () => {
       const data = response.data?.data || response.data
       
       if (data) {
+        // Garantir que pacienteId seja obtido corretamente (pode vir direto ou dentro de paciente)
+        const pacienteId = data.pacienteId || data.paciente?.id || ''
+        
         setFormData({
-          pacienteId: data.pacienteId || '',
+          pacienteId: pacienteId,
           status: data.status || 'RASCUNHO',
           observacoes: data.observacoes || '',
           itens: (data.itens || []).map(item => ({
@@ -159,8 +162,8 @@ const OrcamentoNovo = () => {
         })
         
         // Buscar dados do paciente
-        if (data.pacienteId) {
-          const paciente = pacientes.find(p => p.id === data.pacienteId)
+        if (pacienteId) {
+          const paciente = pacientes.find(p => p.id === pacienteId)
           if (paciente) {
             setSelectedPaciente(paciente)
           }
@@ -420,10 +423,17 @@ const OrcamentoNovo = () => {
         return
       }
 
+      // Garantir que pacienteId seja enviado corretamente
+      if (!formData.pacienteId) {
+        showError('Selecione um paciente')
+        setLoading(false)
+        return
+      }
+
       const payload = {
         pacienteId: formData.pacienteId,
         status: formData.status,
-        observacoes: formData.observacoes,
+        observacoes: formData.observacoes || '',
         itens: formData.itens
       }
 
@@ -758,7 +768,10 @@ const OrcamentoNovo = () => {
                         >
                           <span 
                             className="item-status-badge status-badge-clickable"
-                            style={{ backgroundColor: getItemStatusColor(item.status) }}
+                            style={{ 
+                              backgroundColor: getItemStatusColor(item.status),
+                              color: '#ffffff'
+                            }}
                             onClick={() => setItemStatusDropdowns(prev => ({
                               ...prev,
                               [index]: !prev[index]

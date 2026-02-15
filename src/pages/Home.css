@@ -192,7 +192,7 @@
   min-height: 100vh;
   display: flex;
   align-items: center;
-  padding: 8rem 2rem 4rem;
+  padding: 6rem 0 4rem !important;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -219,7 +219,6 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4rem;
   align-items: center;
   position: relative;
   z-index: 3; /* Ensure content is above spotlights and overlay */
@@ -359,24 +358,23 @@
 .hero-visual {
   order: 2;
   position: relative;
-  height: 500px;
   width: 100%;
+  padding: 2rem 2rem;
 }
 
 .hero-image-container {
   position: relative;
   width: 100%;
-  height: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  display: block;
-  text-align: center;
+  display: grid;
+  gap: 3rem 2rem;
+  align-items: center;
+  justify-items: center;
 }
 
 .nodo-hero-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
   z-index: 1;
   width: 300px;
   height: 300px;
@@ -410,73 +408,21 @@
   filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
 }
 
-.floating-card {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  padding: 1.5rem;
-  border-radius: 1.5rem;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.2),
-    0 0 40px rgba(14, 165, 233, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 150px;
-  animation: floatCard 4s ease-in-out infinite;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.floating-card:hover {
-  transform: translateY(-10px) scale(1.05);
-  box-shadow: 
-    0 30px 80px rgba(0, 0, 0, 0.3),
-    0 0 60px rgba(14, 165, 233, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.card-1 {
-  top: 12%;
-  left: 10%;
-  animation-delay: 0s;
-  z-index: 2;
-}
-
-.card-2 {
-  top: 12%;
-  right: 10%;
-  animation-delay: 1.3s;
-  z-index: 2;
-}
-
-.card-3 {
-  bottom: 12%;
-  left: 10%;
-  animation-delay: 2.6s;
-  z-index: 2;
-}
-
-.card-4 {
-  bottom: 12%;
-  right: 10%;
-  animation-delay: 3.9s;
-  z-index: 2;
-}
-
-.card-icon {
-  color: #0ea5e9;
+.nodo-hero-circle {
+  position: relative;
+  z-index: 1;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: rgba(14, 165, 233, 0.2);
+  border: 3px solid rgba(14, 165, 233, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.card-text {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 0 40px rgba(14, 165, 233, 0.3),
+    inset 0 0 40px rgba(14, 165, 233, 0.1);
 }
 
 @keyframes float {
@@ -488,14 +434,6 @@
   }
 }
 
-@keyframes floatCard {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
 
 /* Stats Section */
 .stats-section {
@@ -685,7 +623,9 @@
 
 /* What We Do Section */
 .what-we-do-section {
-  padding: 8rem 2rem;
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 2rem;
   background: linear-gradient(180deg, #0a0e27 0%, #1a1f3a 100%);
   position: relative;
   overflow: hidden;
@@ -786,9 +726,22 @@
 .what-we-do-features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2.5rem;
+  grid-template-rows: auto auto;
+  gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.what-we-do-feature:nth-child(1),
+.what-we-do-feature:nth-child(2),
+.what-we-do-feature:nth-child(3) {
+  grid-row: 1;
+}
+
+.what-we-do-feature:nth-child(4),
+.what-we-do-feature:nth-child(5),
+.what-we-do-feature:nth-child(6) {
+  grid-row: 2;
 }
 
 .what-we-do-feature {
@@ -810,11 +763,21 @@
     0 0 40px rgba(14, 165, 233, 0.2);
 }
 
+.what-we-do-feature:hover .feature-icon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 30px rgba(14, 165, 233, 1));
+}
+
 .what-we-do-feature .feature-icon {
-  font-size: 3rem;
+  font-size: 3.5rem;
   color: #0ea5e9;
   margin-bottom: 1.5rem;
-  filter: drop-shadow(0 0 15px rgba(14, 165, 233, 0.6));
+  filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.8));
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all 0.3s ease;
 }
 
 .what-we-do-feature h3 {
@@ -2021,9 +1984,7 @@
 .info-icon-wrapper {
   width: 80px;
   height: 80px;
-  margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
-  border-radius: 50%;
+  margin: 0 auto 1.5rem; border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2867,7 +2828,7 @@
   }
 
   .hero-section {
-    padding: 7rem 1rem 3rem;
+    padding: 0rem !important;
     background: linear-gradient(268deg, #0a0e27 0%, #1a1f3a 25%, #000000 50%, #002329 75%, #000000 100%);
   }
 
@@ -2887,48 +2848,68 @@
   }
 
   .hero-visual {
-    height: 300px;
+    padding: 2rem 1rem;
+  }
+
+  .hero-image-container {
+    gap: 2rem;
+  }
+
+  .nodo-hero-circle {
+    grid-column: 1;
+    grid-row: 3 / 5;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
   }
 
   .floating-card {
-    padding: 0.75rem;
-    min-width: 100px;
-    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
   }
 
   .card-icon {
-    font-size: 1.25rem !important;
+    font-size: 1.5rem !important;
   }
 
   .card-icon svg {
-    width: 1.25rem !important;
-    height: 1.25rem !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
   }
 
   .card-text {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
   }
 
-  .card-1 {
-    top: 5%;
-    left: 5%;
+  .card-1,
+  .card-2,
+  .card-3,
+  .card-4,
+  .card-5,
+  .card-6 {
+    grid-column: 1;
+    justify-self: center;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    transform: none;
   }
 
-  .card-2 {
-    top: 10%;
-    right: 5%;
-  }
-
-  .card-3 {
-    bottom: 5%;
-    left: 5%;
-  }
-
-  .card-4 {
-    bottom: 5%;
-    right: 5%;
-  }
+  .card-1 { grid-row: 1; }
+  .card-2 { grid-row: 2; }
+  .card-3 { grid-row: 4; }
+  .card-4 { grid-row: 5; }
+  .card-5 { grid-row: 6; }
+  .card-6 { grid-row: 7; }
 
   .section-title {
     font-size: 2rem;

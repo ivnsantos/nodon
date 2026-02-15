@@ -11,6 +11,7 @@ import {
   faCopy, faShareAlt, faSpinner, faComment, faChevronDown, faChevronUp,
   faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons'
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
 import useAlert from '../hooks/useAlert'
@@ -58,6 +59,28 @@ const ClienteDetalhes = () => {
   const statusDropdownRef = useRef(null)
   const [orcamentos, setOrcamentos] = useState([])
   const [loadingOrcamentos, setLoadingOrcamentos] = useState(false)
+  const [orcamentoStatusDropdowns, setOrcamentoStatusDropdowns] = useState({})
+  const [itemStatusDropdowns, setItemStatusDropdowns] = useState({})
+  const [showOrcamentoStatusModal, setShowOrcamentoStatusModal] = useState(null) // null ou orcamentoId
+  const [showItemStatusModal, setShowItemStatusModal] = useState(null) // null ou { orcamentoId, itemIndex }
+  const orcamentoStatusRefs = useRef({})
+  const itemStatusRefs = useRef({})
+  
+  // Detectar se é mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  
+  // Modal WhatsApp - Questionários
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [whatsAppQuestionarioId, setWhatsAppQuestionarioId] = useState(null)
+  const [whatsAppPhoneNumber, setWhatsAppPhoneNumber] = useState('')
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false)
+  
+  // Modal WhatsApp - Anamneses
+  // Modal WhatsApp - Anamneses
+  const [showWhatsAppAnamneseModal, setShowWhatsAppAnamneseModal] = useState(false)
+  const [whatsAppAnamneseId, setWhatsAppAnamneseId] = useState(null)
+  const [whatsAppAnamnesePhoneNumber, setWhatsAppAnamnesePhoneNumber] = useState('')
+  const [sendingWhatsAppAnamnese, setSendingWhatsAppAnamnese] = useState(false)
 
   useEffect(() => {
     loadCliente()
@@ -418,14 +441,45 @@ const ClienteDetalhes = () => {
   }
 
   const formatTelefone = (telefone) => {
-    if (!telefone) return ''
-    const cleaned = telefone.replace(/\D/g, '')
-    if (cleaned.length === 11) {
-      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-    } else if (cleaned.length === 10) {
-      return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+    if (!telefone) return 'Número não informado'
+    // Remove todos os caracteres não numéricos, exceto +
+    let cleaned = telefone.replace(/[^\d+]/g, '')
+    
+    // Se começa com +, mantém
+    if (cleaned.startsWith('+')) {
+      cleaned = cleaned.substring(1)
+      // Formata: +55 (11) 99999-9999
+      if (cleaned.length === 13 && cleaned.startsWith('55')) {
+        // +55 (11) 99999-9999
+        return `+${cleaned.substring(0, 2)} (${cleaned.substring(2, 4)}) ${cleaned.substring(4, 9)}-${cleaned.substring(9)}`
+      } else if (cleaned.length === 12 && cleaned.startsWith('55')) {
+        // +55 (11) 9999-9999
+        return `+${cleaned.substring(0, 2)} (${cleaned.substring(2, 4)}) ${cleaned.substring(4, 8)}-${cleaned.substring(8)}`
+      } else if (cleaned.length === 11) {
+        // (11) 99999-9999
+        return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`
+      } else if (cleaned.length === 10) {
+        // (11) 9999-9999
+        return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`
+      }
+      return `+${cleaned}`
+    } else {
+      // Sem +, assume Brasil
+      if (cleaned.length === 13 && cleaned.startsWith('55')) {
+        // 55 (11) 99999-9999
+        return `+${cleaned.substring(0, 2)} (${cleaned.substring(2, 4)}) ${cleaned.substring(4, 9)}-${cleaned.substring(9)}`
+      } else if (cleaned.length === 12 && cleaned.startsWith('55')) {
+        // 55 (11) 9999-9999
+        return `+${cleaned.substring(0, 2)} (${cleaned.substring(2, 4)}) ${cleaned.substring(4, 8)}-${cleaned.substring(8)}`
+      } else if (cleaned.length === 11) {
+        // (11) 99999-9999
+        return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`
+      } else if (cleaned.length === 10) {
+        // (11) 9999-9999
+        return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`
+      }
+      return cleaned || 'Número não informado'
     }
-    return telefone
   }
 
   const formatCPF = (cpf) => {
@@ -1043,6 +1097,194 @@ const ClienteDetalhes = () => {
     return labels[status] || status
   }
 
+
+  const handleUpdateOrcamentoStatus = async (orcamentoId, newStatus) => {
+    setOrcamentoStatusDropdowns(prev => {
+      const newState = { ...prev }
+      delete newState[orcamentoId]
+      return newState
+    })
+    setShowOrcamentoStatusModal(null)
+    
+    try {
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        showError('Cliente Master não encontrado')
+        return
+      }
+
+      await api.patch(`/orcamentos/${orcamentoId}`, {
+        status: newStatus
+      }, {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+
+      // Atualizar estado local
+      setOrcamentos(prev => prev.map(orc => 
+        orc.id === orcamentoId ? { ...orc, status: newStatus } : orc
+      ))
+    } catch (error) {
+      console.error('Erro ao atualizar status do orçamento:', error)
+      showError(error.response?.data?.message || 'Erro ao atualizar status do orçamento. Tente novamente.')
+    }
+  }
+
+  const handleUpdateItemStatus = async (orcamentoId, itemId, itemIndex, newStatus) => {
+    const key = `${orcamentoId}_${itemIndex}`
+    setItemStatusDropdowns(prev => {
+      const newState = { ...prev }
+      delete newState[key]
+      return newState
+    })
+    setShowItemStatusModal(null)
+    
+    try {
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        showError('Cliente Master não encontrado')
+        return
+      }
+
+      await api.patch(`/orcamentos/${orcamentoId}/itens/${itemId}/status`, {
+        status: newStatus
+      }, {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+
+      // Atualizar estado local
+      setOrcamentos(prev => prev.map(orc => {
+        if (orc.id === orcamentoId && orc.itens) {
+          return {
+            ...orc,
+            itens: orc.itens.map((item, idx) => 
+              idx === itemIndex ? { ...item, status: newStatus } : item
+            )
+          }
+        }
+        return orc
+      }))
+    } catch (error) {
+      console.error('Erro ao atualizar status do item:', error)
+      showError(error.response?.data?.message || 'Erro ao atualizar status do item. Tente novamente.')
+    }
+  }
+
+  const handleEnviarWhatsApp = async () => {
+    if (!whatsAppPhoneNumber || !whatsAppPhoneNumber.trim()) {
+      showError('Por favor, informe o número de telefone')
+      return
+    }
+
+    if (!whatsAppQuestionarioId) {
+      showError('ID do questionário não encontrado')
+      return
+    }
+
+    setSendingWhatsApp(true)
+    try {
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        showError('Cliente Master não encontrado')
+        return
+      }
+
+      // Limpar o número de telefone (remover caracteres não numéricos, exceto +)
+      let phoneNumber = whatsAppPhoneNumber.trim().replace(/\s/g, '')
+      
+      // Se não começar com +, adicionar código do Brasil (55)
+      if (!phoneNumber.startsWith('+')) {
+        // Remover zeros à esquerda se houver
+        phoneNumber = phoneNumber.replace(/^0+/, '')
+        // Se não começar com 55, adicionar
+        if (!phoneNumber.startsWith('55')) {
+          phoneNumber = '55' + phoneNumber
+        }
+        phoneNumber = '+' + phoneNumber
+      }
+
+      const response = await api.post('/questionarios/enviar-whatsapp', {
+        respostaQuestionarioId: whatsAppQuestionarioId,
+        phoneNumber: phoneNumber
+      }, {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+
+      showSuccess(response.data?.data?.message || 'Link de feedback enviado via WhatsApp com sucesso!')
+      setShowWhatsAppModal(false)
+      setWhatsAppPhoneNumber('')
+      setWhatsAppQuestionarioId(null)
+    } catch (error) {
+      console.error('Erro ao enviar WhatsApp:', error)
+      showError(error.response?.data?.message || 'Erro ao enviar link via WhatsApp. Tente novamente.')
+    } finally {
+      setSendingWhatsApp(false)
+    }
+  }
+
+  const handleEnviarWhatsAppAnamnese = async () => {
+    if (!whatsAppAnamnesePhoneNumber || !whatsAppAnamnesePhoneNumber.trim()) {
+      showError('Por favor, informe o número de telefone')
+      return
+    }
+
+    if (!whatsAppAnamneseId) {
+      showError('ID da anamnese não encontrado')
+      return
+    }
+
+    setSendingWhatsAppAnamnese(true)
+    try {
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        showError('Cliente Master não encontrado')
+        return
+      }
+
+      // Limpar o número de telefone (remover caracteres não numéricos, exceto +)
+      let phoneNumber = whatsAppAnamnesePhoneNumber.trim().replace(/\s/g, '')
+      
+      // Se não começar com +, adicionar código do Brasil (55)
+      if (!phoneNumber.startsWith('+')) {
+        // Remover zeros à esquerda se houver
+        phoneNumber = phoneNumber.replace(/^0+/, '')
+        // Se não começar com 55, adicionar
+        if (!phoneNumber.startsWith('55')) {
+          phoneNumber = '55' + phoneNumber
+        }
+        phoneNumber = '+' + phoneNumber
+      }
+
+      const response = await api.post('/anamneses/enviar-whatsapp', {
+        respostaAnamneseId: whatsAppAnamneseId,
+        phoneNumber: phoneNumber
+      }, {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+
+      showSuccess(response.data?.data?.message || 'Link da anamnese enviado via WhatsApp com sucesso!')
+      setShowWhatsAppAnamneseModal(false)
+      setWhatsAppAnamnesePhoneNumber('')
+      setWhatsAppAnamneseId(null)
+    } catch (error) {
+      console.error('Erro ao enviar WhatsApp:', error)
+      showError(error.response?.data?.message || 'Erro ao enviar link via WhatsApp. Tente novamente.')
+    } finally {
+      setSendingWhatsAppAnamnese(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="cliente-detalhes-loading">
@@ -1456,6 +1698,17 @@ const ClienteDetalhes = () => {
                             {!respostaAnamnese.concluida && (
                               <>
                                 <button
+                                  className="btn-whatsapp-anamnese"
+                                  onClick={() => {
+                                    setWhatsAppAnamneseId(respostaAnamnese.id)
+                                    setWhatsAppAnamnesePhoneNumber(cliente.telefone || '')
+                                    setShowWhatsAppAnamneseModal(true)
+                                  }}
+                                  title="Enviar via WhatsApp"
+                                >
+                                  <FontAwesomeIcon icon={faWhatsapp} />
+                                </button>
+                                <button
                                   className="btn-compartilhar-anamnese"
                                   onClick={() => handleCompartilharLink(respostaAnamnese.id)}
                                   title="Compartilhar link para responder"
@@ -1538,6 +1791,17 @@ const ClienteDetalhes = () => {
                         {isMaster && !questionarioResposta.concluida && (
                           <div className="questionario-actions">
                             <button
+                              className="btn-whatsapp-questionario"
+                              onClick={() => {
+                                setWhatsAppQuestionarioId(questionarioResposta.id)
+                                setWhatsAppPhoneNumber(cliente.telefone || '')
+                                setShowWhatsAppModal(true)
+                              }}
+                              title="Enviar via WhatsApp"
+                            >
+                              <FontAwesomeIcon icon={faWhatsapp} />
+                            </button>
+                            <button
                               className="btn-compartilhar-anamnese"
                               onClick={() => handleCompartilharLinkQuestionario(questionarioResposta.id)}
                               title="Compartilhar link"
@@ -1596,12 +1860,63 @@ const ClienteDetalhes = () => {
                             <span className="orcamento-id-cliente">
                               Orçamento #{orcamento.id?.substring(0, 8)}
                             </span>
-                            <span 
-                              className="orcamento-status-badge-cliente"
-                              style={{ backgroundColor: getOrcamentoStatusColor(orcamento.status) }}
-                            >
-                              {getOrcamentoStatusLabel(orcamento.status)}
-                            </span>
+                            {isMaster ? (
+                              <div 
+                                className="status-dropdown-container" 
+                                ref={el => orcamentoStatusRefs.current[orcamento.id] = el}
+                              >
+                                <span 
+                                  className="orcamento-status-badge-cliente status-badge-clickable"
+                                  style={{ backgroundColor: getOrcamentoStatusColor(orcamento.status) }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const isMobileDevice = window.innerWidth <= 768
+                                    if (isMobileDevice) {
+                                      setShowOrcamentoStatusModal(orcamento.id)
+                                      setOrcamentoStatusDropdowns(prev => {
+                                        const newState = { ...prev }
+                                        delete newState[orcamento.id]
+                                        return newState
+                                      })
+                                    } else {
+                                      setOrcamentoStatusDropdowns(prev => ({
+                                        ...prev,
+                                        [orcamento.id]: !prev[orcamento.id]
+                                      }))
+                                      setShowOrcamentoStatusModal(null)
+                                    }
+                                  }}
+                                  title="Clique para alterar status"
+                                >
+                                  {getOrcamentoStatusLabel(orcamento.status)}
+                                  <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${orcamentoStatusDropdowns[orcamento.id] ? 'open' : ''}`} />
+                                </span>
+                                {!isMobile && orcamentoStatusDropdowns[orcamento.id] && (
+                                  <div className="status-dropdown-menu">
+                                    {['RASCUNHO', 'ENVIADO', 'ACEITO', 'EM_ANDAMENTO', 'FINALIZADO', 'RECUSADO', 'CANCELADO'].map((statusOption) => (
+                                      <div
+                                        key={statusOption}
+                                        className={`status-dropdown-item ${orcamento.status === statusOption ? 'active' : ''}`}
+                                        style={{ backgroundColor: getOrcamentoStatusColor(statusOption) }}
+                                        onClick={() => handleUpdateOrcamentoStatus(orcamento.id, statusOption)}
+                                      >
+                                        <span>{getOrcamentoStatusLabel(statusOption)}</span>
+                                        {orcamento.status === statusOption && (
+                                          <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span 
+                                className="orcamento-status-badge-cliente"
+                                style={{ backgroundColor: getOrcamentoStatusColor(orcamento.status) }}
+                              >
+                                {getOrcamentoStatusLabel(orcamento.status)}
+                              </span>
+                            )}
                           </div>
                           <div className="orcamento-item-meta-cliente">
                             <span className="orcamento-valor-cliente">
@@ -1628,12 +1943,64 @@ const ClienteDetalhes = () => {
                                 <span className="item-nome-cliente">{item.nome || item.descricao}</span>
                                 <span className="item-valor-cliente">{formatCurrency((item.preco || 0) * (item.quantidade || 1))}</span>
                               </div>
-                              <span 
-                                className="item-status-badge-cliente"
-                                style={{ backgroundColor: getItemStatusColor(item.status) }}
-                              >
-                                {getItemStatusLabel(item.status)}
-                              </span>
+                              {isMaster ? (
+                                <div 
+                                  className="status-dropdown-container" 
+                                  ref={el => itemStatusRefs.current[`${orcamento.id}_${idx}`] = el}
+                                >
+                                  <span 
+                                    className="item-status-badge-cliente status-badge-clickable"
+                                    style={{ backgroundColor: getItemStatusColor(item.status) }}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      const key = `${orcamento.id}_${idx}`
+                                      const isMobileDevice = window.innerWidth <= 768
+                                      if (isMobileDevice) {
+                                        setShowItemStatusModal({ orcamentoId: orcamento.id, itemIndex: idx, itemId: item.id })
+                                        setItemStatusDropdowns(prev => {
+                                          const newState = { ...prev }
+                                          delete newState[key]
+                                          return newState
+                                        })
+                                      } else {
+                                        setItemStatusDropdowns(prev => ({
+                                          ...prev,
+                                          [key]: !prev[key]
+                                        }))
+                                        setShowItemStatusModal(null)
+                                      }
+                                    }}
+                                    title="Clique para alterar status"
+                                  >
+                                    {getItemStatusLabel(item.status)}
+                                    <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${itemStatusDropdowns[`${orcamento.id}_${idx}`] ? 'open' : ''}`} />
+                                  </span>
+                                  {!isMobile && itemStatusDropdowns[`${orcamento.id}_${idx}`] && (
+                                    <div className="status-dropdown-menu">
+                                      {['EM_ANALISE', 'PAGO', 'RECUSADO', 'PERDIDO'].map((statusOption) => (
+                                        <div
+                                          key={statusOption}
+                                          className={`status-dropdown-item ${item.status === statusOption ? 'active' : ''}`}
+                                          style={{ backgroundColor: getItemStatusColor(statusOption) }}
+                                          onClick={() => handleUpdateItemStatus(orcamento.id, item.id, idx, statusOption)}
+                                        >
+                                          <span>{getItemStatusLabel(statusOption)}</span>
+                                          {item.status === statusOption && (
+                                            <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span 
+                                  className="item-status-badge-cliente"
+                                  style={{ backgroundColor: getItemStatusColor(item.status) }}
+                                >
+                                  {getItemStatusLabel(item.status)}
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1878,6 +2245,234 @@ const ClienteDetalhes = () => {
         message={alertConfig.message}
         type={alertConfig.type}
       />
+
+      {/* Modal de status do orçamento (mobile) */}
+      {showOrcamentoStatusModal && (
+        <div className="modal-overlay" onClick={() => setShowOrcamentoStatusModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Alterar Status do Orçamento</h3>
+              <button className="modal-close" onClick={() => setShowOrcamentoStatusModal(null)}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {['RASCUNHO', 'ENVIADO', 'ACEITO', 'EM_ANDAMENTO', 'FINALIZADO', 'RECUSADO', 'CANCELADO'].map((statusOption) => {
+                const orcamento = orcamentos.find(o => o.id === showOrcamentoStatusModal)
+                return (
+                  <div
+                    key={statusOption}
+                    className={`modal-status-item ${orcamento?.status === statusOption ? 'active' : ''}`}
+                    style={{ backgroundColor: getOrcamentoStatusColor(statusOption) }}
+                    onClick={() => handleUpdateOrcamentoStatus(showOrcamentoStatusModal, statusOption)}
+                  >
+                    <span>{getOrcamentoStatusLabel(statusOption)}</span>
+                    {orcamento?.status === statusOption && (
+                      <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowOrcamentoStatusModal(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de status do item (mobile) */}
+      {showItemStatusModal && (
+        <div className="modal-overlay" onClick={() => setShowItemStatusModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Alterar Status do Item</h3>
+              <button className="modal-close" onClick={() => setShowItemStatusModal(null)}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {['EM_ANALISE', 'PAGO', 'RECUSADO', 'PERDIDO'].map((statusOption) => {
+                const orcamento = orcamentos.find(o => o.id === showItemStatusModal.orcamentoId)
+                const item = orcamento?.itens?.[showItemStatusModal.itemIndex]
+                return (
+                  <div
+                    key={statusOption}
+                    className={`modal-status-item ${item?.status === statusOption ? 'active' : ''}`}
+                    style={{ backgroundColor: getItemStatusColor(statusOption) }}
+                    onClick={() => handleUpdateItemStatus(
+                      showItemStatusModal.orcamentoId,
+                      showItemStatusModal.itemId,
+                      showItemStatusModal.itemIndex,
+                      statusOption
+                    )}
+                  >
+                    <span>{getItemStatusLabel(statusOption)}</span>
+                    {item?.status === statusOption && (
+                      <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowItemStatusModal(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de envio via WhatsApp */}
+      {showWhatsAppModal && (
+        <div className="modal-overlay" onClick={() => setShowWhatsAppModal(false)}>
+          <div className="modal-content modal-whatsapp" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <FontAwesomeIcon icon={faWhatsapp} style={{ color: '#25D366', marginRight: '0.5rem' }} />
+                Enviar via WhatsApp
+              </h3>
+              <button className="modal-close" onClick={() => setShowWhatsAppModal(false)}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '0.625rem', fontSize: '0.8125rem' }}>
+                O link será enviado para:
+              </p>
+              <div style={{ 
+                padding: '0.625rem 0.75rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '0.5rem',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.875rem'
+              }}>
+                <div style={{ fontWeight: 600, color: '#ffffff', marginBottom: '0.25rem' }}>
+                  {cliente?.nome || 'Nome não informado'}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  {formatTelefone(whatsAppPhoneNumber)}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary" 
+                onClick={() => {
+                  setShowWhatsAppModal(false)
+                  setWhatsAppPhoneNumber('')
+                  setWhatsAppQuestionarioId(null)
+                }}
+                disabled={sendingWhatsApp}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={handleEnviarWhatsApp}
+                disabled={sendingWhatsApp || !whatsAppPhoneNumber.trim()}
+                style={{
+                  background: sendingWhatsApp ? 'rgba(37, 211, 102, 0.5)' : '#25D366',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {sendingWhatsApp ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faWhatsapp} />
+                    Enviar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de envio via WhatsApp - Anamnese */}
+      {showWhatsAppAnamneseModal && (
+        <div className="modal-overlay" onClick={() => setShowWhatsAppAnamneseModal(false)}>
+          <div className="modal-content modal-whatsapp" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <FontAwesomeIcon icon={faWhatsapp} style={{ color: '#25D366', marginRight: '0.5rem' }} />
+                Enviar via WhatsApp
+              </h3>
+              <button className="modal-close" onClick={() => setShowWhatsAppAnamneseModal(false)}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '0.625rem', fontSize: '0.8125rem' }}>
+                O link será enviado para:
+              </p>
+              <div style={{ 
+                padding: '0.625rem 0.75rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '0.5rem',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.875rem'
+              }}>
+                <div style={{ fontWeight: 600, color: '#ffffff', marginBottom: '0.25rem' }}>
+                  {cliente?.nome || 'Nome não informado'}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  {formatTelefone(whatsAppAnamnesePhoneNumber)}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary" 
+                onClick={() => {
+                  setShowWhatsAppAnamneseModal(false)
+                  setWhatsAppAnamnesePhoneNumber('')
+                  setWhatsAppAnamneseId(null)
+                }}
+                disabled={sendingWhatsAppAnamnese}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={handleEnviarWhatsAppAnamnese}
+                disabled={sendingWhatsAppAnamnese || !whatsAppAnamnesePhoneNumber.trim()}
+                style={{
+                  background: sendingWhatsAppAnamnese ? 'rgba(37, 211, 102, 0.5)' : '#25D366',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {sendingWhatsAppAnamnese ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faWhatsapp} />
+                    Enviar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

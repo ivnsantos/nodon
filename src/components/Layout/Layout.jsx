@@ -17,6 +17,7 @@ const Layout = () => {
   const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario, clearUserComumId, planoAcesso } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
+  const [expandedSubmenu, setExpandedSubmenu] = useState(null)
   
   // Carregar dados completos do cliente master ao acessar /app
   // Isso garante que sempre temos os dados atualizados do plano, incluindo limiteAnalises
@@ -64,16 +65,23 @@ const Layout = () => {
   const allMenuItems = [
     { path: '/app', label: 'Dashboard', icon: faChartBar },
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
-    { path: '/app/anamneses', label: 'Anamneses', icon: faClipboardQuestion },
+    { path: '/app/anamneses', label: 'Anamnese', icon: faClipboardQuestion },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
     { path: '/app/orcamentos', label: 'Orçamentos', icon: faFileInvoiceDollar },
+    { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
     { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/feedback', label: 'Feedback', icon: faComment },
-    { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
     { path: '/app/chat', label: 'Chat IA', icon: faComments },
     { path: '/app/anotacoes', label: 'Anotações', icon: faStickyNote },
-    { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
-    { path: '/app/dentistas', label: 'Usuário', icon: faUserMd },
+    { 
+      path: '/app/perfil', 
+      label: 'Perfil', 
+      icon: faUserCircle,
+      submenu: [
+        { path: '/app/perfil', label: 'Perfil', icon: faUserCircle },
+        { path: '/app/dentistas', label: 'Usuários', icon: faUserMd },
+      ]
+    },
   ]
 
   // Obter limiteAnalises do plano retornado pela API /api/clientes-master/complete
@@ -101,11 +109,17 @@ const Layout = () => {
       item.path !== '/app' // Excluir Dashboard
     )
   } else {
-    // Se for tipo "usuario", não mostrar a aba "Usuário" e "Anamneses"
+    // Se for tipo "usuario", não mostrar a aba "Usuários" no submenu de Perfil e "Anamneses"
     if (isUsuario()) {
-      menuItems = menuItems.filter(item => 
-        item.path !== '/app/dentistas' && item.path !== '/app/anamneses'
-      )
+      menuItems = menuItems.map(item => {
+        if (item.submenu) {
+          return {
+            ...item,
+            submenu: item.submenu.filter(subItem => subItem.path !== '/app/dentistas')
+          }
+        }
+        return item
+      }).filter(item => item.path !== '/app/anamneses')
     }
     
     // Filtrar baseado no acesso do plano
@@ -174,9 +188,20 @@ const Layout = () => {
   // Carregar dados do cliente master quando o Layout carregar (apenas se necessário)
   // Este useEffect foi removido pois já temos outro que faz isso de forma mais eficiente
 
-  // Fechar sidebar ao mudar de rota em mobile
+  // Fechar sidebar ao mudar de rota em mobile e expandir submenu se necessário
   useEffect(() => {
     setSidebarOpen(false)
+    
+    // Expandir submenu automaticamente se a rota atual estiver dentro de um submenu
+    const currentItem = allMenuItems.find(item => 
+      item.submenu && item.submenu.some(subItem => location.pathname === subItem.path)
+    )
+    if (currentItem) {
+      setExpandedSubmenu(currentItem.path)
+    } else if (location.pathname === '/app/perfil' || location.pathname === '/app/dentistas') {
+      // Se estiver em uma rota do submenu de Perfil, expandir o submenu
+      setExpandedSubmenu('/app/perfil')
+    }
   }, [location.pathname])
 
   // Redirecionar /app para /app/chat quando limiteAnalises === 0
@@ -242,23 +267,60 @@ const Layout = () => {
         
         <nav className="sidebar-nav">
           {menuItems.map((item) => {
+            const hasSubmenu = item.submenu && item.submenu.length > 0
+            const isSubmenuExpanded = expandedSubmenu === item.path
             const isActive = location.pathname === item.path || 
-                           (item.path === '/app' && location.pathname.startsWith('/app') && location.pathname === '/app')
+                           (item.path === '/app' && location.pathname.startsWith('/app') && location.pathname === '/app') ||
+                           (hasSubmenu && item.submenu.some(subItem => location.pathname === subItem.path))
+            
             return (
-              <button
-                key={item.path}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => {
-                  navigate(item.path)
-                  closeSidebar()
-                }}
-                title={sidebarMinimized ? item.label : ''}
-              >
-                <span className="nav-icon">
-                  <FontAwesomeIcon icon={item.icon} />
-                </span>
-                {!sidebarMinimized && <span className="nav-label">{item.label}</span>}
-              </button>
+              <div key={item.path} className="nav-item-wrapper">
+                <button
+                  className={`nav-item ${isActive ? 'active' : ''} ${hasSubmenu ? 'has-submenu' : ''}`}
+                  onClick={() => {
+                    if (hasSubmenu) {
+                      setExpandedSubmenu(isSubmenuExpanded ? null : item.path)
+                    } else {
+                      navigate(item.path)
+                      closeSidebar()
+                    }
+                  }}
+                  title={sidebarMinimized ? item.label : ''}
+                >
+                  <span className="nav-icon">
+                    <FontAwesomeIcon icon={item.icon} />
+                  </span>
+                  {!sidebarMinimized && <span className="nav-label">{item.label}</span>}
+                  {!sidebarMinimized && hasSubmenu && (
+                    <FontAwesomeIcon 
+                      icon={faChevronRight} 
+                      className={`submenu-arrow ${isSubmenuExpanded ? 'expanded' : ''}`}
+                    />
+                  )}
+                </button>
+                {hasSubmenu && isSubmenuExpanded && !sidebarMinimized && (
+                  <div className="submenu">
+                    {item.submenu.map((subItem) => {
+                      const isSubActive = location.pathname === subItem.path
+                      return (
+                        <button
+                          key={subItem.path}
+                          className={`submenu-item ${isSubActive ? 'active' : ''}`}
+                          onClick={() => {
+                            navigate(subItem.path)
+                            closeSidebar()
+                          }}
+                        >
+                          <span className="nav-icon">
+                            <FontAwesomeIcon icon={subItem.icon} />
+                          </span>
+                          <span className="nav-label">{subItem.label}</span>
+                        </button>
+                      )}
+                    )}
+                  </div>
+                )}
+              </div>
             )
           })}
         </nav>
@@ -289,10 +351,10 @@ const Layout = () => {
               navigate('/select-clinic')
               closeSidebar()
             }}
-            title={sidebarMinimized ? 'Voltar para Clínicas' : ''}
+            title={sidebarMinimized ? 'Voltar para o Inicio' : ''}
           >
             <FontAwesomeIcon icon={faBuilding} style={{ marginRight: sidebarMinimized ? '0' : '0.5rem' }} />
-            {!sidebarMinimized && 'Voltar para Clínicas'}
+            {!sidebarMinimized && 'Voltar para o Inicio'}
           </button>
           <button 
             className="logout-btn" 

@@ -5,8 +5,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faFileInvoiceDollar, faPlus, faSearch, faFilter,
   faEye, faEdit, faTrash, faChevronDown, faCheck,
-  faTimes, faCalendarAlt, faUser, faDollarSign
+  faTimes, faCalendarAlt, faUser, faDollarSign, faChartBar, faList,
+  faCheckCircle
 } from '@fortawesome/free-solid-svg-icons'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
@@ -32,6 +34,17 @@ const Orcamentos = () => {
   const [showItemStatusModal, setShowItemStatusModal] = useState(null) // null ou {orcamentoId, itemIndex}
   const orcamentoStatusRefs = useRef({})
   const itemStatusRefs = useRef({})
+
+  // Estados para gráficos
+  const [activeTab, setActiveTab] = useState('lista') // 'lista' ou 'graficos'
+  const [activeGraficoTab, setActiveGraficoTab] = useState('geral') // 'geral' ou 'mensal'
+  const [dadosGerais, setDadosGerais] = useState(null)
+  const [dadosMensais, setDadosMensais] = useState(null)
+  const [loadingGraficos, setLoadingGraficos] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
 
   // Detectar se é mobile
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
@@ -132,6 +145,76 @@ const Orcamentos = () => {
       fetchOrcamentos()
     }
   }, [selectedClinicData, statusFilter])
+
+  // Carregar dados gerais dos gráficos
+  const fetchDadosGerais = async () => {
+    try {
+      setLoadingGraficos(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
+        setLoadingGraficos(false)
+        return
+      }
+
+      const response = await api.get('/orcamentos/dados-gerais', {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+      
+      // A API retorna os dados dentro de data.data
+      setDadosGerais(response.data?.data || response.data)
+    } catch (error) {
+      console.error('Erro ao carregar dados gerais:', error)
+      showError('Erro ao carregar dados dos gráficos. Tente novamente.')
+    } finally {
+      setLoadingGraficos(false)
+    }
+  }
+
+  // Carregar dados mensais dos gráficos
+  const fetchDadosMensais = async (mes) => {
+    try {
+      setLoadingGraficos(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
+        setLoadingGraficos(false)
+        return
+      }
+
+      const response = await api.get(`/orcamentos/graficos-mensais?mes=${mes}`, {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+      
+      // A API retorna os dados dentro de data.data
+      setDadosMensais(response.data?.data || response.data)
+    } catch (error) {
+      console.error('Erro ao carregar dados mensais:', error)
+      showError('Erro ao carregar dados mensais. Tente novamente.')
+    } finally {
+      setLoadingGraficos(false)
+    }
+  }
+
+  // Carregar dados gerais quando mudar para aba de gráficos e selecionar aba geral
+  useEffect(() => {
+    if (activeTab === 'graficos' && activeGraficoTab === 'geral' && selectedClinicData && !dadosGerais) {
+      fetchDadosGerais()
+    }
+  }, [activeTab, activeGraficoTab, selectedClinicData])
+
+  // Carregar dados mensais quando selecionar aba mensal e mês
+  useEffect(() => {
+    if (activeTab === 'graficos' && activeGraficoTab === 'mensal' && selectedClinicData && selectedMonth) {
+      fetchDadosMensais(selectedMonth)
+    }
+  }, [selectedMonth, activeTab, activeGraficoTab, selectedClinicData])
 
   // Filtrar orçamentos por busca
   const filteredOrcamentos = orcamentos.filter(orcamento => {
@@ -241,7 +324,8 @@ const Orcamentos = () => {
       }
 
       const payload = {
-        status: newStatus
+        status: newStatus,
+        pacienteId: orcamento.pacienteId
       }
 
       await api.patch(`/orcamentos/${orcamentoId}`, payload, {
@@ -256,8 +340,6 @@ const Orcamentos = () => {
           ? { ...o, status: newStatus }
           : o
       ))
-
-      showSuccess('Status do orçamento atualizado com sucesso!')
     } catch (error) {
       console.error('Erro ao atualizar status do orçamento:', error)
       showError(error.response?.data?.message || 'Erro ao atualizar status do orçamento. Tente novamente.')
@@ -281,6 +363,11 @@ const Orcamentos = () => {
       const item = orcamento.itens[itemIndex]
       if (!item || item.status === newStatus) return
 
+      if (!item.id) {
+        showError('ID do item não encontrado')
+        return
+      }
+
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
@@ -288,29 +375,27 @@ const Orcamentos = () => {
         return
       }
 
-      // Criar novo array de itens com o status atualizado
-      const updatedItens = orcamento.itens.map((it, idx) => 
-        idx === itemIndex ? { ...it, status: newStatus } : it
-      )
-
+      // Usar o endpoint específico para atualizar status do item
       const payload = {
-        itens: updatedItens
+        status: newStatus
       }
 
-      await api.patch(`/orcamentos/${orcamentoId}`, payload, {
+      await api.patch(`/orcamentos/${orcamentoId}/itens/${item.id}/status`, payload, {
         headers: {
           'X-Cliente-Master-Id': clienteMasterId
         }
       })
 
       // Atualizar estado local
+      const updatedItens = orcamento.itens.map((it, idx) => 
+        idx === itemIndex ? { ...it, status: newStatus } : it
+      )
+
       setOrcamentos(prev => prev.map(o => 
         o.id === orcamentoId 
           ? { ...o, itens: updatedItens }
           : o
       ))
-
-      showSuccess('Status do item atualizado com sucesso!')
     } catch (error) {
       console.error('Erro ao atualizar status do item:', error)
       showError(error.response?.data?.message || 'Erro ao atualizar status do item. Tente novamente.')
@@ -323,6 +408,91 @@ const Orcamentos = () => {
     { value: 'RECUSADO', label: 'Recusado' },
     { value: 'PERDIDO', label: 'Perdido' }
   ]
+
+  // Preparar dados para gráficos
+  const prepararDadosOrcamentosPorStatus = () => {
+    if (!dadosGerais?.orcamentos?.porStatus) return []
+    
+    const statusLabels = {
+      'RASCUNHO': 'Rascunho',
+      'ENVIADO': 'Enviado',
+      'EM_ANDAMENTO': 'Em Andamento',
+      'ACEITO': 'Aceito',
+      'RECUSADO': 'Recusado',
+      'CANCELADO': 'Cancelado',
+      'FINALIZADO': 'Finalizado'
+    }
+
+    return Object.entries(dadosGerais.orcamentos.porStatus)
+      .filter(([status, quantidade]) => quantidade > 0) // Filtrar status zerados
+      .map(([status, quantidade]) => ({
+        name: statusLabels[status] || status,
+        quantidade,
+        valor: dadosGerais.orcamentos.valorPorStatus?.[status] || 0
+      }))
+  }
+
+  const prepararDadosItensPorStatus = () => {
+    if (!dadosGerais?.itens?.porStatus) return []
+    
+    const statusLabels = {
+      'EM_ANALISE': 'Em Análise',
+      'PAGO': 'Pago',
+      'RECUSADO': 'Recusado',
+      'PERDIDO': 'Perdido'
+    }
+
+    return Object.entries(dadosGerais.itens.porStatus)
+      .filter(([status, quantidade]) => quantidade > 0) // Filtrar status zerados
+      .map(([status, quantidade]) => ({
+        name: statusLabels[status] || status,
+        quantidade,
+        valor: dadosGerais.itens.valorPorStatus?.[status] || 0
+      }))
+  }
+
+  const prepararDadosMensaisOrcamentos = () => {
+    if (!dadosMensais?.graficos?.orcamentosPorStatus) return []
+    
+    const statusLabels = {
+      'RASCUNHO': 'Rascunho',
+      'ENVIADO': 'Enviado',
+      'EM_ANDAMENTO': 'Em Andamento',
+      'ACEITO': 'Aceito',
+      'RECUSADO': 'Recusado',
+      'CANCELADO': 'Cancelado',
+      'FINALIZADO': 'Finalizado'
+    }
+
+    return Object.entries(dadosMensais.graficos.orcamentosPorStatus)
+      .filter(([status, quantidade]) => quantidade > 0) // Filtrar status zerados
+      .map(([status, quantidade]) => ({
+        name: statusLabels[status] || status,
+        quantidade,
+        valor: dadosMensais.graficos.valorPorStatusOrcamento?.[status] || 0
+      }))
+  }
+
+  const prepararDadosMensaisItens = () => {
+    if (!dadosMensais?.graficos?.itensPorStatus) return []
+    
+    const statusLabels = {
+      'EM_ANALISE': 'Em Análise',
+      'PAGO': 'Pago',
+      'RECUSADO': 'Recusado',
+      'PERDIDO': 'Perdido'
+    }
+
+    return Object.entries(dadosMensais.graficos.itensPorStatus)
+      .filter(([status, quantidade]) => quantidade > 0) // Filtrar status zerados
+      .map(([status, quantidade]) => ({
+        name: statusLabels[status] || status,
+        quantidade,
+        valor: dadosMensais.graficos.valorPorStatusItens?.[status] || 0
+      }))
+  }
+
+  const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280', '#ec4899']
 
   if (loading) {
     return (
@@ -345,16 +515,343 @@ const Orcamentos = () => {
           </h2>
           <p>Gerencie orçamentos de tratamentos para seus pacientes</p>
         </div>
-        <button 
-          className="btn-orcamentos-primary"
-          onClick={() => navigate('/app/orcamentos/novo')}
-        >
-          <FontAwesomeIcon icon={faPlus} /> Novo Orçamento
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Tabs */}
+          <div className="orcamentos-tabs">
+            <button
+              className={`tab-btn ${activeTab === 'lista' ? 'active' : ''}`}
+              onClick={() => setActiveTab('lista')}
+            >
+              <FontAwesomeIcon icon={faList} /> Lista
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'graficos' ? 'active' : ''}`}
+              onClick={() => setActiveTab('graficos')}
+            >
+              <FontAwesomeIcon icon={faChartBar} /> Gráficos
+            </button>
+          </div>
+          {activeTab === 'lista' && (
+            <button 
+              className="btn-orcamentos-primary"
+              onClick={() => navigate('/app/orcamentos/novo')}
+            >
+              <FontAwesomeIcon icon={faPlus} /> Novo Orçamento
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Filtros e Busca */}
-      <div className="orcamentos-filters">
+      {/* Conteúdo baseado na aba ativa */}
+      {activeTab === 'graficos' ? (
+        <div className="graficos-container">
+          {/* Tabs internas para gráficos */}
+          <div className="graficos-tabs-internas">
+            <button
+              className={`grafico-tab-btn ${activeGraficoTab === 'geral' ? 'active' : ''}`}
+              onClick={() => setActiveGraficoTab('geral')}
+            >
+              <FontAwesomeIcon icon={faChartBar} /> Geral
+            </button>
+            <button
+              className={`grafico-tab-btn ${activeGraficoTab === 'mensal' ? 'active' : ''}`}
+              onClick={() => setActiveGraficoTab('mensal')}
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} /> Mensal
+            </button>
+          </div>
+
+          {loadingGraficos ? (
+            <div className="orcamentos-loading">
+              <div className="loading-spinner"></div>
+              <p>Carregando gráficos...</p>
+            </div>
+          ) : (
+            <>
+              {/* Aba Geral */}
+              {activeGraficoTab === 'geral' && (
+                <>
+                  {dadosGerais ? (
+                    <div className="graficos-section">
+                      <h3 className="graficos-section-title">Visão Geral</h3>
+                  
+                  {/* Cards de Resumo */}
+                  <div className="graficos-resumo-cards">
+                    <div className="resumo-card">
+                      <div className="resumo-card-icon" style={{ background: 'rgba(14, 165, 233, 0.1)' }}>
+                        <FontAwesomeIcon icon={faFileInvoiceDollar} style={{ color: '#0ea5e9' }} />
+                      </div>
+                      <div className="resumo-card-content">
+                        <div className="resumo-card-label">Total de Orçamentos</div>
+                        <div className="resumo-card-value">{dadosGerais.orcamentos?.total || 0}</div>
+                        <div className="resumo-card-subvalue">
+                          Valor Total: {formatCurrency(dadosGerais.orcamentos?.valorTotal || 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="resumo-card">
+                      <div className="resumo-card-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                        <FontAwesomeIcon icon={faDollarSign} style={{ color: '#10b981' }} />
+                      </div>
+                      <div className="resumo-card-content">
+                        <div className="resumo-card-label">Valor Médio</div>
+                        <div className="resumo-card-value">{formatCurrency(dadosGerais.orcamentos?.valorMedio || 0)}</div>
+                        <div className="resumo-card-subvalue">
+                          Taxa de Conversão: {dadosGerais.orcamentos?.taxaConversao?.toFixed(2) || 0}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="resumo-card">
+                      <div className="resumo-card-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                        <FontAwesomeIcon icon={faFileInvoiceDollar} style={{ color: '#f59e0b' }} />
+                      </div>
+                      <div className="resumo-card-content">
+                        <div className="resumo-card-label">Total de Itens</div>
+                        <div className="resumo-card-value">{dadosGerais.itens?.total || 0}</div>
+                        <div className="resumo-card-subvalue">
+                          Valor Total: {formatCurrency(dadosGerais.itens?.valorTotal || 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="resumo-card">
+                      <div className="resumo-card-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                        <FontAwesomeIcon icon={faDollarSign} style={{ color: '#8b5cf6' }} />
+                      </div>
+                      <div className="resumo-card-content">
+                        <div className="resumo-card-label">Taxa de Aprovação</div>
+                        <div className="resumo-card-value">{dadosGerais.itens?.taxaPagamento?.toFixed(2) || 0}%</div>
+                        <div className="resumo-card-subvalue">
+                          Valor Médio: {formatCurrency(dadosGerais.itens?.valorMedio || 0)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gráficos de Orçamentos */}
+                  <div className="graficos-grid">
+                    <div className="grafico-card">
+                      <h4 className="grafico-card-title">Orçamentos por Status</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={prepararDadosOrcamentosPorStatus()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="quantidade" fill="#0ea5e9" name="Quantidade" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="grafico-card">
+                      <h4 className="grafico-card-title">Valor por Status (Orçamentos)</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={prepararDadosOrcamentosPorStatus()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Legend />
+                          <Bar dataKey="valor" fill="#10b981" name="Valor (R$)" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="grafico-card">
+                      <h4 className="grafico-card-title">Itens por Status</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={prepararDadosItensPorStatus()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="quantidade"
+                          >
+                            {prepararDadosItensPorStatus().map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="grafico-card">
+                      <h4 className="grafico-card-title">Valor por Status (Itens)</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={prepararDadosItensPorStatus()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Legend />
+                          <Bar dataKey="valor" fill="#f59e0b" name="Valor (R$)" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                    </div>
+                  ) : (
+                    <div className="graficos-empty-state">
+                      <FontAwesomeIcon icon={faChartBar} size="3x" />
+                      <p>Carregando dados gerais...</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Aba Mensal */}
+              {activeGraficoTab === 'mensal' && (
+                <div className="graficos-section">
+                  <div className="graficos-section-header">
+                    <h3 className="graficos-section-title">Análise Mensal</h3>
+                    <div className="mes-selector">
+                      <FontAwesomeIcon icon={faCalendarAlt} />
+                      <input
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="mes-input"
+                      />
+                    </div>
+                  </div>
+
+                  {dadosMensais ? (
+                  <>
+                    {/* Resumo Mensal */}
+                    <div className="graficos-resumo-cards">
+                      <div className="resumo-card">
+                        <div className="resumo-card-icon" style={{ background: 'rgba(14, 165, 233, 0.15)' }}>
+                          <FontAwesomeIcon icon={faFileInvoiceDollar} style={{ color: '#0ea5e9' }} />
+                        </div>
+                        <div className="resumo-card-content">
+                          <div className="resumo-card-label">Orçamentos no Mês</div>
+                          <div className="resumo-card-value">{dadosMensais.resumo?.qtdOrcamentosEntraram || 0}</div>
+                          <div className="resumo-card-subvalue">
+                            Valor Total: {formatCurrency(dadosMensais.resumo?.valorTotalOrcamentos || 0)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="resumo-card">
+                        <div className="resumo-card-icon" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
+                          <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#10b981' }} />
+                        </div>
+                        <div className="resumo-card-content">
+                          <div className="resumo-card-label">Itens Pagos</div>
+                          <div className="resumo-card-value">{formatCurrency(dadosMensais.resumo?.valorTotalItensPagos || 0)}</div>
+                          <div className="resumo-card-subvalue">
+                            Quantidade: {dadosMensais.resumo?.qtdItensPagos || 0}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="resumo-card">
+                        <div className="resumo-card-icon" style={{ background: 'rgba(245, 158, 11, 0.15)' }}>
+                          <FontAwesomeIcon icon={faFileInvoiceDollar} style={{ color: '#f59e0b' }} />
+                        </div>
+                        <div className="resumo-card-content">
+                          <div className="resumo-card-label">Total de Itens</div>
+                          <div className="resumo-card-value">{dadosMensais.resumo?.qtdItensTotal || 0}</div>
+                          <div className="resumo-card-subvalue">
+                            Valor Total: {formatCurrency(dadosMensais.resumo?.valorTotalItens || 0)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gráficos Mensais */}
+                    <div className="graficos-grid">
+                      <div className="grafico-card">
+                        <h4 className="grafico-card-title">Orçamentos por Status (Mensal)</h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={prepararDadosMensaisOrcamentos()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="quantidade" fill="#0ea5e9" name="Quantidade" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="grafico-card">
+                        <h4 className="grafico-card-title">Valor por Status - Orçamentos (Mensal)</h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={prepararDadosMensaisOrcamentos()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                            <Legend />
+                            <Bar dataKey="valor" fill="#10b981" name="Valor (R$)" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="grafico-card">
+                        <h4 className="grafico-card-title">Itens por Status (Mensal)</h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={prepararDadosMensaisItens()}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="quantidade"
+                            >
+                              {prepararDadosMensaisItens().map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="grafico-card">
+                        <h4 className="grafico-card-title">Valor por Status - Itens (Mensal)</h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={prepararDadosMensaisItens()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                            <Legend />
+                            <Bar dataKey="valor" fill="#f59e0b" name="Valor (R$)" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </>
+                  ) : (
+                    <div className="graficos-empty-state">
+                      <FontAwesomeIcon icon={faCalendarAlt} size="3x" />
+                      <p>Selecione um mês para visualizar os dados</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Filtros e Busca */}
+          <div className="orcamentos-filters">
         <div className="search-input-wrapper">
           <FontAwesomeIcon icon={faSearch} className="search-icon" />
           <input
@@ -543,7 +1040,10 @@ const Orcamentos = () => {
                         >
                           <span 
                             className="item-preview-status status-badge-clickable"
-                            style={{ backgroundColor: getItemStatusColor(item.status) }}
+                            style={{ 
+                              backgroundColor: getItemStatusColor(item.status),
+                              color: '#ffffff'
+                            }}
                             onClick={(e) => {
                               e.stopPropagation()
                               const isMobileDevice = window.innerWidth <= 768
@@ -710,6 +1210,8 @@ const Orcamentos = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

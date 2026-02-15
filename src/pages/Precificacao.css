@@ -281,7 +281,7 @@
 .btn-icon.btn-danger:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  color: #f0707060;
 }
 
 /* Grids */
@@ -391,13 +391,36 @@
   animation: shimmerRed 2s ease-in-out infinite;
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.profit-bar-attention {
+  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 50%, #dc2626 100%);
+  background-size: 200% 100%;
+  animation: shimmerRed 2s ease-in-out infinite;
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .profit-bar-low {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 50%, #ef4444 100%);
+  background-size: 200% 100%;
+  animation: shimmerRed 2s ease-in-out infinite;
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.profit-bar-reasonable {
   background: linear-gradient(90deg, #f59e0b 0%, #d97706 50%, #f59e0b 100%);
   background-size: 200% 100%;
   animation: shimmerYellow 2s ease-in-out infinite;
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .profit-bar-good {
+  background: linear-gradient(90deg, #84cc16 0%, #65a30d 50%, #84cc16 100%);
+  background-size: 200% 100%;
+  animation: shimmerGreen 2s ease-in-out infinite;
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.profit-bar-excellent {
   background: linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%);
 }
 
@@ -411,6 +434,15 @@
 }
 
 @keyframes shimmerYellow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes shimmerGreen {
   0%, 100% {
     background-position: 0% 50%;
   }
@@ -442,13 +474,36 @@
   animation: pulseRed 2s ease-in-out infinite;
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.profit-indicator-attention {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  animation: pulseRed 2s ease-in-out infinite;
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .profit-indicator-low {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  animation: pulseRed 2s ease-in-out infinite;
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.profit-indicator-reasonable {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: #ffffff;
   animation: pulseYellow 2s ease-in-out infinite;
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .profit-indicator-good {
+  background: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
+  color: #ffffff;
+  animation: pulseGreen 2s ease-in-out infinite;
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.profit-indicator-excellent {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
 }
@@ -471,18 +526,47 @@
   }
 }
 
+@keyframes pulseGreen {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(132, 204, 22, 0.4), 0 0 0 0 rgba(132, 204, 22, 0.7);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(132, 204, 22, 0.4), 0 0 0 4px rgba(132, 204, 22, 0);
+  }
+}
+
 /* Background sutil baseado no status */
 .profit-card-none {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(255, 255, 255, 0.05) 100%);
   border-color: rgba(239, 68, 68, 0.2);
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.profit-card-attention {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .profit-card-low {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.profit-card-reasonable {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.03) 0%, rgba(255, 255, 255, 0.05) 100%);
   border-color: rgba(245, 158, 11, 0.2);
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .profit-card-good {
+  background: linear-gradient(135deg, rgba(132, 204, 22, 0.03) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-color: rgba(132, 204, 22, 0.2);
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.profit-card-excellent {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(255, 255, 255, 0.05) 100%);
   border-color: rgba(16, 185, 129, 0.2);
 }
@@ -494,14 +578,40 @@
   box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.profit-card-attention:hover {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-color: rgba(220, 38, 38, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.2);
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .profit-card-low:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-color: rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.profit-card-reasonable:hover {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(255, 255, 255, 0.08) 100%);
   border-color: rgba(245, 158, 11, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .profit-card-good:hover {
+  background: linear-gradient(135deg, rgba(132, 204, 22, 0.05) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-color: rgba(132, 204, 22, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(132, 204, 22, 0.15);
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.profit-card-excellent:hover {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 0.08) 100%);
   border-color: rgba(16, 185, 129, 0.3);
   transform: translateY(-2px);
@@ -543,10 +653,39 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.profit-warning-attention {
+  background: rgba(220, 38, 38, 0.25);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.4);
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .profit-warning-low {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.profit-warning-reasonable {
   background: rgba(245, 158, 11, 0.2);
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
+.profit-warning-good {
+  background: rgba(132, 204, 22, 0.2);
+  color: #84cc16;
+  border: 1px solid rgba(132, 204, 22, 0.3);
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.profit-warning-excellent {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .tratamento-card:hover,
@@ -575,8 +714,11 @@
 }
 
 .profit-card-none .card-header,
+.profit-card-attention .card-header,
 .profit-card-low .card-header,
-.profit-card-good .card-header {
+.profit-card-reasonable .card-header,
+.profit-card-good .card-header,
+.profit-card-excellent .card-header {
   padding-right: 2.5rem;
 }
 
@@ -718,11 +860,28 @@
   color: #ef4444;
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.info-icon-compact.profit.profit-attention {
+  color: #dc2626;
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .info-icon-compact.profit.profit-low {
+  color: #ef4444;
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.info-icon-compact.profit.profit-reasonable {
   color: #f59e0b;
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .info-icon-compact.profit.profit-good {
+  color: #84cc16;
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.info-icon-compact.profit.profit-excellent {
   color: #10b981;
 }
 
@@ -734,11 +893,28 @@
   color: #ef4444;
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.info-icon-compact.percentage.percentage-attention {
+  color: #dc2626;
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .info-icon-compact.percentage.percentage-low {
+  color: #ef4444;
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.info-icon-compact.percentage.percentage-reasonable {
   color: #f59e0b;
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .info-icon-compact.percentage.percentage-good {
+  color: #84cc16;
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.info-icon-compact.percentage.percentage-excellent {
   color: #10b981;
 }
 
@@ -785,15 +961,39 @@
   font-weight: 800 !important;
 }
 
+/* Negativo até 10%: Atenção - Vermelho escuro */
+.profit-value-attention,
+.percentage-value-attention {
+  color: #dc2626 !important;
+  font-weight: 800 !important;
+}
+
+/* 10-20%: Lucro Baixo - Vermelho */
 .profit-value-low,
 .percentage-value-low {
+  color: #ef4444 !important;
+  font-weight: 800 !important;
+}
+
+/* 21-30%: Lucro Bruto Razoável - Laranja */
+.profit-value-reasonable,
+.percentage-value-reasonable {
   color: #f59e0b !important;
   font-weight: 800 !important;
 }
 
+/* 31-40%: Bom Lucro - Amarelo/Verde claro */
 .profit-value-good,
 .percentage-value-good {
+  color: #84cc16 !important;
+  font-weight: 800 !important;
+}
+
+/* 41%+: Ótimo Lucro Bruto - Verde */
+.profit-value-excellent,
+.percentage-value-excellent {
   color: #10b981 !important;
+  font-weight: 800 !important;
 }
 
 
@@ -2212,15 +2412,21 @@
 
   /* Ajustes para indicadores de lucro no mobile pequeno */
   .profit-indicator-none,
+  .profit-indicator-attention,
   .profit-indicator-low,
-  .profit-indicator-good {
+  .profit-indicator-reasonable,
+  .profit-indicator-good,
+  .profit-indicator-excellent {
     padding-left: 0.5rem !important;
     border-left-width: 3px !important;
   }
 
   .profit-indicator-none::after,
+  .profit-indicator-attention::after,
   .profit-indicator-low::after,
-  .profit-indicator-good::after {
+  .profit-indicator-reasonable::after,
+  .profit-indicator-good::after,
+  .profit-indicator-excellent::after {
     width: 6px;
     height: 6px;
     top: 0.3rem;
@@ -2232,11 +2438,28 @@
     box-shadow: 0 0 0 1.5px rgba(239, 68, 68, 0.3), 0 0 4px rgba(239, 68, 68, 0.4);
   }
 
+  /* Negativo até 10%: Atenção - Vermelho escuro */
+  .profit-indicator-attention::after {
+    box-shadow: 0 0 0 1.5px rgba(220, 38, 38, 0.4), 0 0 4px rgba(220, 38, 38, 0.5);
+  }
+
+  /* 10-20%: Lucro Baixo - Vermelho */
   .profit-indicator-low::after {
+    box-shadow: 0 0 0 1.5px rgba(239, 68, 68, 0.3), 0 0 4px rgba(239, 68, 68, 0.4);
+  }
+
+  /* 21-30%: Lucro Bruto Razoável - Laranja */
+  .profit-indicator-reasonable::after {
     box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.3), 0 0 4px rgba(245, 158, 11, 0.3);
   }
 
+  /* 31-40%: Bom Lucro - Amarelo/Verde claro */
   .profit-indicator-good::after {
+    box-shadow: 0 0 0 1.5px rgba(132, 204, 22, 0.3), 0 0 4px rgba(132, 204, 22, 0.3);
+  }
+
+  /* 41%+: Ótimo Lucro Bruto - Verde */
+  .profit-indicator-excellent::after {
     box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.3);
   }
 

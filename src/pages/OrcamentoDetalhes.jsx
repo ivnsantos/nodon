@@ -190,7 +190,8 @@ const OrcamentoDetalhes = () => {
       }
 
       const payload = {
-        status: newStatus
+        status: newStatus,
+        pacienteId: orcamento.pacienteId
       }
 
       await api.patch(`/orcamentos/${id}`, payload, {
@@ -204,8 +205,6 @@ const OrcamentoDetalhes = () => {
         ...prev,
         status: newStatus
       }))
-
-      showSuccess('Status do orçamento atualizado com sucesso!')
     } catch (error) {
       console.error('Erro ao atualizar status do orçamento:', error)
       showError(error.response?.data?.message || 'Erro ao atualizar status do orçamento. Tente novamente.')
@@ -225,6 +224,11 @@ const OrcamentoDetalhes = () => {
     const item = orcamento.itens[itemIndex]
     if (!item || item.status === newStatus) return
 
+    if (!item.id) {
+      showError('ID do item não encontrado')
+      return
+    }
+
     try {
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
@@ -233,28 +237,26 @@ const OrcamentoDetalhes = () => {
         return
       }
 
-      // Criar novo array de itens com o status atualizado
-      const updatedItens = orcamento.itens.map((it, idx) => 
-        idx === itemIndex ? { ...it, status: newStatus } : it
-      )
-
+      // Usar o endpoint específico para atualizar status do item
       const payload = {
-        itens: updatedItens
+        status: newStatus
       }
 
-      await api.patch(`/orcamentos/${id}`, payload, {
+      await api.patch(`/orcamentos/${id}/itens/${item.id}/status`, payload, {
         headers: {
           'X-Cliente-Master-Id': clienteMasterId
         }
       })
 
       // Atualizar estado local
+      const updatedItens = orcamento.itens.map((it, idx) => 
+        idx === itemIndex ? { ...it, status: newStatus } : it
+      )
+
       setOrcamento(prev => ({
         ...prev,
         itens: updatedItens
       }))
-
-      showSuccess('Status do item atualizado com sucesso!')
     } catch (error) {
       console.error('Erro ao atualizar status do item:', error)
       showError(error.response?.data?.message || 'Erro ao atualizar status do item. Tente novamente.')
@@ -404,7 +406,10 @@ const OrcamentoDetalhes = () => {
                       >
                         <span 
                           className="item-status-badge status-badge-clickable"
-                          style={{ backgroundColor: getItemStatusColor(item.status) }}
+                          style={{ 
+                            backgroundColor: getItemStatusColor(item.status),
+                            color: '#ffffff'
+                          }}
                           onClick={(e) => {
                             e.stopPropagation()
                             const isMobileDevice = window.innerWidth <= 768

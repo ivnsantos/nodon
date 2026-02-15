@@ -342,17 +342,24 @@ const Precificacao = () => {
                   const lucro = tratamento.lucro || 0
                   const price = tratamento.price || 0
                   const profitPercentage = price > 0 ? (lucro / price * 100) : 0
-                  let profitStatus = 'good' // 'none', 'low', 'good'
+                  let profitStatus = 'excellent' // 'attention', 'low', 'reasonable', 'good', 'excellent'
                   let profitWarning = null
                   
-                  if (lucro <= 0) {
-                    profitStatus = 'none'
-                    profitWarning = 'Sem lucro'
-                  } else if (profitPercentage < 45) {
+                  if (profitPercentage <= 10) {
+                    profitStatus = 'attention'
+                    profitWarning = 'Atenção (Procure meios de ser mais lucrativo)'
+                  } else if (profitPercentage <= 20) {
                     profitStatus = 'low'
-                    profitWarning = 'Lucro baixo'
-                  } else {
+                    profitWarning = 'Lucro Baixo'
+                  } else if (profitPercentage <= 30) {
+                    profitStatus = 'reasonable'
+                    profitWarning = 'Lucro Bruto Razoável'
+                  } else if (profitPercentage <= 40) {
                     profitStatus = 'good'
+                    profitWarning = 'Bom Lucro'
+                  } else {
+                    profitStatus = 'excellent'
+                    profitWarning = 'Ótimo Lucro Bruto'
                   }
                   
                   return (
@@ -362,7 +369,7 @@ const Precificacao = () => {
                     
                     {/* Indicador de status */}
                     <div className={`profit-status-indicator profit-indicator-${profitStatus}`}>
-                      {profitStatus === 'good' ? (
+                      {profitStatus === 'excellent' || profitStatus === 'good' ? (
                         <FontAwesomeIcon icon={faCheckCircle} />
                       ) : (
                         <FontAwesomeIcon icon={faExclamationTriangle} />
