@@ -113,6 +113,20 @@
   .chat-messages-modern {
     padding-bottom: 100px !important;
   }
+  
+  /* Overlay de bloqueio no mobile quando tokens bloqueados */
+  .form-block-overlay {
+    display: flex !important;
+  }
+  
+  .tokens-blocked-form {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  
+  .tokens-blocked-form .input-wrapper {
+    pointer-events: none;
+  }
 }
 
 .chat-modern {
@@ -1309,6 +1323,47 @@
   box-sizing: border-box;
 }
 
+/* Overlay de bloqueio quando tokens bloqueados */
+.form-block-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  border-radius: 0.5rem;
+}
+
+.form-block-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 0.5rem;
+}
+
+.form-block-message svg {
+  font-size: 1rem;
+  color: #ef4444;
+}
+
+/* No desktop, não mostrar o overlay (já tem mensagem acima) */
+@media (min-width: 769px) {
+  .form-block-overlay {
+    display: none;
+  }
+}
+
 .user-typing-indicator {
   position: absolute;
   bottom: calc(100% + 0.25rem);
@@ -2439,7 +2494,18 @@
   .chat-input-field {
     display: block !important;
     visibility: visible !important;
-    opacity: 1 !important;
+  }
+  
+  /* Bloqueio quando tokens bloqueados - igual desktop */
+  .chat-input-field:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+  
+  .chat-action-btn:disabled,
+  .chat-send-btn-modern:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
   }
   
   .chat-send-btn-modern,
@@ -2706,11 +2772,24 @@
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
   }
+  
+  /* Bloqueio quando tokens bloqueados - igual desktop */
+  .chat-input-field:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
 
   .chat-send-btn-modern,
   .chat-stop-btn {
     width: 36px;
     height: 36px;
+  }
+  
+  /* Bloqueio quando tokens bloqueados - igual desktop */
+  .chat-action-btn:disabled,
+  .chat-send-btn-modern:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
   }
 
   .chat-action-btn {
