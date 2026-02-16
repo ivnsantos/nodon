@@ -162,9 +162,36 @@
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 0.875rem !important;
     color: #ffffff !important;
-    font-size: 0.875rem !important;
+    font-size: 16px !important; /* Mínimo 16px para evitar zoom no Safari iOS */
     box-sizing: border-box !important;
     margin: 0 !important;
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    transform: scale(1) !important;
+    zoom: 1 !important;
+  }
+  
+  .chat-input-modern .chat-input-field:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    outline: none !important;
+    transform: scale(1) !important;
+    zoom: 1 !important;
+  }
+  
+  .chat-input-modern .chat-input-field::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
+  }
+  
+  /* Prevenir zoom no Safari iOS */
+  @supports (-webkit-touch-callout: none) {
+    .chat-input-modern .chat-input-field {
+      font-size: 16px !important;
+      transform: scale(1) !important;
+    }
   }
   
   .chat-input-modern .chat-action-btn {
@@ -1753,31 +1780,56 @@
   min-width: 0;
   max-width: 100%;
   padding: 0.875rem 1.25rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06) !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
-  color: #ffffff;
+  color: #ffffff !important;
   font-size: 0.9375rem;
   font-family: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .chat-input-field::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.4) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
+  opacity: 1 !important;
+}
+
+/* Prevenir autofill branco - Desktop */
+.chat-input-field:-webkit-autofill,
+.chat-input-field:-webkit-autofill:hover,
+.chat-input-field:-webkit-autofill:focus,
+.chat-input-field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.06) inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+.chat-input-field:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.08) inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .chat-input-field:focus {
-  outline: none;
-  border-color: rgba(14, 165, 233, 0.5);
-  background: rgba(255, 255, 255, 0.1);
+  outline: none !important;
+  border-color: rgba(14, 165, 233, 0.5) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   box-shadow: 
     0 0 0 3px rgba(14, 165, 233, 0.15),
     0 0 20px rgba(14, 165, 233, 0.1),
-    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    inset 0 1px 2px rgba(255, 255, 255, 0.1) !important;
   transform: translateY(-1px);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .chat-input-field:disabled {
@@ -2949,7 +3001,54 @@
 
   .chat-input-field {
     padding: 0.625rem 1rem;
-    font-size: 0.875rem;
+    font-size: 16px !important; /* Mínimo 16px para evitar zoom no Safari iOS */
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    transform: scale(1) !important;
+    zoom: 1 !important;
+  }
+  
+  .chat-input-field:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    outline: none !important;
+    transform: scale(1) !important;
+    zoom: 1 !important;
+  }
+  
+  .chat-input-field::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
+    opacity: 1 !important;
+  }
+  
+  /* Prevenir autofill branco */
+  .chat-input-field:-webkit-autofill,
+  .chat-input-field:-webkit-autofill:hover,
+  .chat-input-field:-webkit-autofill:focus,
+  .chat-input-field:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.06) inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #ffffff !important;
+    font-size: 16px !important;
+  }
+  
+  /* Prevenir zoom no Safari iOS - telas pequenas */
+  @supports (-webkit-touch-callout: none) {
+    .chat-input-field {
+      font-size: 16px !important;
+      transform: scale(1) !important;
+    }
+    
+    .chat-input-field:focus {
+      font-size: 16px !important;
+      transform: scale(1) !important;
+    }
   }
   
   /* Bloqueio quando tokens bloqueados - igual desktop */
