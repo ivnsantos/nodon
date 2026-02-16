@@ -616,6 +616,15 @@
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
 }
 
+/* Quando o topbar contém o chat header, ajustar estilos */
+.topbar .chat-header-modern {
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+  box-shadow: none;
+  width: 100%;
+}
+
 .page-title {
   font-size: 1.75rem;
   font-weight: 700;
@@ -691,6 +700,19 @@
     height: 70px;
     padding: 0 1.25rem;
     background: rgba(10, 14, 39, 0.98);
+  }
+
+  /* Quando o mobile-header contém o chat header, ajustar estilos */
+  .mobile-header .chat-header-modern {
+    padding: 0;
+    border-bottom: none;
+    background: transparent;
+    box-shadow: none;
+    width: 100%;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 9999 !important;
@@ -849,6 +871,11 @@
     padding: 0 1rem;
     gap: 0.75rem;
     z-index: 9999;
+  }
+
+  .mobile-header .chat-header-modern {
+    padding: 0;
+    gap: 0.5rem;
   }
 
   .mobile-menu-toggle {

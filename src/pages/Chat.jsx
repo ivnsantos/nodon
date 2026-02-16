@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
@@ -9,11 +9,13 @@ import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
+import { useChatHeader } from '../context/ChatHeaderContext'
 import nodoLogo from '../img/nodo.png'
 import './Chat.css'
 
 const Chat = () => {
   const { selectedClinicData } = useAuth()
+  const chatHeaderContext = useChatHeader()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -922,71 +924,99 @@ const Chat = () => {
     }
   }, [])
 
+  // Atualizar o contexto com as informações do header do chat sempre que tokensInfo mudar
+  useEffect(() => {
+    if (!chatHeaderContext?.setChatHeaderContent) return
+
+    chatHeaderContext.setChatHeaderContent({
+      tokensInfo: tokensInfo || null,
+      getTokensPercentage: () => getTokensPercentage(),
+      isNearLimit: () => isNearLimit(),
+      isAtLimit: () => isAtLimit(),
+      isCriticalLimit: () => isCriticalLimit(),
+      handleSolicitarMaisTokens: () => handleSolicitarMaisTokens(),
+      setShowHistory: (value) => {
+        if (typeof value === 'function') {
+          setShowHistory(value)
+        } else {
+          setShowHistory(value)
+        }
+      }
+    })
+    
+    return () => {
+      if (chatHeaderContext?.setChatHeaderContent) {
+        chatHeaderContext.setChatHeaderContent(null)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokensInfo])
+
   return (
     <div className="chat-modern">
-      <div className="chat-container-modern">
-        <div className="chat-header-modern">
-          <div className="chat-header-content">
-            <button 
-              className="history-toggle-btn"
-              onClick={() => setShowHistory(!showHistory)}
-            >
-              <FontAwesomeIcon icon={faHistory} />
-            </button>
-            <div className="chat-ai-avatar">
-              <img src={nodoLogo} alt="NODON" className="nodo-chat-logo" />
-            </div>
-            <div>
-              <h2>IA NODON</h2>
-            </div>
+      <div className="chat-header-modern" style={{ display: 'none' }}>
+        <div className="chat-header-content">
+          <button 
+            className="history-toggle-btn"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <FontAwesomeIcon icon={faHistory} />
+          </button>
+          <div className="chat-ai-avatar">
+            <img src={nodoLogo} alt="NODON" className="nodo-chat-logo" />
           </div>
-          <div className="chat-header-right">
-            {tokensInfo && (
-              <div className="tokens-progress-container-header">
-                <div className="tokens-progress-simple">
-                  <div className="tokens-simple-header">
-                    <span className="tokens-simple-text">
-                      {(tokensInfo.tokensUtilizadosMes !== undefined 
-                        ? tokensInfo.tokensUtilizadosMes 
-                        : (tokensInfo.tokensUtilizados || 0)).toLocaleString('pt-BR')
-                      } / {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 
-                        ? tokensInfo.limitePlano.toLocaleString('pt-BR') 
-                        : 'Ilimitado'}
-                    </span>
-                    {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && (
-                      <span className={`tokens-simple-percentage ${isNearLimit() ? 'near-limit' : ''} ${isAtLimit() ? 'at-limit' : ''} ${isCriticalLimit() ? 'critical-pulse' : ''}`}>
-                        {getTokensPercentage().toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                  {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && (
-                    <div className="tokens-progress-bar-simple">
-                      <div 
-                        className={`tokens-progress-fill-simple ${isNearLimit() ? 'near-limit' : ''} ${isAtLimit() ? 'at-limit' : ''} ${isCriticalLimit() ? 'critical-pulse' : ''}`}
-                        style={{ width: `${getTokensPercentage()}%` }}
-                      ></div>
-                    </div>
-                  )}
-                </div>
-                {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && getTokensPercentage() >= 80 && (
-                  <button 
-                    className="btn-mais-tokens"
-                    onClick={handleSolicitarMaisTokens}
-                    title="Solicitar mais tokens"
-                  >
-                    <FontAwesomeIcon icon={faWhatsapp} />
-                    <span>Mais Tokens</span>
-                  </button>
-                )}
-              </div>
-            )}
-            <div className="chat-status">
-              <span className="status-dot"></span>
-              <span>Online</span>
-            </div>
+          <div>
+            <h2>IA NODON</h2>
           </div>
         </div>
-
+        <div className="chat-header-right">
+          {tokensInfo && (
+            <div className="tokens-progress-container-header">
+              <div className="tokens-progress-simple">
+                <div className="tokens-simple-header">
+                  <span className="tokens-simple-text">
+                    {(tokensInfo.tokensUtilizadosMes !== undefined 
+                      ? tokensInfo.tokensUtilizadosMes 
+                      : (tokensInfo.tokensUtilizados || 0)).toLocaleString('pt-BR')
+                    } / {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 
+                      ? tokensInfo.limitePlano.toLocaleString('pt-BR') 
+                      : 'Ilimitado'}
+                  </span>
+                  {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && (
+                    <span className={`tokens-simple-percentage ${isNearLimit() ? 'near-limit' : ''} ${isAtLimit() ? 'at-limit' : ''} ${isCriticalLimit() ? 'critical-pulse' : ''}`}>
+                      {getTokensPercentage().toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && (
+                  <div className="tokens-progress-bar-simple">
+                    <div 
+                      className={`tokens-progress-fill-simple ${isNearLimit() ? 'near-limit' : ''} ${isAtLimit() ? 'at-limit' : ''} ${isCriticalLimit() ? 'critical-pulse' : ''}`}
+                      style={{ width: `${getTokensPercentage()}%` }}
+                    ></div>
+                  </div>
+                )}
+              </div>
+              {tokensInfo.limitePlano && tokensInfo.limitePlano > 0 && getTokensPercentage() >= 80 && (
+                <button 
+                  className="btn-mais-tokens"
+                  onClick={handleSolicitarMaisTokens}
+                  title="Solicitar mais tokens"
+                >
+                  <FontAwesomeIcon icon={faWhatsapp} />
+                  <span>Mais Tokens</span>
+                </button>
+              )}
+            </div>
+          )}
+          <div className="chat-status">
+            <span className="status-dot"></span>
+            <span>Online</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="chat-container-modern">
         <div className="chat-content-wrapper">
           {/* Sidebar de Histórico */}
           {showHistory && (
@@ -1089,7 +1119,7 @@ const Chat = () => {
               <div className="welcome-icon-modern">
                 <FontAwesomeIcon icon={faMagic} />
               </div>
-              <h3>Olá! Sou sua assistente de IA</h3>
+              <h3>Olá! Sou seu assistente de IA</h3>
               <p>Como posso ajudá-lo hoje com questões odontológicas?</p>
             </div>
           ) : (
@@ -1167,135 +1197,137 @@ const Chat = () => {
           )}
           <div ref={messagesEndRef} />
           </div>
+
         </div>
-
-        <form onSubmit={handleSend} className="chat-input-modern">
-          {/* Preview de imagens anexadas */}
-          {attachedImages.length > 0 && (
-            <div className="attached-images-preview">
-              {attachedImages.map(img => (
-                <div key={img.id} className="attached-image-item">
-                  <img src={img.data} alt={img.name} />
-                  <button 
-                    type="button" 
-                    className="remove-image-btn"
-                    onClick={() => removeImage(img.id)}
-                    title="Remover imagem"
-                  >
-                    <FontAwesomeIcon icon={faTimes} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Preview de áudio gravado */}
-          {audioBlob && (
-            <div className="audio-preview">
-              <div className="audio-preview-content">
-                <FontAwesomeIcon icon={faMicrophone} className="audio-icon" />
-                <span>Áudio gravado</span>
-                <audio controls src={URL.createObjectURL(audioBlob)} />
-              </div>
-              <button 
-                type="button" 
-                className="remove-audio-btn"
-                onClick={cancelRecording}
-                title="Remover áudio"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-            </div>
-          )}
-
-          {/* Indicador de gravação */}
-          {isRecording && (
-            <div className="recording-indicator">
-              <div className="recording-pulse"></div>
-              <span>Gravando...</span>
-              <button 
-                type="button" 
-                className="stop-recording-btn"
-                onClick={stopRecording}
-              >
-                Parar
-              </button>
-            </div>
-          )}
-
-          {isTyping && !isRecording && (
-            <div className="user-typing-indicator">
-              <div className="typing-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          )}
-
-          <div className="input-wrapper">
-            {/* Input de arquivo oculto */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageSelect}
-              accept="image/*"
-              multiple
-              style={{ display: 'none' }}
-            />
-
-            {/* Botão anexar imagem */}
-            <button
-              type="button"
-              className="chat-action-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading || tokensBlocked}
-              title="Anexar imagem"
-            >
-              <FontAwesomeIcon icon={faImage} />
-            </button>
-
-            {/* Botão gravar áudio */}
-            <button
-              type="button"
-              className={`chat-action-btn ${isRecording ? 'recording' : ''}`}
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={loading || tokensBlocked || audioBlob}
-              title={isRecording ? "Parar gravação" : "Gravar áudio"}
-            >
-              <FontAwesomeIcon icon={faMicrophone} />
-            </button>
-
-            <input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              onPaste={handlePaste}
-              placeholder={tokensBlocked ? "Limite de tokens atingido" : (loading ? "Aguarde a resposta..." : "Digite sua mensagem ou cole uma imagem...")}
-              className="chat-input-field"
-              disabled={loading || tokensBlocked || isRecording}
-            />
-            {isStreaming ? (
-              <button 
-                type="button" 
-                className="chat-stop-btn" 
-                onClick={handleStopResponse}
-                title="Parar resposta"
-              >
-                <FontAwesomeIcon icon={faStop} />
-              </button>
-            ) : (
-              <button 
-                type="submit" 
-                className="chat-send-btn-modern" 
-                disabled={loading || tokensBlocked || isRecording || (!input.trim() && !audioBlob && attachedImages.length === 0)}
-              >
-                <FontAwesomeIcon icon={faPaperPlane} />
-              </button>
-            )}
-          </div>
-        </form>
       </div>
+      
+      {/* Form fixo no final da página */}
+      <form onSubmit={handleSend} className="chat-input-modern">
+        {/* Preview de imagens anexadas */}
+        {attachedImages.length > 0 && (
+          <div className="attached-images-preview">
+            {attachedImages.map(img => (
+              <div key={img.id} className="attached-image-item">
+                <img src={img.data} alt={img.name} />
+                <button 
+                  type="button" 
+                  className="remove-image-btn"
+                  onClick={() => removeImage(img.id)}
+                  title="Remover imagem"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Preview de áudio gravado */}
+        {audioBlob && (
+          <div className="audio-preview">
+            <div className="audio-preview-content">
+              <FontAwesomeIcon icon={faMicrophone} className="audio-icon" />
+              <span>Áudio gravado</span>
+              <audio controls src={URL.createObjectURL(audioBlob)} />
+            </div>
+            <button 
+              type="button" 
+              className="remove-audio-btn"
+              onClick={cancelRecording}
+              title="Remover áudio"
+            >
+              <FontAwesomeIcon icon={faTrash} />
+            </button>
+          </div>
+        )}
+
+        {/* Indicador de gravação */}
+        {isRecording && (
+          <div className="recording-indicator">
+            <div className="recording-pulse"></div>
+            <span>Gravando...</span>
+            <button 
+              type="button" 
+              className="stop-recording-btn"
+              onClick={stopRecording}
+            >
+              Parar
+            </button>
+          </div>
+        )}
+
+        {isTyping && !isRecording && (
+          <div className="user-typing-indicator">
+            <div className="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        )}
+
+        <div className="input-wrapper">
+          {/* Input de arquivo oculto */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+          />
+
+          {/* Botão anexar imagem */}
+          <button
+            type="button"
+            className="chat-action-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading || tokensBlocked}
+            title="Anexar imagem"
+          >
+            <FontAwesomeIcon icon={faImage} />
+          </button>
+
+          {/* Botão gravar áudio */}
+          <button
+            type="button"
+            className={`chat-action-btn ${isRecording ? 'recording' : ''}`}
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={loading || tokensBlocked || audioBlob}
+            title={isRecording ? "Parar gravação" : "Gravar áudio"}
+          >
+            <FontAwesomeIcon icon={faMicrophone} />
+          </button>
+
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            onPaste={handlePaste}
+            placeholder={tokensBlocked ? "Limite de tokens atingido" : (loading ? "Aguarde a resposta..." : "Digite sua mensagem ou cole uma imagem...")}
+            className="chat-input-field"
+            disabled={loading || tokensBlocked || isRecording}
+          />
+          {isStreaming ? (
+            <button 
+              type="button" 
+              className="chat-stop-btn" 
+              onClick={handleStopResponse}
+              title="Parar resposta"
+            >
+              <FontAwesomeIcon icon={faStop} />
+            </button>
+          ) : (
+            <button 
+              type="submit" 
+              className="chat-send-btn-modern" 
+              disabled={loading || tokensBlocked || isRecording || (!input.trim() && !audioBlob && attachedImages.length === 0)}
+            >
+              <FontAwesomeIcon icon={faPaperPlane} />
+            </button>
+          )}
+        </div>
+      </form>
     </div>
   )
 }

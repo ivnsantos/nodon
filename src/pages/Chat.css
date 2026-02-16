@@ -27,10 +27,17 @@
 .content-area:has(.chat-modern) {
   padding: 0 !important;
   overflow: hidden !important;
+  height: 100vh !important;
+  position: relative !important;
 }
 
 /* Fallback para navegadores que não suportam :has() - apenas desktop */
 @media (min-width: 769px) {
+  .content-area:has(.chat-modern) {
+    height: calc(100vh - 60px) !important; /* Altura total menos topbar */
+    padding-top: 0 !important;
+  }
+  
   .content-area > .chat-modern {
     position: absolute;
     top: 0;
@@ -38,83 +45,176 @@
     right: 0;
     bottom: 0;
     margin: 0;
+    height: 100% !important;
+  }
+  
+  .chat-modern {
+    height: 100% !important;
   }
 }
 
 /* No mobile, não usar position absolute */
+/* ============================================
+   MOBILE - SOLUÇÃO DEFINITIVA COM FLEXBOX
+   FORM FIXO NO FINAL DA PÁGINA
+   ============================================ */
 @media (max-width: 768px) {
+  /* Reset completo do content-area */
   .content-area:has(.chat-modern) {
     padding: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
+    position: relative !important;
   }
   
+  /* Chat modern ocupa toda a tela com flexbox */
   .content-area > .chat-modern {
-    position: relative !important;
-    height: calc(100vh - 80px) !important; /* Altura menos espaço do input */
-    min-height: calc(100vh - 80px) !important;
-    max-height: calc(100vh - 80px) !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
     margin: 0 !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
   }
   
+  /* Container usa flexbox e ocupa espaço disponível */
   .chat-container-modern {
     display: flex !important;
     flex-direction: column !important;
-    height: 100% !important;
-    min-height: 100% !important;
-    max-height: 100% !important;
     flex: 1 !important;
+    min-height: 0 !important;
     overflow: hidden !important;
+    position: relative !important;
   }
   
+  /* Content wrapper ocupa espaço disponível */
   .chat-content-wrapper {
     flex: 1 !important;
     min-height: 0 !important;
     overflow: hidden !important;
     display: flex !important;
+    flex-direction: column !important;
   }
   
+  /* Mensagens com scroll - espaço para o form fixo */
   .chat-messages-modern {
     flex: 1 !important;
-    min-height: 0 !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 1rem !important;
+    padding-bottom: 1rem !important;
+    min-height: 0 !important;
   }
   
-  /* Garantir que o container tenha position relative para o absolute funcionar */
-  .chat-container-modern {
-    position: relative !important;
-  }
-  
-  /* Input fixo no final usando absolute */
-  .chat-input-modern {
-    position: absolute !important;
+  /* FORM FIXO NO FINAL - FORA DO CONTAINER */
+  .chat-modern > form.chat-input-modern {
+    position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    z-index: 1000 !important;
+    width: 100vw !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    width: 100% !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     background: rgba(14, 165, 233, 0.02) !important;
+    backdrop-filter: blur(10px) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    padding: 0.75rem 1rem !important;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    z-index: 1000 !important;
+    height: auto !important;
+    max-height: 50vh !important;
+    overflow-y: auto !important;
   }
   
-  /* Adicionar padding-bottom no container de mensagens para não ficar escondido atrás do input */
-  .chat-messages-modern {
-    padding-bottom: 100px !important;
+  /* Elementos do form sempre visíveis */
+  .chat-input-modern .input-wrapper {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    gap: 0.5rem !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
   }
   
-  /* Overlay de bloqueio no mobile quando tokens bloqueados */
+  .chat-input-modern .chat-input-field {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    padding: 0.625rem 1rem !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.875rem !important;
+    color: #ffffff !important;
+    font-size: 0.875rem !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+  
+  .chat-input-modern .chat-action-btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 0.75rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.875rem !important;
+  }
+  
+  .chat-input-modern .chat-send-btn-modern {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 0.75rem !important;
+    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3) !important;
+    font-size: 0.875rem !important;
+  }
+  
+  .chat-input-modern .chat-send-btn-modern:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.03) !important;
+    box-shadow: 0 3px 12px rgba(14, 165, 233, 0.4) !important;
+  }
+  
+  .chat-input-modern .chat-send-btn-modern:active:not(:disabled) {
+    transform: translateY(0) scale(0.97) !important;
+  }
+  
+  .chat-input-modern .chat-send-btn-modern:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+  }
+  
+  /* Overlay de bloqueio */
   .form-block-overlay {
     display: flex !important;
   }
@@ -130,7 +230,7 @@
 }
 
 .chat-modern {
-  height: 100%;
+  height: 100vh;
   width: 100%;
   max-width: 100%;
   display: flex;
@@ -138,7 +238,51 @@
   animation: fadeIn 0.5s ease-in;
   overflow: hidden;
   box-sizing: border-box;
-  min-height: 0;
+  position: relative;
+}
+
+/* Desktop - Form fixo no final */
+@media (min-width: 769px) {
+  .chat-modern {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .chat-container-modern {
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .chat-content-wrapper {
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .chat-messages-modern {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+  }
+  
+  /* Form no desktop fixo no final */
+  .chat-modern > form.chat-input-modern {
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: rgba(14, 165, 233, 0.02) !important;
+    backdrop-filter: blur(10px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    padding: 0.75rem 1.5rem !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    z-index: 10 !important;
+  }
 }
 
 @keyframes fadeIn {
@@ -155,7 +299,7 @@
 .chat-container-modern {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
   width: 100%;
   max-width: 100%;
   background: rgba(255, 255, 255, 0.03);
@@ -167,6 +311,8 @@
   overflow: hidden;
   animation: slideUp 0.6s ease-out;
   box-sizing: border-box;
+  position: relative;
+  min-height: 0;
 }
 
 @keyframes slideUp {
@@ -193,6 +339,8 @@
   min-width: 0;
   box-sizing: border-box;
   gap: 1rem;
+  position: relative;
+  z-index: 100;
 }
 
 .chat-content-wrapper {
@@ -202,6 +350,7 @@
   position: relative;
   min-width: 0;
   max-width: 100%;
+  min-height: 0;
 }
 
 .chat-disclaimer {
@@ -856,6 +1005,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 2rem 2rem;
+  padding-bottom: 120px;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -1312,7 +1462,10 @@
 
 /* Indicador de digitação do usuário */
 .chat-input-modern {
-  position: relative;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(14, 165, 233, 0.02);
   backdrop-filter: blur(10px);
@@ -1321,6 +1474,12 @@
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+  z-index: 1000;
+  display: flex !important;
+  flex-direction: column;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100%;
 }
 
 /* Overlay de bloqueio quando tokens bloqueados */
@@ -1557,7 +1716,7 @@
 }
 
 .chat-input-modern {
-  padding: 0.5rem 1rem;
+  padding: 1rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(14, 165, 233, 0.02);
   backdrop-filter: blur(10px);
@@ -1581,7 +1740,7 @@
 
 .input-wrapper {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.875rem;
   align-items: center;
   position: relative;
   min-width: 0;
@@ -1593,12 +1752,12 @@
   flex: 1;
   min-width: 0;
   max-width: 100%;
-  padding: 0.625rem 1rem;
+  padding: 0.875rem 1.25rem;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.875rem;
+  border-radius: 1rem;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-family: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
@@ -1628,9 +1787,9 @@
 }
 
 .chat-send-btn-modern {
-  width: 36px;
-  height: 36px;
-  border-radius: 0.75rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.875rem;
   background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: #ffffff;
   border: none;
@@ -1638,6 +1797,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  flex-shrink: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
     0 2px 8px rgba(14, 165, 233, 0.3),
@@ -2130,15 +2292,17 @@
 
 @media (max-width: 768px) {
   .chat-modern {
-    height: calc(100vh - 80px) !important; /* Altura menos espaço do input fixo */
-    min-height: calc(100vh - 80px) !important;
-    max-height: calc(100vh - 80px) !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
     overflow: hidden !important;
   }
 
   .chat-container-modern {
     border-radius: 1rem;
     height: 100%;
+    position: relative !important;
+    overflow: visible !important;
   }
 
   .chat-header-modern {
@@ -2416,9 +2580,9 @@
   
   .content-area > .chat-modern {
     position: relative !important;
-    height: calc(100vh - 80px) !important; /* Altura menos espaço do input */
-    min-height: calc(100vh - 80px) !important;
-    max-height: calc(100vh - 80px) !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
     top: auto !important;
     left: auto !important;
     right: auto !important;
@@ -2430,9 +2594,9 @@
   }
   
   .chat-modern {
-    height: calc(100vh - 80px) !important; /* Altura menos espaço do input fixo */
-    min-height: calc(100vh - 80px) !important;
-    max-height: calc(100vh - 80px) !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
     overflow: hidden !important;
   }
   
@@ -2444,13 +2608,15 @@
     max-height: 100% !important;
     flex: 1 !important;
     overflow: hidden !important;
+    position: relative !important;
   }
   
   .chat-content-wrapper {
     flex: 1 !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     display: flex !important;
+    position: relative !important;
   }
   
   .chat-messages-modern {
@@ -2459,30 +2625,43 @@
     overflow-y: auto !important;
   }
   
-  /* Container precisa ser relative */
-  .chat-container-modern {
-    position: relative !important;
-  }
-  
-  /* Input fixo no final usando absolute */
-  .chat-input-modern {
-    position: absolute !important;
+  /* Form fixo no final - mobile pequeno (480px) */
+  .chat-modern > form.chat-input-modern {
+    position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
     z-index: 1000 !important;
     display: flex !important;
     flex-direction: column !important;
-    width: 100% !important;
     background: rgba(14, 165, 233, 0.02) !important;
+    backdrop-filter: blur(10px) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 0.75rem 1rem !important;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    height: auto !important;
+    max-height: 50vh !important;
+    overflow-y: auto !important;
   }
   
-  /* Adicionar padding-bottom no container de mensagens */
+  /* Adicionar padding-bottom no container de mensagens para não ficar escondido */
   .chat-messages-modern {
-    padding-bottom: 100px !important;
+    padding-bottom: 1rem !important;
   }
+  
+  /* Garantir que todos os elementos do form sejam visíveis */
+  .chat-input-modern * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
   
   .input-wrapper {
     display: flex !important;
@@ -2769,8 +2948,8 @@
   }
 
   .chat-input-field {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
   }
   
   /* Bloqueio quando tokens bloqueados - igual desktop */
@@ -2783,6 +2962,7 @@
   .chat-stop-btn {
     width: 36px;
     height: 36px;
+    font-size: 0.875rem;
   }
   
   /* Bloqueio quando tokens bloqueados - igual desktop */
@@ -2793,9 +2973,22 @@
   }
 
   .chat-action-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 0.8125rem;
+    width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
+  }
+  
+  .input-wrapper {
+    gap: 0.5rem;
+  }
+  
+  .chat-modern > form.chat-input-modern {
+    padding: 0.75rem 1rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  
+  .chat-messages-modern {
+    padding-bottom: 90px !important;
   }
 
   .attached-images-preview {
@@ -2821,4 +3014,5 @@
     padding: 0.5rem 0.75rem;
     font-size: 0.8125rem;
   }
+  
 }

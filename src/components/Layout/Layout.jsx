@@ -8,6 +8,8 @@ import {
   faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
+import { useChatHeader } from '../../context/ChatHeaderContext'
+import ChatHeader from '../ChatHeader'
 import nodoLogo from '../../img/nodo.png'
 import './Layout.css'
 
@@ -15,6 +17,8 @@ const Layout = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout, selectedClinicData, selectedClinicId, setSelectedClinicId, isUsuario, clearUserComumId, planoAcesso } = useAuth()
+  const { chatHeaderContent } = useChatHeader() || {}
+  const isChatPage = location.pathname === '/app/chat'
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   const [expandedSubmenu, setExpandedSubmenu] = useState(null)
@@ -223,7 +227,11 @@ const Layout = () => {
         <button className="mobile-menu-toggle" onClick={toggleSidebar}>
           <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} />
         </button>
-        <h2 className="mobile-page-title">{getPageTitle()}</h2>
+        {isChatPage ? (
+          <ChatHeader />
+        ) : (
+          <h2 className="mobile-page-title">{getPageTitle()}</h2>
+        )}
       </div>
 
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarMinimized ? 'minimized' : ''}`}>
@@ -364,7 +372,11 @@ const Layout = () => {
 
       <main className={`main-content ${sidebarMinimized ? 'sidebar-minimized' : ''}`}>
         <header className="topbar">
-          <h2 className="page-title">{getPageTitle()}</h2>
+          {isChatPage ? (
+            <ChatHeader />
+          ) : (
+            <h2 className="page-title">{getPageTitle()}</h2>
+          )}
         </header>
         <div className="content-area">
           <Outlet />

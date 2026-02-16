@@ -49,6 +49,7 @@ import PrecificacaoCategoria from './pages/PrecificacaoCategoria'
 import PrecificacaoProduto from './pages/PrecificacaoProduto'
 import Anotacoes from './pages/Anotacoes'
 import { AuthProvider } from './context/AuthContext'
+import { ChatHeaderProvider } from './context/ChatHeaderContext'
 
 function AppRoutes() {
   return (
@@ -194,7 +195,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ChatHeaderProvider>
+        <AppRoutes />
+      </ChatHeaderProvider>
     </AuthProvider>
   )
 }
