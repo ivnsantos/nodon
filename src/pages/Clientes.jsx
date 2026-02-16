@@ -5,7 +5,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUserPlus, faSearch, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faEdit,
-  faEye, faTrash, faFilter, faChevronDown, faCheck
+  faEye, faTrash, faFilter, faChevronDown, faCheck,
+  faChartBar, faTrophy, faDollarSign, faFileInvoiceDollar,
+  faTimes, faMedkit
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -33,6 +35,20 @@ const Clientes = () => {
   const dropdownRef = useRef(null)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState({})
   const statusDropdownRefs = useRef({})
+  
+  // Estados para abas e analytics
+  const [activeTab, setActiveTab] = useState('lista') // 'lista' ou 'analytics'
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('geral') // 'geral' ou 'mensal'
+  const [dadosAnalyticsGeral, setDadosAnalyticsGeral] = useState(null)
+  const [dadosAnalyticsMensal, setDadosAnalyticsMensal] = useState(null)
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
+  const [showClientesModal, setShowClientesModal] = useState(false)
+  const [clientesModalData, setClientesModalData] = useState(null)
+  const [clientesModalTitle, setClientesModalTitle] = useState('')
 
   const statusOptions = [
     { value: 'all', label: 'Todos os Status' },
@@ -80,6 +96,17 @@ const Clientes = () => {
       loadClientes()
     }
   }, [selectedClinicData])
+
+  // Carregar dados de analytics quando selecionar aba analytics
+  useEffect(() => {
+    if (activeTab === 'analytics' && selectedClinicData) {
+      if (activeAnalyticsTab === 'geral') {
+        fetchAnalyticsGeral()
+      } else if (activeAnalyticsTab === 'mensal') {
+        fetchAnalyticsMensal(selectedMonth)
+      }
+    }
+  }, [activeTab, activeAnalyticsTab, selectedClinicData, selectedMonth])
 
   const loadClientes = async () => {
     try {
@@ -165,6 +192,69 @@ const Clientes = () => {
       return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
     }
     return cpf
+  }
+
+  // Formatar valor monetário
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value || 0)
+  }
+
+  // Buscar dados de analytics geral
+  const fetchAnalyticsGeral = async () => {
+    try {
+      setLoadingAnalytics(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
+        setLoadingAnalytics(false)
+        return
+      }
+
+      const response = await api.get('/orcamentos/analytics/clientes/geral', {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+      
+      setDadosAnalyticsGeral(response.data?.data || response.data)
+    } catch (error) {
+      console.error('Erro ao carregar analytics geral:', error)
+      showError('Erro ao carregar dados de analytics. Tente novamente.')
+    } finally {
+      setLoadingAnalytics(false)
+    }
+  }
+
+  // Buscar dados de analytics mensal
+  const fetchAnalyticsMensal = async (mes) => {
+    try {
+      setLoadingAnalytics(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        console.error('clienteMasterId não encontrado')
+        setLoadingAnalytics(false)
+        return
+      }
+
+      const [ano, mesNum] = mes.split('-')
+      const response = await api.get(`/orcamentos/analytics/clientes/mes?mes=${mesNum}&ano=${ano}`, {
+        headers: {
+          'X-Cliente-Master-Id': clienteMasterId
+        }
+      })
+      
+      setDadosAnalyticsMensal(response.data?.data || response.data)
+    } catch (error) {
+      console.error('Erro ao carregar analytics mensal:', error)
+      showError('Erro ao carregar dados de analytics mensal. Tente novamente.')
+    } finally {
+      setLoadingAnalytics(false)
+    }
   }
 
   const getStatusLabel = (status) => {
@@ -320,56 +410,75 @@ const Clientes = () => {
 
   return (
     <div className="clientes-page">
-      <div className="clientes-toolbar">
-        <div className="clientes-filters">
-          <div className="search-box">
-            <FontAwesomeIcon icon={faSearch} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por nome, email ou telefone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="filter-box custom-dropdown" ref={dropdownRef}>
-            <button 
-              className="dropdown-trigger"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              type="button"
-            >
-              <FontAwesomeIcon icon={faFilter} className="filter-icon" />
-              <span>{statusOptions.find(opt => opt.value === statusFilter)?.label}</span>
-              <FontAwesomeIcon icon={faChevronDown} className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`} />
-            </button>
-            {dropdownOpen && (
-              <div className="dropdown-menu">
-                {statusOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    className={`dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
-                    onClick={() => {
-                      setStatusFilter(option.value)
-                      setDropdownOpen(false)
-                    }}
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        <button 
-          className="btn-new-client"
-          onClick={() => navigate('/app/clientes/novo')}
+      {/* Tabs principais */}
+      <div className="clientes-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'lista' ? 'active' : ''}`}
+          onClick={() => setActiveTab('lista')}
         >
-          <FontAwesomeIcon icon={faUserPlus} />
-          Novo Cliente
+          <FontAwesomeIcon icon={faUser} /> Lista
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          <FontAwesomeIcon icon={faChartBar} /> Analytics
         </button>
       </div>
 
-      <div className="clientes-grid">
+      {/* Conteúdo baseado na aba ativa */}
+      {activeTab === 'lista' ? (
+        <>
+          <div className="clientes-toolbar">
+            <div className="clientes-filters">
+              <div className="search-box">
+                <FontAwesomeIcon icon={faSearch} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, email ou telefone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="filter-box custom-dropdown" ref={dropdownRef}>
+                <button 
+                  className="dropdown-trigger"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  type="button"
+                >
+                  <FontAwesomeIcon icon={faFilter} className="filter-icon" />
+                  <span>{statusOptions.find(opt => opt.value === statusFilter)?.label}</span>
+                  <FontAwesomeIcon icon={faChevronDown} className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`} />
+                </button>
+                {dropdownOpen && (
+                  <div className="dropdown-menu">
+                    {statusOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        className={`dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
+                        onClick={() => {
+                          setStatusFilter(option.value)
+                          setDropdownOpen(false)
+                        }}
+                        type="button"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button 
+              className="btn-new-client"
+              onClick={() => navigate('/app/clientes/novo')}
+            >
+              <FontAwesomeIcon icon={faUserPlus} />
+              Novo Cliente
+            </button>
+          </div>
+
+          <div className="clientes-grid">
         {filteredClientes.length === 0 ? (
           <div className="empty-state">
             <FontAwesomeIcon icon={faUser} size="3x" />
@@ -506,7 +615,297 @@ const Clientes = () => {
             </div>
           ))
         )}
-      </div>
+          </div>
+        </>
+      ) : (
+        <div className="analytics-section">
+          {/* Tabs internas para analytics */}
+          <div className="analytics-tabs-internas">
+            <button
+              className={`analytics-tab-btn ${activeAnalyticsTab === 'geral' ? 'active' : ''}`}
+              onClick={() => setActiveAnalyticsTab('geral')}
+            >
+              <FontAwesomeIcon icon={faChartBar} /> Geral
+            </button>
+            <button
+              className={`analytics-tab-btn ${activeAnalyticsTab === 'mensal' ? 'active' : ''}`}
+              onClick={() => setActiveAnalyticsTab('mensal')}
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} /> Mensal
+            </button>
+          </div>
+
+          {/* Conteúdo da aba Geral */}
+          {activeAnalyticsTab === 'geral' && (
+            <div className="analytics-content">
+              {loadingAnalytics ? (
+                <div className="analytics-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Carregando dados de analytics...</p>
+                </div>
+              ) : dadosAnalyticsGeral ? (
+                <div className="analytics-cards-container">
+                  {/* Top Clientes com Mais Orçamentos */}
+                  {dadosAnalyticsGeral.topClientesMaisOrcamentos && dadosAnalyticsGeral.topClientesMaisOrcamentos.length > 0 && (
+                    <div className="top-clientes-section">
+                      <div className="top-clientes-header">
+                        <div className="top-clientes-title-container">
+                          <div className="cliente-analytics-icon" style={{ background: 'rgba(14, 165, 233, 0.15)' }}>
+                            <FontAwesomeIcon icon={faFileInvoiceDollar} style={{ color: '#0ea5e9' }} />
+                          </div>
+                          <h3 className="top-clientes-title">Top Clientes com Mais Orçamentos</h3>
+                        </div>
+                        {dadosAnalyticsGeral.topClientesMaisOrcamentos.length > 3 && (
+                          <button 
+                            className="btn-ver-mais-clientes"
+                            onClick={() => {
+                              setClientesModalData(dadosAnalyticsGeral.topClientesMaisOrcamentos)
+                              setClientesModalTitle('Top Clientes com Mais Orçamentos')
+                              setShowClientesModal(true)
+                            }}
+                          >
+                            Ver todos ({dadosAnalyticsGeral.topClientesMaisOrcamentos.length})
+                          </button>
+                        )}
+                      </div>
+                      <div className="top-clientes-list">
+                        {dadosAnalyticsGeral.topClientesMaisOrcamentos.slice(0, 3).map((cliente, index) => (
+                          <div key={cliente.id || index} className="top-cliente-item">
+                            <div className="top-cliente-rank">
+                              <span className="rank-number">{index + 1}</span>
+                              <FontAwesomeIcon icon={faMedkit} className="rank-icon" />
+                            </div>
+                            <div className="top-cliente-info">
+                              <div className="top-cliente-name">{cliente.nome}</div>
+                              <div className="top-cliente-cpf">CPF: {formatCPF(cliente.cpf)}</div>
+                              <div className="top-cliente-details">
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeOrcamentos} orçamentos
+                                </span>
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeItensPagos} itens pagos
+                                </span>
+                                <span className="top-cliente-valor">
+                                  {formatCurrency(cliente.valorTotalPago)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Clientes com Maior Valor */}
+                  {dadosAnalyticsGeral.topClientesMaiorValor && dadosAnalyticsGeral.topClientesMaiorValor.length > 0 && (
+                    <div className="top-clientes-section">
+                      <div className="top-clientes-header">
+                        <div className="top-clientes-title-container">
+                          <div className="cliente-analytics-icon" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
+                            <FontAwesomeIcon icon={faDollarSign} style={{ color: '#10b981' }} />
+                          </div>
+                          <h3 className="top-clientes-title">Top Clientes com Maior Valor</h3>
+                        </div>
+                        {dadosAnalyticsGeral.topClientesMaiorValor.length > 3 && (
+                          <button 
+                            className="btn-ver-mais-clientes"
+                            onClick={() => {
+                              setClientesModalData(dadosAnalyticsGeral.topClientesMaiorValor)
+                              setClientesModalTitle('Top Clientes com Maior Valor')
+                              setShowClientesModal(true)
+                            }}
+                          >
+                            Ver todos ({dadosAnalyticsGeral.topClientesMaiorValor.length})
+                          </button>
+                        )}
+                      </div>
+                      <div className="top-clientes-list">
+                        {dadosAnalyticsGeral.topClientesMaiorValor.slice(0, 3).map((cliente, index) => (
+                          <div key={cliente.id || index} className="top-cliente-item">
+                            <div className="top-cliente-rank">
+                              <span className="rank-number">{index + 1}</span>
+                              <FontAwesomeIcon icon={faMedkit} className="rank-icon" />
+                            </div>
+                            <div className="top-cliente-info">
+                              <div className="top-cliente-name">{cliente.nome}</div>
+                              <div className="top-cliente-cpf">CPF: {formatCPF(cliente.cpf)}</div>
+                              <div className="top-cliente-details">
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeOrcamentos} orçamentos
+                                </span>
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeItensPagos} itens pagos
+                                </span>
+                                <span className="top-cliente-valor">
+                                  {formatCurrency(cliente.valorTotalPago)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(!dadosAnalyticsGeral.topClientesMaisOrcamentos || dadosAnalyticsGeral.topClientesMaisOrcamentos.length === 0) && 
+                   (!dadosAnalyticsGeral.topClientesMaiorValor || dadosAnalyticsGeral.topClientesMaiorValor.length === 0) && (
+                    <div className="analytics-empty-state">
+                      <FontAwesomeIcon icon={faUser} size="3x" />
+                      <p>Nenhum dado de analytics disponível</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="analytics-empty-state">
+                  <FontAwesomeIcon icon={faChartBar} size="3x" />
+                  <p>Nenhum dado encontrado</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Conteúdo da aba Mensal */}
+          {activeAnalyticsTab === 'mensal' && (
+            <div className="analytics-content">
+              <div className="mes-selector-container">
+                <div className="mes-selector">
+                  <FontAwesomeIcon icon={faCalendarAlt} />
+                  <input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="mes-input"
+                  />
+                </div>
+              </div>
+
+              {loadingAnalytics ? (
+                <div className="analytics-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Carregando dados do mês...</p>
+                </div>
+              ) : dadosAnalyticsMensal ? (
+                <div className="analytics-cards-container">
+                  {/* Top Clientes com Mais Orçamentos do Mês */}
+                  {dadosAnalyticsMensal.topClientesMaisOrcamentos && dadosAnalyticsMensal.topClientesMaisOrcamentos.length > 0 && (
+                    <div className="top-clientes-section">
+                      <div className="top-clientes-header">
+                        <div className="top-clientes-title-container">
+                          <div className="cliente-analytics-icon" style={{ background: 'rgba(14, 165, 233, 0.15)' }}>
+                            <FontAwesomeIcon icon={faFileInvoiceDollar} style={{ color: '#0ea5e9' }} />
+                          </div>
+                          <h3 className="top-clientes-title">Top Clientes com Mais Orçamentos do Mês</h3>
+                        </div>
+                        {dadosAnalyticsMensal.topClientesMaisOrcamentos.length > 3 && (
+                          <button 
+                            className="btn-ver-mais-clientes"
+                            onClick={() => {
+                              setClientesModalData(dadosAnalyticsMensal.topClientesMaisOrcamentos)
+                              setClientesModalTitle('Top Clientes com Mais Orçamentos do Mês')
+                              setShowClientesModal(true)
+                            }}
+                          >
+                            Ver todos ({dadosAnalyticsMensal.topClientesMaisOrcamentos.length})
+                          </button>
+                        )}
+                      </div>
+                      <div className="top-clientes-list">
+                        {dadosAnalyticsMensal.topClientesMaisOrcamentos.slice(0, 3).map((cliente, index) => (
+                          <div key={cliente.id || index} className="top-cliente-item">
+                            <div className="top-cliente-rank">
+                              <span className="rank-number">{index + 1}</span>
+                              <FontAwesomeIcon icon={faMedkit} className="rank-icon" />
+                            </div>
+                            <div className="top-cliente-info">
+                              <div className="top-cliente-name">{cliente.nome}</div>
+                              <div className="top-cliente-cpf">CPF: {formatCPF(cliente.cpf)}</div>
+                              <div className="top-cliente-details">
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeOrcamentos} orçamentos
+                                </span>
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeItensPagos} itens pagos
+                                </span>
+                                <span className="top-cliente-valor">
+                                  {formatCurrency(cliente.valorTotalPago)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Clientes com Maior Valor do Mês */}
+                  {dadosAnalyticsMensal.topClientesMaiorValor && dadosAnalyticsMensal.topClientesMaiorValor.length > 0 && (
+                    <div className="top-clientes-section">
+                      <div className="top-clientes-header">
+                        <div className="top-clientes-title-container">
+                          <div className="cliente-analytics-icon" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
+                            <FontAwesomeIcon icon={faDollarSign} style={{ color: '#10b981' }} />
+                          </div>
+                          <h3 className="top-clientes-title">Top Clientes com Maior Valor do Mês</h3>
+                        </div>
+                        {dadosAnalyticsMensal.topClientesMaiorValor.length > 3 && (
+                          <button 
+                            className="btn-ver-mais-clientes"
+                            onClick={() => {
+                              setClientesModalData(dadosAnalyticsMensal.topClientesMaiorValor)
+                              setClientesModalTitle('Top Clientes com Maior Valor do Mês')
+                              setShowClientesModal(true)
+                            }}
+                          >
+                            Ver todos ({dadosAnalyticsMensal.topClientesMaiorValor.length})
+                          </button>
+                        )}
+                      </div>
+                      <div className="top-clientes-list">
+                        {dadosAnalyticsMensal.topClientesMaiorValor.slice(0, 3).map((cliente, index) => (
+                          <div key={cliente.id || index} className="top-cliente-item">
+                            <div className="top-cliente-rank">
+                              <span className="rank-number">{index + 1}</span>
+                              <FontAwesomeIcon icon={faMedkit} className="rank-icon" />
+                            </div>
+                            <div className="top-cliente-info">
+                              <div className="top-cliente-name">{cliente.nome}</div>
+                              <div className="top-cliente-cpf">CPF: {formatCPF(cliente.cpf)}</div>
+                              <div className="top-cliente-details">
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeOrcamentos} orçamentos
+                                </span>
+                                <span className="top-cliente-stat">
+                                  {cliente.quantidadeItensPagos} itens pagos
+                                </span>
+                                <span className="top-cliente-valor">
+                                  {formatCurrency(cliente.valorTotalPago)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(!dadosAnalyticsMensal.topClientesMaisOrcamentos || dadosAnalyticsMensal.topClientesMaisOrcamentos.length === 0) && 
+                   (!dadosAnalyticsMensal.topClientesMaiorValor || dadosAnalyticsMensal.topClientesMaiorValor.length === 0) && (
+                    <div className="analytics-empty-state">
+                      <FontAwesomeIcon icon={faUser} size="3x" />
+                      <p>Nenhum dado disponível para este mês</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="analytics-empty-state">
+                  <FontAwesomeIcon icon={faCalendarAlt} size="3x" />
+                  <p>Selecione um mês para visualizar os dados</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal de Confirmação de Exclusão */}
       {showDeleteModal && (
@@ -536,6 +935,60 @@ const Clientes = () => {
                 <FontAwesomeIcon icon={faTrash} />
                 Excluir
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Todos os Clientes */}
+      {showClientesModal && clientesModalData && clientesModalData.length > 0 && (
+        <div className="modal-overlay" onClick={() => {
+          setShowClientesModal(false)
+          setClientesModalData(null)
+          setClientesModalTitle('')
+        }}>
+          <div className="modal-clientes" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-clientes-header">
+              <h3 className="modal-clientes-title">
+                <FontAwesomeIcon icon={faUser} /> {clientesModalTitle}
+              </h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowClientesModal(false)
+                  setClientesModalData(null)
+                  setClientesModalTitle('')
+                }}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-clientes-content">
+              <div className="modal-clientes-list">
+                {clientesModalData.map((cliente, index) => (
+                  <div key={cliente.id || index} className="modal-cliente-item">
+                    <div className="modal-cliente-rank">
+                      <span className="rank-number">{index + 1}</span>
+                      <FontAwesomeIcon icon={faMedkit} className="rank-icon" />
+                    </div>
+                    <div className="modal-cliente-info">
+                      <div className="modal-cliente-name">{cliente.nome}</div>
+                      <div className="modal-cliente-cpf">CPF: {formatCPF(cliente.cpf)}</div>
+                      <div className="modal-cliente-details">
+                        <span className="modal-cliente-stat">
+                          {cliente.quantidadeOrcamentos} orçamentos
+                        </span>
+                        <span className="modal-cliente-stat">
+                          {cliente.quantidadeItensPagos} itens pagos
+                        </span>
+                        <span className="modal-cliente-valor">
+                          {formatCurrency(cliente.valorTotalPago)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

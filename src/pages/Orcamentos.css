@@ -287,6 +287,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 .orcamento-card {
@@ -299,6 +301,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  position: relative;
+  overflow: visible;
 }
 
 .orcamento-card:hover {
@@ -329,6 +333,7 @@
 .status-dropdown-container {
   position: relative;
   display: inline-block;
+  z-index: 10;
 }
 
 .status-badge-clickable {
@@ -361,7 +366,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.75rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  z-index: 1000;
+  z-index: 10000;
   overflow: hidden;
   animation: dropdownFadeIn 0.2s ease;
 }
@@ -522,6 +527,33 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.btn-ver-mais-itens-lista {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  margin-top: 0.25rem;
+}
+
+.btn-ver-mais-itens-lista:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+.btn-ver-mais-itens-lista:active {
+  transform: translateY(0);
 }
 
 .orcamento-item-preview {
@@ -1147,6 +1179,1109 @@
 
   .mes-selector {
     width: 100%;
+  }
+}
+
+/* ============================================
+   ESTILOS PARA ABA LISTA DE ITENS PAGOS
+   ============================================ */
+
+.itens-pagos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.orcamento-item-pago-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.orcamento-item-pago-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.orcamento-item-pago-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.orcamento-item-pago-info {
+  flex: 1;
+}
+
+.orcamento-item-pago-paciente {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.75rem 0;
+}
+
+.orcamento-item-pago-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.orcamento-item-pago-date {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+}
+
+.orcamento-item-pago-status {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.orcamento-item-pago-totais {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.orcamento-item-pago-total-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.orcamento-item-pago-total-item .total-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+}
+
+.orcamento-item-pago-total-item .total-value {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.orcamento-item-pago-total-item.highlight .total-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.orcamento-item-pago-total-item.highlight .total-value {
+  color: #10b981;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.porcentagem-global-container {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.btn-download-pdf {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  white-space: nowrap;
+}
+
+.btn-download-pdf:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-download-pdf:active {
+  transform: translateY(0);
+}
+
+.itens-pagos-container {
+  margin-top: 1rem;
+}
+
+.itens-pagos-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1rem;
+}
+
+.porcentagem-global-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.porcentagem-global-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.porcentagem-global-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.input-porcentagem-global {
+  width: 80px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.375rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.input-porcentagem-global:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+/* Lista simples de itens pagos */
+.itens-pagos-lista-simples {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.itens-pagos-lista-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 2px solid rgba(14, 165, 233, 0.3);
+}
+
+.itens-pagos-lista-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.itens-pagos-lista-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(14, 165, 233, 0.2);
+}
+
+.lista-col-nome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item-nome-lista {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.item-qtd-lista {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.lista-col-preco {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: right;
+}
+
+.lista-col-porcentagem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.input-porcentagem-lucro {
+  width: 100%;
+  max-width: 80px;
+  padding: 0.3rem 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.375rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.input-porcentagem-lucro:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+.input-porcentagem-lucro::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.porcentagem-symbol {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.porcentagem-readonly {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  padding: 0.3rem 0.3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.375rem;
+  min-width: 60px;
+  text-align: center;
+  display: inline-block;
+}
+
+.lista-col-lucro {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #10b981;
+  text-align: right;
+}
+
+.lista-col-lucro.highlight {
+  color: #10b981;
+}
+
+.itens-pagos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.item-pago-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.item-pago-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(14, 165, 233, 0.2);
+}
+
+.item-pago-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.item-pago-nome {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  flex: 1;
+}
+
+.item-pago-quantidade {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.item-pago-detalhes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item-pago-detalhe-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.375rem 0;
+}
+
+.item-pago-detalhe-row .detalhe-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+}
+
+.item-pago-detalhe-row .detalhe-value {
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.item-pago-detalhe-row.highlight {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.item-pago-detalhe-row.highlight .detalhe-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.item-pago-detalhe-row.highlight .detalhe-value {
+  color: #10b981;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+/* Responsivo para mobile */
+@media (max-width: 768px) {
+  .orcamento-item-pago-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .orcamento-item-pago-totais {
+    width: 100%;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .orcamento-item-pago-total-item {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .itens-pagos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Esconder header da lista no mobile */
+  .itens-pagos-lista-header {
+    display: none;
+  }
+
+  /* Transformar cada linha em um card no mobile */
+  .itens-pagos-lista-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+  }
+
+  /* Estilizar cada coluna como um campo no mobile */
+  .lista-col-nome {
+    width: 100%;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .item-nome-lista {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .item-qtd-lista {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.25rem;
+  }
+
+  .lista-col-preco,
+  .lista-col-porcentagem,
+  .lista-col-lucro {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.5rem 0;
+  }
+
+  .lista-col-preco::before {
+    content: 'Preço Unitário:';
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+  }
+
+  .lista-col-porcentagem::before {
+    content: '% Lucro:';
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+  }
+
+  .lista-col-lucro::before {
+    content: 'Total Lucro:';
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+  }
+
+  .lista-col-preco {
+    text-align: right;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .lista-col-lucro {
+    text-align: right;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #10b981;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.25rem;
+  }
+
+  .lista-col-porcentagem {
+    justify-content: space-between;
+  }
+
+  .input-porcentagem-lucro {
+    max-width: 100px;
+    margin-left: auto;
+  }
+
+  .porcentagem-readonly {
+    margin-left: auto;
+  }
+
+  /* Container de porcentagem global */
+  .porcentagem-global-container {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .porcentagem-global-control {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .porcentagem-global-label {
+    width: 100%;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .porcentagem-global-input-wrapper {
+    width: 100%;
+    max-width: 150px;
+  }
+
+  .input-porcentagem-global {
+    width: 100%;
+  }
+
+  .btn-download-pdf {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Cards de resumo */
+  .graficos-resumo-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .resumo-card {
+    padding: 1rem;
+  }
+
+  .resumo-card-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .resumo-card-value {
+    font-size: 1.25rem;
+  }
+
+  .resumo-card-subvalue {
+    font-size: 0.75rem;
+  }
+
+  /* Header da seção */
+  .graficos-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .mes-selector {
+    width: 100%;
+  }
+
+  /* Cards de orçamento */
+  .orcamento-item-pago-card {
+    padding: 1rem;
+  }
+
+  .orcamento-item-pago-paciente {
+    font-size: 1rem;
+  }
+
+  .orcamento-item-pago-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .itens-pagos-lista-row {
+    padding: 0.875rem;
+  }
+
+  .lista-col-preco,
+  .lista-col-porcentagem,
+  .lista-col-lucro {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .lista-col-preco::before,
+  .lista-col-porcentagem::before,
+  .lista-col-lucro::before {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  .lista-col-preco {
+    text-align: left;
+  }
+
+  .lista-col-lucro {
+    text-align: right;
+  }
+
+  .lista-col-porcentagem {
+    justify-content: space-between;
+  }
+
+  .input-porcentagem-lucro {
+    max-width: 70px;
+    width: auto;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .porcentagem-readonly {
+    margin-left: auto;
+    width: auto;
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .porcentagem-symbol {
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+  }
+
+  .porcentagem-global-input-wrapper {
+    max-width: 100%;
+  }
+}
+
+/* Estilos para Tratamentos */
+.tratamentos-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.tratamento-mais-vendido-card {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border: 2px solid rgba(251, 191, 36, 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.tratamento-mais-vendido-card:hover {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 8px 25px rgba(251, 191, 36, 0.2);
+  transform: translateY(-2px);
+}
+
+.tratamento-mais-vendido-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tratamento-mais-vendido-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.2) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #fbbf24;
+}
+
+.tratamento-mais-vendido-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.tratamento-mais-vendido-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tratamento-mais-vendido-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 0.5rem;
+}
+
+.tratamento-mais-vendido-stats {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.tratamento-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tratamento-stat-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.tratamento-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tratamento-stat.highlight .tratamento-stat-value {
+  color: #10b981;
+}
+
+/* Top Tratamentos */
+.top-tratamentos-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.top-tratamentos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.top-tratamentos-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.btn-ver-mais-tratamentos {
+  padding: 0.5rem 1rem;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 0.5rem;
+  color: #0ea5e9;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-ver-mais-tratamentos:hover {
+  background: rgba(14, 165, 233, 0.3);
+  border-color: rgba(14, 165, 233, 0.5);
+  transform: translateY(-1px);
+}
+
+.top-tratamentos-title svg {
+  color: #fbbf24;
+}
+
+.top-tratamentos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.top-tratamento-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.top-tratamento-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(14, 165, 233, 0.3);
+  transform: translateX(4px);
+}
+
+.top-tratamento-rank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  gap: 0.25rem;
+}
+
+.rank-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0ea5e9;
+  line-height: 1;
+}
+
+.rank-icon {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.top-tratamento-item:nth-child(1) .rank-number {
+  color: #fbbf24;
+}
+
+.top-tratamento-item:nth-child(2) .rank-number {
+  color: #94a3b8;
+}
+
+.top-tratamento-item:nth-child(3) .rank-number {
+  color: #cd7f32;
+}
+
+.top-tratamento-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-tratamento-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.top-tratamento-details {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.top-tratamento-quantidade {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.top-tratamento-valor {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+/* Modal de Tratamentos */
+.modal-tratamentos {
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-tratamentos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-tratamentos-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.modal-close-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.modal-tratamentos-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-tratamentos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-tratamento-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.modal-tratamento-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(14, 165, 233, 0.3);
+}
+
+.modal-tratamento-rank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  gap: 0.25rem;
+}
+
+.modal-tratamento-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-tratamento-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.modal-tratamento-details {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.modal-tratamento-quantidade {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.modal-tratamento-valor {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+/* Responsivo para Tratamentos */
+@media (max-width: 768px) {
+  .tratamentos-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .tratamento-mais-vendido-card {
+    padding: 1rem;
+  }
+
+  .top-tratamentos-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .btn-ver-mais-tratamentos {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tratamento-mais-vendido-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .tratamento-mais-vendido-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
+
+  .tratamento-mais-vendido-title {
+    font-size: 1.125rem;
+  }
+
+  .tratamento-mais-vendido-name {
+    font-size: 1.25rem;
+  }
+
+  .tratamento-mais-vendido-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .top-tratamento-item {
+    padding: 0.625rem;
+    gap: 0.75rem;
+  }
+
+  .top-tratamento-rank {
+    min-width: 40px;
+  }
+
+  .rank-number {
+    font-size: 1rem;
+  }
+
+  .rank-icon {
+    font-size: 1rem;
+  }
+
+  .top-tratamento-name {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .top-tratamento-details {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .top-tratamento-quantidade,
+  .top-tratamento-valor {
+    font-size: 0.75rem;
+  }
+
+  .top-tratamentos-list {
+    gap: 0.5rem;
+  }
+
+  .graficos-tabs-internas {
+    padding: 0.125rem;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .grafico-tab-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    gap: 0.375rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .grafico-tab-btn svg {
+    font-size: 0.875rem;
   }
 }
 
