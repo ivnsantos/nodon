@@ -29,14 +29,90 @@
   overflow: hidden !important;
 }
 
-/* Fallback para navegadores que não suportam :has() */
-.content-area > .chat-modern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  margin: 0;
+/* Fallback para navegadores que não suportam :has() - apenas desktop */
+@media (min-width: 769px) {
+  .content-area > .chat-modern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+  }
+}
+
+/* No mobile, não usar position absolute */
+@media (max-width: 768px) {
+  .content-area:has(.chat-modern) {
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .content-area > .chat-modern {
+    position: relative !important;
+    height: calc(100vh - 80px) !important; /* Altura menos espaço do input */
+    min-height: calc(100vh - 80px) !important;
+    max-height: calc(100vh - 80px) !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  
+  .chat-container-modern {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+  
+  .chat-content-wrapper {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+  }
+  
+  .chat-messages-modern {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Garantir que o container tenha position relative para o absolute funcionar */
+  .chat-container-modern {
+    position: relative !important;
+  }
+  
+  /* Input fixo no final usando absolute */
+  .chat-input-modern {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    background: rgba(14, 165, 233, 0.02) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* Adicionar padding-bottom no container de mensagens para não ficar escondido atrás do input */
+  .chat-messages-modern {
+    padding-bottom: 100px !important;
+  }
 }
 
 .chat-modern {
@@ -1999,7 +2075,10 @@
 
 @media (max-width: 768px) {
   .chat-modern {
-    height: 100vh;
+    height: calc(100vh - 80px) !important; /* Altura menos espaço do input fixo */
+    min-height: calc(100vh - 80px) !important;
+    max-height: calc(100vh - 80px) !important;
+    overflow: hidden !important;
   }
 
   .chat-container-modern {
@@ -2232,8 +2311,30 @@
     font-size: 0.875rem;
   }
 
+  /* Container precisa ser relative */
+  .chat-container-modern {
+    position: relative !important;
+  }
+  
+  /* Input fixo no final usando absolute */
   .chat-input-modern {
-    padding: 1rem 1.25rem;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    padding: 1rem 1.25rem !important;
+    width: 100% !important;
+    background: rgba(14, 165, 233, 0.02) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Adicionar padding-bottom no container de mensagens */
+  .chat-messages-modern {
+    padding-bottom: 120px !important;
   }
 
   .chat-input-field {
@@ -2250,8 +2351,108 @@
 }
 
 @media (max-width: 480px) {
+  .content-area:has(.chat-modern) {
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .content-area > .chat-modern {
+    position: relative !important;
+    height: calc(100vh - 80px) !important; /* Altura menos espaço do input */
+    min-height: calc(100vh - 80px) !important;
+    max-height: calc(100vh - 80px) !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  
   .chat-modern {
-    height: 100vh;
+    height: calc(100vh - 80px) !important; /* Altura menos espaço do input fixo */
+    min-height: calc(100vh - 80px) !important;
+    max-height: calc(100vh - 80px) !important;
+    overflow: hidden !important;
+  }
+  
+  .chat-container-modern {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+  
+  .chat-content-wrapper {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+  }
+  
+  .chat-messages-modern {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Container precisa ser relative */
+  .chat-container-modern {
+    position: relative !important;
+  }
+  
+  /* Input fixo no final usando absolute */
+  .chat-input-modern {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    background: rgba(14, 165, 233, 0.02) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* Adicionar padding-bottom no container de mensagens */
+  .chat-messages-modern {
+    padding-bottom: 100px !important;
+  }
+  
+  .input-wrapper {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+  }
+  
+  .chat-input-field {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .chat-send-btn-modern,
+  .chat-stop-btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .chat-action-btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .chat-container-modern {
@@ -2479,7 +2680,26 @@
   }
 
   .chat-input-modern {
-    padding: 0.625rem 0.75rem;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    padding: 0.625rem 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: rgba(14, 165, 233, 0.02) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Adicionar padding-bottom no container de mensagens */
+  .chat-messages-modern {
+    padding-bottom: 100px !important;
   }
 
   .chat-input-field {
