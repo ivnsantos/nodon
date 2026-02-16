@@ -938,7 +938,6 @@ const Chat = () => {
             </div>
             <div>
               <h2>IA NODON</h2>
-              <p>Converse sobre casos odontológicos e obtenha insights inteligentes</p>
             </div>
           </div>
           <div className="chat-header-right">

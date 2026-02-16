@@ -79,7 +79,7 @@ const Layout = () => {
     { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
     { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
     { path: '/app/feedback', label: 'Feedback', icon: faComment },
-    { path: '/app/chat', label: 'Chat IA', icon: faComments },
+    { path: '/app/chat', label: 'Chat IA NODON', icon: faComments },
     { path: '/app/anotacoes', label: 'Anotações', icon: faStickyNote },
     { 
       path: '/app/perfil', 
@@ -172,9 +172,9 @@ const Layout = () => {
     if (path.startsWith('/app/orcamentos/') && path.includes('/editar')) return 'Editar Orçamento'
     if (path.startsWith('/app/orcamentos/') && path !== '/app/orcamentos') return 'Detalhes do Orçamento'
     
-    // Se limiteAnalises === 0 e estiver em /app, retornar "Chat IA" (será redirecionado)
+    // Se limiteAnalises === 0 e estiver em /app, retornar "Chat IA NODON" (será redirecionado)
     if (limiteAnalises === 0 && path === '/app') {
-      return 'Chat IA'
+      return 'Chat IA NODON'
     }
     
     // Procurar no menu
