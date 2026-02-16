@@ -46,6 +46,7 @@ const Clientes = () => {
   // Fechar dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Fechar dropdown de filtro
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false)
       }
@@ -62,8 +63,16 @@ const Clientes = () => {
         }
       })
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    
+    // Adicionar listener com pequeno delay para não interferir com o clique que abriu o dropdown
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 100)
+    
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [statusDropdownOpen])
 
   useEffect(() => {
@@ -214,11 +223,27 @@ const Clientes = () => {
     setClienteToDelete(null)
   }
 
-  const handleToggleStatusDropdown = (clienteId) => {
-    setStatusDropdownOpen(prev => ({
-      ...prev,
-      [clienteId]: !prev[clienteId]
-    }))
+  const handleToggleStatusDropdown = (clienteId, e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
+    setStatusDropdownOpen(prev => {
+      const isCurrentlyOpen = prev[clienteId]
+      const newState = {}
+      
+      // Se o dropdown atual está fechado, abrir ele
+      if (!isCurrentlyOpen) {
+        newState[clienteId] = true
+        console.log('Abrindo dropdown para cliente:', clienteId, newState)
+      } else {
+        console.log('Fechando dropdown para cliente:', clienteId)
+      }
+      // Se está aberto, newState vazio fecha todos
+      
+      return newState
+    })
   }
 
   const handleUpdateStatus = async (clienteId, novoStatusValue) => {
@@ -392,20 +417,26 @@ const Clientes = () => {
                       <span 
                         className="status-badge status-badge-clickable"
                         style={{ backgroundColor: getStatusColor(cliente.status) }}
-                        onClick={() => handleToggleStatusDropdown(cliente.id)}
+                        onClick={(e) => handleToggleStatusDropdown(cliente.id, e)}
                         title="Clique para alterar status"
                       >
                         {getStatusLabel(cliente.status)}
                         <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen[cliente.id] ? 'open' : ''}`} />
                       </span>
                       {statusDropdownOpen[cliente.id] && (
-                        <div className="status-dropdown-menu">
+                        <div 
+                          className="status-dropdown-menu"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
                             <div
                               key={statusOption}
                               className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
                               style={{ backgroundColor: getStatusColor(statusOption) }}
-                              onClick={() => handleUpdateStatus(cliente.id, statusOption)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleUpdateStatus(cliente.id, statusOption)
+                              }}
                             >
                               <span>{getStatusLabel(statusOption)}</span>
                               {cliente.status === statusOption && (

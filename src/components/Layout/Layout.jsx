@@ -58,6 +58,14 @@ const Layout = () => {
   const clinicLogo = (selectedClinicData?.logo && selectedClinicData.logo !== null) ? selectedClinicData.logo : nodoLogo
   const clinicName = (selectedClinicData?.nomeEmpresa && selectedClinicData.nomeEmpresa !== null) ? selectedClinicData.nomeEmpresa : 'NODON'
   const userName = (user?.nome || 'Usuário').split(' ')[0]
+  // Função para obter primeiro e último nome
+  const getFirstAndLastName = (fullName) => {
+    if (!fullName) return 'Usuário'
+    const names = fullName.trim().split(' ')
+    if (names.length === 1) return names[0]
+    return `${names[0]} ${names[names.length - 1]}`
+  }
+  const userDisplayName = getFirstAndLastName(user?.nome)
   const clinicColor = (selectedClinicData?.cor && selectedClinicData.cor !== null) ? selectedClinicData.cor : '#0ea5e9'
   const clinicDocumento = (selectedClinicData?.documento && selectedClinicData.documento !== null) ? selectedClinicData.documento : null
   
@@ -309,7 +317,7 @@ const Layout = () => {
             )
           })}
           
-          {/* Botões no final do menu */}
+          {/* Botão no final do menu */}
           <div className="nav-menu-footer">
             <button 
               className="nav-item clinic-btn-nav" 
@@ -325,23 +333,25 @@ const Layout = () => {
               </span>
               {!sidebarMinimized && <span className="nav-label">Voltar para o Inicio</span>}
             </button>
-            <button 
-              className="nav-item logout-btn-nav" 
-              onClick={handleLogout}
-              title={sidebarMinimized ? 'Sair' : ''}
-            >
-              <span className="nav-icon">
-                <FontAwesomeIcon icon={faSignOutAlt} />
-              </span>
-              {!sidebarMinimized && <span className="nav-label">Sair</span>}
-            </button>
           </div>
         </nav>
 
         <div className="sidebar-footer">
           {!sidebarMinimized && (
-            <div className="user-avatar">
-              {userName.charAt(0).toUpperCase()}
+            <div className="user-info-footer">
+              <div className="user-avatar">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div className="user-name-footer">
+                {userDisplayName}
+              </div>
+              <button 
+                className="logout-btn-footer" 
+                onClick={handleLogout}
+                title="Sair"
+              >
+                <FontAwesomeIcon icon={faSignOutAlt} />
+              </button>
             </div>
           )}
           {sidebarMinimized && (

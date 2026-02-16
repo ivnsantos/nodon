@@ -1308,28 +1308,30 @@ const ClienteDetalhes = () => {
   return (
     <div className="cliente-detalhes-page">
       <div className="cliente-detalhes-header">
-        <button className="btn-back" onClick={() => navigate('/app/clientes')}>
-          <FontAwesomeIcon icon={faArrowLeft} />
-          Voltar
-        </button>
-        {isMaster && (
-          <div className="header-actions">
-            <button
-              className="btn-orcamento-header"
-              onClick={() => navigate(`/app/orcamentos/novo?pacienteId=${id}`)}
-            >
-              <FontAwesomeIcon icon={faFileInvoiceDollar} />
-              Novo Orçamento
-            </button>
-            <button
-              className="btn-edit-header"
-              onClick={() => navigate(`/app/clientes/${id}/editar`)}
-            >
-              <FontAwesomeIcon icon={faEdit} />
-              Editar Cliente
-            </button>
-          </div>
-        )}
+        <div className="header-actions">
+          <button className="btn-back" onClick={() => navigate('/app/clientes')}>
+            <FontAwesomeIcon icon={faArrowLeft} />
+            Voltar
+          </button>
+          {isMaster && (
+            <>
+              <button
+                className="btn-orcamento-header"
+                onClick={() => navigate(`/app/orcamentos/novo?pacienteId=${id}`)}
+              >
+                <FontAwesomeIcon icon={faFileInvoiceDollar} />
+                Novo Orçamento
+              </button>
+              <button
+                className="btn-edit-header"
+                onClick={() => navigate(`/app/clientes/${id}/editar`)}
+              >
+                <FontAwesomeIcon icon={faEdit} />
+                Editar Cliente
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="cliente-detalhes-content">
