@@ -59,12 +59,24 @@
    FORM FIXO NO FINAL DA PÁGINA
    ============================================ */
 @media (max-width: 768px) {
+  /* Prevenir pull-to-refresh no body quando chat está aberto */
+  body:has(.chat-modern) {
+    overscroll-behavior-y: none !important;
+    touch-action: pan-y !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  
   /* Reset completo do content-area */
   .content-area:has(.chat-modern) {
     padding: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
     position: relative !important;
+    overscroll-behavior: none !important;
+    touch-action: pan-y !important;
   }
   
   /* Chat modern ocupa toda a tela com flexbox */
@@ -80,6 +92,8 @@
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
+    overscroll-behavior: none !important;
+    touch-action: pan-y !important;
   }
   
   /* Container usa flexbox e ocupa espaço disponível */
@@ -90,6 +104,7 @@
     min-height: 0 !important;
     overflow: hidden !important;
     position: relative !important;
+    overscroll-behavior: none !important;
   }
   
   /* Content wrapper ocupa espaço disponível */
@@ -99,9 +114,10 @@
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
+    overscroll-behavior: none !important;
   }
   
-  /* Mensagens com scroll - espaço para o form fixo */
+  /* Mensagens com scroll fluido - espaço para o form fixo */
   .chat-messages-modern {
     flex: 1 !important;
     overflow-y: auto !important;
@@ -109,6 +125,12 @@
     padding: 1rem !important;
     padding-bottom: 1rem !important;
     min-height: 0 !important;
+    overscroll-behavior-y: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+    touch-action: pan-y !important;
+    /* Prevenir pull-to-refresh */
+    overscroll-behavior: contain !important;
   }
   
   /* FORM FIXO NO FINAL - FORA DO CONTAINER */
@@ -136,6 +158,11 @@
     height: auto !important;
     max-height: 50vh !important;
     overflow-y: auto !important;
+    overscroll-behavior: none !important;
+    touch-action: pan-y !important;
+    /* Garantir que o form fique visível quando o teclado aparece */
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
   }
   
   /* Elementos do form sempre visíveis */
@@ -1042,6 +1069,9 @@
   width: 100%;
   box-sizing: border-box;
   word-wrap: break-word;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   word-break: break-word;
   overflow-wrap: break-word;
 }

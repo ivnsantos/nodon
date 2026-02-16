@@ -379,6 +379,21 @@ const Chat = () => {
     setShowHistory(false)
   }
 
+  const handleInputFocus = () => {
+    // Quando o input recebe foco, garantir que fique visível
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        // Scroll suave para o final para ver o input
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    }, 300) // Aguardar o teclado aparecer
+  }
+
+  const handleInputBlur = () => {
+    // Quando o input perde o foco, manter a posição
+    setIsTyping(false)
+  }
+
   const handleInputChange = (e) => {
     const value = e.target.value
     setInput(value)
@@ -1299,15 +1314,17 @@ const Chat = () => {
             <FontAwesomeIcon icon={faMicrophone} />
           </button>
 
-          <input
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            onPaste={handlePaste}
-            placeholder={tokensBlocked ? "Limite de tokens atingido" : (loading ? "Aguarde a resposta..." : "Digite sua mensagem ou cole uma imagem...")}
-            className="chat-input-field"
-            disabled={loading || tokensBlocked || isRecording}
-          />
+            <input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              onPaste={handlePaste}
+              placeholder={tokensBlocked ? "Limite de tokens atingido" : (loading ? "Aguarde a resposta..." : "Digite sua mensagem ou cole uma imagem...")}
+              className="chat-input-field"
+              disabled={loading || tokensBlocked || isRecording}
+            />
           {isStreaming ? (
             <button 
               type="button" 
