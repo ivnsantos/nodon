@@ -308,6 +308,34 @@ const Layout = () => {
               </div>
             )
           })}
+          
+          {/* Botões no final do menu */}
+          <div className="nav-menu-footer">
+            <button 
+              className="nav-item clinic-btn-nav" 
+              onClick={() => {
+                clearUserComumId()
+                navigate('/select-clinic')
+                closeSidebar()
+              }}
+              title={sidebarMinimized ? 'Voltar para o Inicio' : ''}
+            >
+              <span className="nav-icon">
+                <FontAwesomeIcon icon={faBuilding} />
+              </span>
+              {!sidebarMinimized && <span className="nav-label">Voltar para o Inicio</span>}
+            </button>
+            <button 
+              className="nav-item logout-btn-nav" 
+              onClick={handleLogout}
+              title={sidebarMinimized ? 'Sair' : ''}
+            >
+              <span className="nav-icon">
+                <FontAwesomeIcon icon={faSignOutAlt} />
+              </span>
+              {!sidebarMinimized && <span className="nav-label">Sair</span>}
+            </button>
+          </div>
         </nav>
 
         <div className="sidebar-footer">
@@ -321,26 +349,6 @@ const Layout = () => {
               {userName.charAt(0).toUpperCase()}
             </div>
           )}
-          <button 
-            className="clinic-btn" 
-            onClick={() => {
-              clearUserComumId()
-              navigate('/select-clinic')
-              closeSidebar()
-            }}
-            title={sidebarMinimized ? 'Voltar para o Inicio' : ''}
-          >
-            <FontAwesomeIcon icon={faBuilding} />
-            {!sidebarMinimized && <span>Voltar para o Inicio</span>}
-          </button>
-          <button 
-            className="logout-btn" 
-            onClick={handleLogout}
-            title={sidebarMinimized ? 'Sair' : ''}
-          >
-            <FontAwesomeIcon icon={faSignOutAlt} />
-            {!sidebarMinimized && <span>Sair</span>}
-          </button>
         </div>
       </aside>
 
