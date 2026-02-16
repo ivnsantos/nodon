@@ -123,7 +123,7 @@
     overflow-y: auto !important;
     overflow-x: hidden !important;
     padding: 1rem !important;
-    padding-bottom: 1rem !important;
+    padding-bottom: 120px !important; /* Espaço suficiente para o form fixo */
     min-height: 0 !important;
     overscroll-behavior-y: none !important;
     -webkit-overflow-scrolling: touch !important;
@@ -131,6 +131,8 @@
     touch-action: pan-y !important;
     /* Prevenir pull-to-refresh */
     overscroll-behavior: contain !important;
+    /* Garantir que o conteúdo sempre fique acima do form */
+    margin-bottom: 0 !important;
   }
   
   /* FORM FIXO NO FINAL - FORA DO CONTAINER */
@@ -149,7 +151,7 @@
     background: rgba(14, 165, 233, 0.02) !important;
     backdrop-filter: blur(10px) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
     padding: 0.75rem 1rem !important;
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
     box-sizing: border-box !important;
@@ -163,6 +165,8 @@
     /* Garantir que o form fique visível quando o teclado aparece */
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
+    /* Sempre ficar acima do conteúdo */
+    position: fixed !important;
   }
   
   /* Elementos do form sempre visíveis */
@@ -206,6 +210,8 @@
     outline: none !important;
     transform: scale(1) !important;
     zoom: 1 !important;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3) !important; /* Sombra mais sutil */
+    border-color: rgba(14, 165, 233, 0.5) !important;
   }
   
   .chat-input-modern .chat-input-field::placeholder {
@@ -331,7 +337,7 @@
     background: rgba(14, 165, 233, 0.02) !important;
     backdrop-filter: blur(10px) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
     padding: 0.75rem 1.5rem !important;
     box-sizing: border-box !important;
     margin: 0 !important;
@@ -1069,11 +1075,13 @@
   width: 100%;
   box-sizing: border-box;
   word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  /* Garantir que o conteúdo sempre fique acima do form */
+  margin-bottom: 0;
 }
 
 .message-enter {
@@ -1853,11 +1861,8 @@
   outline: none !important;
   border-color: rgba(14, 165, 233, 0.5) !important;
   background: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 
-    0 0 0 3px rgba(14, 165, 233, 0.15),
-    0 0 20px rgba(14, 165, 233, 0.1),
-    inset 0 1px 2px rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 0px rgba(14, 165, 233, 0.3) !important; /* Sombra mais sutil */
+  transform: none !important; /* Remover movimento */
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
 }
@@ -2628,7 +2633,7 @@
     width: 100% !important;
     background: rgba(14, 165, 233, 0.02) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
     display: flex !important;
     flex-direction: column !important;
   }
@@ -2721,7 +2726,7 @@
     background: rgba(14, 165, 233, 0.02) !important;
     backdrop-filter: blur(10px) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
     visibility: visible !important;
     opacity: 1 !important;
     padding: 0.75rem 1rem !important;
@@ -3017,7 +3022,7 @@
     max-width: 100% !important;
     background: rgba(14, 165, 233, 0.02) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
     display: flex !important;
     flex-direction: column !important;
     visibility: visible !important;
@@ -3048,6 +3053,8 @@
     outline: none !important;
     transform: scale(1) !important;
     zoom: 1 !important;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3) !important; /* Sombra mais sutil */
+    border-color: rgba(14, 165, 233, 0.5) !important;
   }
   
   .chat-input-field::placeholder {
