@@ -123,8 +123,9 @@
     overflow-y: auto !important;
     overflow-x: hidden !important;
     padding: 1rem !important;
-    padding-bottom: 120px !important; /* Espaço suficiente para o form fixo */
+    padding-bottom: 150px !important; /* Espaço suficiente para o form fixo */
     min-height: 0 !important;
+    max-height: calc(100vh - 200px) !important; /* Limitar altura para não passar do form */
     overscroll-behavior-y: none !important;
     -webkit-overflow-scrolling: touch !important;
     scroll-behavior: smooth !important;
@@ -150,8 +151,7 @@
     opacity: 1 !important;
     background: rgba(14, 165, 233, 0.02) !important;
     backdrop-filter: blur(10px) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;/* Sombra mais sutil */
     padding: 0.75rem 1rem !important;
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
     box-sizing: border-box !important;
@@ -1062,7 +1062,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 2rem 2rem;
-  padding-bottom: 120px;
+  padding-bottom: 150px; /* Espaço suficiente para o form fixo */
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -1079,6 +1079,7 @@
   touch-action: pan-y;
   /* Garantir que o conteúdo sempre fique acima do form */
   margin-bottom: 0;
+  max-height: calc(100vh - 180px); /* Limitar altura para não passar do form */
 }
 
 .message-enter {
@@ -2610,7 +2611,6 @@
     width: 100% !important;
     background: rgba(14, 165, 233, 0.02) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important; /* Sombra mais sutil */
     display: flex !important;
     flex-direction: column !important;
   }
