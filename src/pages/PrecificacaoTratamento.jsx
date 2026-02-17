@@ -120,6 +120,22 @@ const PrecificacaoTratamento = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Validações básicas
+    if (!formData.name || !formData.name.trim()) {
+      showError('Nome do tratamento é obrigatório')
+      return
+    }
+    
+    if (!formData.averageDurationMinutes || formData.averageDurationMinutes <= 0) {
+      showError('Duração média deve ser maior que zero')
+      return
+    }
+    
+    if (!formData.price || formData.price <= 0) {
+      showError('Preço deve ser maior que zero')
+      return
+    }
+    
     try {
       setLoading(true)
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
@@ -700,10 +716,30 @@ const PrecificacaoTratamento = () => {
                         </option>
                       ))}
                     </select>
+                    {product.productId && (() => {
+                      const selectedProduct = produtos.find(p => p.id === product.productId)
+                      if (selectedProduct) {
+                        return (
+                          <div className="product-info-display">
+                            <div className="product-info-item">
+                              <span className="product-info-label">Tipo de Unidade:</span>
+                              <span className="product-info-value">{selectedProduct.unitType || 'N/A'}</span>
+                            </div>
+                            {selectedProduct.stockQuantity !== null && selectedProduct.stockQuantity !== undefined && (
+                              <div className="product-info-item">
+                                <span className="product-info-label">Quantidade do produto:</span>
+                                <span className="product-info-value">{parseFloat(selectedProduct.stockQuantity).toFixed(2)} {selectedProduct.unitType || ''}</span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
                   </div>
                   <div className="product-item-bottom">
                     <div className="form-group quantity-field">
-                      <label>Quantidade *</label>
+                      <label>Quanto você utiliza deste produto? *</label>
                       <div className="quantity-input-wrapper">
                         <input
                           type="number"
@@ -716,6 +752,10 @@ const PrecificacaoTratamento = () => {
                           min="0.01"
                           required
                           className={product.productId ? 'has-unit-type' : ''}
+                          placeholder={product.productId ? (() => {
+                            const selectedProduct = produtos.find(p => p.id === product.productId)
+                            return selectedProduct?.stockQuantity ? `Ex: ${parseFloat(selectedProduct.stockQuantity).toFixed(2)}` : ''
+                          })() : ''}
                         />
                         {product.productId && (() => {
                           const selectedProduct = produtos.find(p => p.id === product.productId)

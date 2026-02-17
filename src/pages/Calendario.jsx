@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faCalendarAlt, faChevronLeft, faChevronRight, faPlus,
   faClock, faUser, faMapMarkerAlt, faCog, faTrash, faEdit, faPalette, faTimes, faStickyNote, faUserCircle, faUserMd,
-  faSpinner, faIdCard, faEnvelope, faCheckCircle
+  faSpinner, faIdCard, faEnvelope, faCheckCircle, faLink, faInfoCircle
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
@@ -15,7 +15,7 @@ const Calendario = () => {
   const { user, selectedClinicId, isClienteMaster, isUsuario, userComumId, selectedClinicData } = useAuth()
   
   // Hook para modal de alerta
-  const { alertConfig, showError, showWarning, hideAlert } = useAlert()
+  const { alertConfig, showError, showWarning, showSuccess, hideAlert } = useAlert()
   
   // Verificar se as funções existem (fallback caso não estejam disponíveis)
   const checkIsClienteMaster = () => {
@@ -37,6 +37,7 @@ const Calendario = () => {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showTypesModal, setShowTypesModal] = useState(false)
   const [showEventModal, setShowEventModal] = useState(false)
+  const [isGerarLink, setIsGerarLink] = useState(false)
   const [eventTypes, setEventTypes] = useState([])
   const [editingType, setEditingType] = useState(null)
   const [events, setEvents] = useState([])
@@ -46,8 +47,9 @@ const Calendario = () => {
   const [filterProfessionalId, setFilterProfessionalId] = useState(null) // null = todos
   const [loading, setLoading] = useState(false)
   const [loadingEvents, setLoadingEvents] = useState(false)
-  const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
   const [clienteMasterInfo, setClienteMasterInfo] = useState(null) // Info do cliente master para o filtro
+  const [showLinkModal, setShowLinkModal] = useState(false)
+  const [linkGerado, setLinkGerado] = useState('')
 
   // Carregar tipos da API
   useEffect(() => {
@@ -476,20 +478,19 @@ const Calendario = () => {
 
       // Validar campos obrigatórios
       if (!eventData.typeId) {
-        setCustomAlert({ show: true, message: 'Por favor, selecione um tipo de consulta.', type: 'error' })
-        setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+        showError('Por favor, selecione um tipo de consulta.')
         return
       }
       
-      if (!eventData.patientId) {
-        setCustomAlert({ show: true, message: 'Por favor, selecione um paciente.', type: 'error' })
-        setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+      // Só validar paciente se não for gerar link (patientId não é null)
+      // Se patient é null, significa que é gerar link, então não validar
+      if (eventData.patient !== null && !eventData.patientId) {
+        showError('Por favor, selecione um paciente.')
         return
       }
 
       if (!eventData.time || !/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(eventData.time)) {
-        setCustomAlert({ show: true, message: 'Por favor, informe uma hora válida no formato HH:MM.', type: 'error' })
-        setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+        showError('Por favor, informe uma hora válida no formato HH:MM.')
         return
       }
 
@@ -500,7 +501,8 @@ const Calendario = () => {
       // Preparar dados para a API (usando camelCase conforme esperado)
       const payload = {
         tipoConsultaId: eventData.typeId,
-        pacienteId: eventData.patientId,
+        // Só incluir pacienteId se não for null (gerar link)
+        ...(eventData.patientId !== null && { pacienteId: eventData.patientId }),
         profissionalId: profissionalId, // null se for cliente master, ou UUID do usuário comum
         titulo: eventData.title || null, // Será gerado automaticamente se null
         dataConsulta: dateStr,
@@ -519,16 +521,55 @@ const Calendario = () => {
       }
 
       if (response.data.statusCode === 200 || response.data.statusCode === 201) {
+        // Se for gerar link (sem paciente), mostrar o link gerado
+        if (isGerarLink && !editingEvent) {
+          // Tentar várias formas de extrair o ID da consulta
+          const consultaId = 
+            response.data?.data?.consulta?.id || 
+            response.data?.data?.id || 
+            response.data?.consulta?.id ||
+            response.data?.id ||
+            response.data?.data?.data?.consulta?.id
+          
+          console.log('Gerando link - Response completo:', response.data)
+          console.log('Consulta ID encontrado:', consultaId)
+          
+          if (consultaId) {
+            const link = `${window.location.origin}/agendamento/${consultaId}`
+            console.log('Link gerado:', link)
+            
+            // Fechar o modal de gerar link primeiro
+            setShowEventModal(false)
+            setEditingEvent(null)
+            setIsGerarLink(false)
+            
+            // Recarregar consultas
+            await fetchConsultas()
+            
+            // Pequeno delay para garantir que o modal anterior foi fechado
+            setTimeout(() => {
+              console.log('Abrindo modal com link:', link)
+              setLinkGerado(link)
+              setShowLinkModal(true)
+            }, 500) // Delay para garantir que o modal anterior foi fechado
+            return // Sair da função para não executar o código abaixo
+          } else {
+            console.error('ERRO: Consulta ID não encontrado na resposta')
+            console.error('Estrutura da resposta:', JSON.stringify(response.data, null, 2))
+            showError('Erro ao gerar link: ID da consulta não encontrado')
+          }
+        }
+        
         // Recarregar consultas após salvar
         await fetchConsultas()
         setShowEventModal(false)
         setEditingEvent(null)
+        setIsGerarLink(false)
       }
     } catch (error) {
       console.error('Erro ao salvar consulta:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao salvar consulta. Tente novamente.'
-      setCustomAlert({ show: true, message: errorMessage, type: 'error' })
-      setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+      showError(errorMessage)
     }
   }
 
@@ -581,11 +622,23 @@ const Calendario = () => {
             className="btn-calendario btn-primary"
             onClick={() => {
               setEditingEvent(null)
+              setIsGerarLink(false)
               setShowEventModal(true)
             }}
           >
             <FontAwesomeIcon icon={faPlus} />
             Nova Consulta
+          </button>
+          <button 
+            className="btn-calendario btn-secondary"
+            onClick={() => {
+              setEditingEvent(null)
+              setIsGerarLink(true)
+              setShowEventModal(true)
+            }}
+          >
+            <FontAwesomeIcon icon={faLink} />
+            Gerar Link
           </button>
         </div>
       </div>
@@ -799,7 +852,7 @@ const Calendario = () => {
         />
       )}
 
-      {/* Modal de Nova Consulta */}
+      {/* Modal de Nova Consulta / Gerar Link */}
       {showEventModal && (
         <NewEventModal
           eventTypes={eventTypes}
@@ -810,9 +863,13 @@ const Calendario = () => {
           setClientes={setClientes}
           profissionais={profissionais}
           currentUser={user}
+          showError={showError}
+          showSuccess={showSuccess}
+          isGerarLink={isGerarLink}
           onClose={() => {
             setShowEventModal(false)
             setEditingEvent(null)
+            setIsGerarLink(false)
           }}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
@@ -827,6 +884,47 @@ const Calendario = () => {
         message={alertConfig.message}
         type={alertConfig.type}
       />
+
+      {/* Modal de Link Gerado */}
+      {showLinkModal && linkGerado && (
+        <div className="modal-overlay" onClick={() => setShowLinkModal(false)}>
+          <div className="modal-link-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-link-header">
+              <div className="link-success-icon">
+                <FontAwesomeIcon icon={faCheckCircle} />
+              </div>
+              <h2>Link Gerado com Sucesso!</h2>
+              <p>Compartilhe este link com o paciente para que ele possa se cadastrar e confirmar o agendamento.</p>
+            </div>
+            <div className="modal-link-body">
+              <label>Link do Agendamento:</label>
+              <div className="link-display-wrapper">
+                <input 
+                  type="text" 
+                  value={linkGerado} 
+                  readOnly 
+                  className="link-input"
+                />
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(linkGerado)
+                    showSuccess('Link copiado para a área de transferência!')
+                  }}
+                  className="btn-copy-link"
+                >
+                  <FontAwesomeIcon icon={faIdCard} />
+                  Copiar
+                </button>
+              </div>
+            </div>
+            <div className="modal-link-footer">
+              <button onClick={() => setShowLinkModal(false)} className="btn-close-link">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -970,7 +1068,8 @@ const EventTypesModal = ({ eventTypes, onClose, onAdd, onEdit, onDelete, editing
 }
 
 // Componente Modal de Nova Consulta
-const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, onClose, onSave, onDelete }) => {
+const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete }) => {
+  
   const [formData, setFormData] = useState({
     title: '',
     date: editingEvent 
@@ -989,6 +1088,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
   const [searchResults, setSearchResults] = useState([])
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [searching, setSearching] = useState(false)
+  const isModalJustOpened = useRef(false)
   
   // Debounce para busca
   useEffect(() => {
@@ -1100,26 +1200,63 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
         if (paciente) {
           setSearchTerm(paciente.nome + (paciente.cpf ? ` (${paciente.cpf})` : ''))
         }
+      } else {
+        setSearchTerm('')
       }
+      // Resetar flag quando está editando
+      isModalJustOpened.current = false
     } else {
-      // Limpar busca ao criar novo evento
-      setSearchTerm('')
-      setSearchResults([])
-      setShowSearchResults(false)
+      // Quando não está editando (criando novo evento), limpar apenas na primeira vez que o modal abre
+      if (!isModalJustOpened.current) {
+        isModalJustOpened.current = true
+        setSearchTerm('')
+        setSearchResults([])
+        setShowSearchResults(false)
+      }
     }
-  }, [editingEvent, eventTypes, clientes])
+  }, [editingEvent, eventTypes])
+  
+  // Resetar flag quando o componente é desmontado (modal fecha)
+  useEffect(() => {
+    return () => {
+      isModalJustOpened.current = false
+    }
+  }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!formData.typeId) {
-      setCustomAlert({ show: true, message: 'Selecione um tipo de consulta/tratamento', type: 'error' })
-      setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+    
+    // Validar todos os campos obrigatórios
+    if (!formData.typeId || formData.typeId.trim() === '') {
+      showError('Selecione um tipo de consulta/tratamento')
       return
     }
 
-    if (!formData.patientId) {
-      setCustomAlert({ show: true, message: 'Selecione um paciente', type: 'error' })
-      setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+    // Só validar paciente se não for gerar link
+    if (!isGerarLink && !formData.patientId) {
+      showError('Selecione um paciente')
+      return
+    }
+    
+    if (!formData.date || formData.date.trim() === '') {
+      showError('Selecione uma data')
+      return
+    }
+    
+    if (!formData.time || formData.time.trim() === '') {
+      showError('Informe a hora da consulta')
+      return
+    }
+    
+    // Validar formato da hora
+    if (!/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(formData.time)) {
+      showError('Informe uma hora válida no formato HH:MM (ex: 09:00)')
+      return
+    }
+    
+    // Validar se selecionou profissional quando escolheu "Outro Profissional"
+    if (formData.professionalType === 'professional' && !formData.professionalId) {
+      showError('Selecione um profissional ou escolha "Eu" como responsável')
       return
     }
 
@@ -1174,12 +1311,12 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
     }
 
     const eventData = {
-      title: formData.title || `${eventTypes.find(t => t.id === formData.typeId || t.id === String(formData.typeId))?.name || 'Consulta'} - ${patientName}`,
+      title: formData.title || `${eventTypes.find(t => t.id === formData.typeId || t.id === String(formData.typeId))?.name || 'Consulta'}${!isGerarLink ? ` - ${patientName}` : ''}`,
       date: eventDate,
       time: formData.time,
       typeId: formData.typeId, // UUID, não precisa de parseInt
-      patient: patientName,
-      patientId: formData.patientId, // UUID, não precisa de parseInt
+      patient: !isGerarLink ? patientName : null,
+      patientId: !isGerarLink ? formData.patientId : null, // UUID, não precisa de parseInt - null quando gerar link
       professional: professionalName,
       professionalId: professionalId,
       professionalType: formData.professionalType,
@@ -1191,27 +1328,50 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
       onSave(eventData)
     } catch (error) {
       console.error('Erro ao chamar onSave:', error)
-      setCustomAlert({ show: true, message: 'Erro ao processar formulário. Verifique o console.', type: 'error' })
-      setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 4000)
+      showError('Erro ao processar formulário. Verifique o console.')
     }
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content-event" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-content-event ${isGerarLink ? 'modal-gerar-link' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-event">
-          <h2>
-            <FontAwesomeIcon icon={faCalendarAlt} />
-            {editingEvent ? 'Editar Consulta' : 'Nova Consulta'}
-          </h2>
+          <div className="modal-header-content">
+            <div className="modal-header-icon">
+              <FontAwesomeIcon icon={isGerarLink ? faLink : faCalendarAlt} />
+            </div>
+            <div className="modal-header-text">
+              <h2>
+                {editingEvent ? 'Editar Consulta' : (isGerarLink ? 'Gerar Link de Agendamento' : 'Nova Consulta')}
+              </h2>
+              {isGerarLink && (
+                <p className="modal-subtitle">Crie um link para que pacientes possam agendar esta consulta</p>
+              )}
+            </div>
+          </div>
           <button className="modal-close-btn" onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 
         <form className="event-form" onSubmit={handleSubmit}>
+          {isGerarLink && (
+            <div className="form-info-banner">
+              <FontAwesomeIcon icon={faInfoCircle} />
+              <span>O paciente poderá se cadastrar através do link gerado</span>
+            </div>
+          )}
+          
+          <div className="form-section-title">
+            <FontAwesomeIcon icon={faCalendarAlt} />
+            <span>Informações da Consulta</span>
+          </div>
+          
           <div className="form-group">
-            <label>Tipo de Consulta/Tratamento *</label>
+            <label>
+              <FontAwesomeIcon icon={faStickyNote} />
+              Tipo de Consulta/Tratamento *
+            </label>
             <select
               value={formData.typeId}
               onChange={(e) => setFormData({ ...formData, typeId: e.target.value })}
@@ -1238,7 +1398,10 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
 
           <div className="form-row">
             <div className="form-group">
-              <label>Data *</label>
+              <label>
+                <FontAwesomeIcon icon={faCalendarAlt} />
+                Data *
+              </label>
               <input
                 type="date"
                 value={formData.date}
@@ -1249,7 +1412,10 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             </div>
 
             <div className="form-group">
-              <label>Hora *</label>
+              <label>
+                <FontAwesomeIcon icon={faClock} />
+                Hora *
+              </label>
               <input
                 type="time"
                 value={formData.time}
@@ -1260,8 +1426,12 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             </div>
           </div>
 
+          {!isGerarLink && (
           <div className="form-group">
-            <label>Paciente/Cliente *</label>
+            <label>
+              <FontAwesomeIcon icon={faUser} />
+              Paciente/Cliente *
+            </label>
             <div className="patient-search-container">
               <div className="patient-search-input-wrapper">
                 <input
@@ -1393,9 +1563,15 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
               )
             })()}
           </div>
+          )}
 
+          <div className="form-section-title">
+            <FontAwesomeIcon icon={faUserMd} />
+            <span>Profissional Responsável</span>
+          </div>
+          
           <div className="form-group">
-            <label>Profissional Responsável</label>
+            <label>Selecione o profissional responsável</label>
             <div className="professional-type-selector">
               <button
                 type="button"
@@ -1468,8 +1644,16 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             )}
           </div>
 
+          <div className="form-section-title">
+            <FontAwesomeIcon icon={faStickyNote} />
+            <span>Informações Adicionais</span>
+          </div>
+          
           <div className="form-group">
-            <label>Título da Consulta</label>
+            <label>
+              <FontAwesomeIcon icon={faEdit} />
+              Título da Consulta
+            </label>
             <input
               type="text"
               value={formData.title}
@@ -1480,7 +1664,10 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
           </div>
 
           <div className="form-group">
-            <label>Observações</label>
+            <label>
+              <FontAwesomeIcon icon={faStickyNote} />
+              Observações
+            </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -1489,6 +1676,37 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
               className="form-textarea"
             />
           </div>
+
+          {editingEvent && !editingEvent.patientId && (
+            <div className="link-display-section">
+              <div className="link-display-content">
+                <label>
+                  <FontAwesomeIcon icon={faLink} />
+                  Link do Agendamento
+                </label>
+                <div className="link-display-wrapper">
+                  <input 
+                    type="text" 
+                    value={`${window.location.origin}/agendamento/${editingEvent.id}`} 
+                    readOnly 
+                    className="link-input"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const link = `${window.location.origin}/agendamento/${editingEvent.id}`
+                      navigator.clipboard.writeText(link)
+                      showSuccess('Link copiado para a área de transferência!')
+                    }}
+                    className="btn-copy-link"
+                  >
+                    <FontAwesomeIcon icon={faIdCard} />
+                    Copiar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="form-actions">
             {editingEvent && (
@@ -1505,7 +1723,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
               Cancelar
             </button>
             <button type="submit" className="btn-save">
-              {editingEvent ? 'Salvar Alterações' : 'Criar Consulta'}
+              {editingEvent ? 'Salvar Alterações' : (isGerarLink ? 'Gerar Link' : 'Criar Consulta')}
             </button>
           </div>
         </form>

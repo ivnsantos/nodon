@@ -48,6 +48,7 @@ import PrecificacaoTratamento from './pages/PrecificacaoTratamento'
 import PrecificacaoCategoria from './pages/PrecificacaoCategoria'
 import PrecificacaoProduto from './pages/PrecificacaoProduto'
 import Anotacoes from './pages/Anotacoes'
+import AgendamentoPublico from './pages/AgendamentoPublico'
 import { AuthProvider } from './context/AuthContext'
 import { ChatHeaderProvider } from './context/ChatHeaderContext'
 
@@ -146,6 +147,11 @@ function AppRoutes() {
         <Route path="/responder-questionario/:id/iniciar" element={
           <PublicRoute>
             <ResponderQuestionarioForm />
+          </PublicRoute>
+        } />
+        <Route path="/agendamento/:id" element={
+          <PublicRoute>
+            <AgendamentoPublico />
           </PublicRoute>
         } />
         <Route path="/app" element={
