@@ -1,21 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faBars, faTimes, faMessage, faRocket, 
-  faChartBar, faSearch, faBolt, faMapMarkerAlt,
+  faChartBar, faSearch, faBolt, faUsers,
   faCamera, faRobot, faClipboardList, faLaptop,
-  faMobileAlt, faTv, faDesktop, faUserMd, faUsers,
+  faMobileAlt, faTv, faDesktop, faUserMd,
   faCheckCircle, faComments, faShieldAlt, faCloud,
-  faChevronDown, faTrophy, faStar, faCoins, faDollarSign, faChartLine, faFileInvoiceDollar
+  faChevronDown, faTrophy, faStar, faDollarSign, 
+  faFileInvoiceDollar, faCalendarAlt, faComment,
+  faStickyNote, faFileAlt, faClipboardQuestion,
+  faArrowRight, faCheck, faXmark, faChartLine
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import nodoLogo from '../img/nodo.png'
-import nodoImage from '../img/nodo.png'
-import exameImage from '../img/exame.jpg'
 import './Home.css'
 
 const Home = () => {
@@ -25,60 +26,13 @@ const Home = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [expandedFaq, setExpandedFaq] = useState(null)
   const [expandedPlan, setExpandedPlan] = useState(null)
-  const [isChatVisible, setIsChatVisible] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const chatSectionRef = useRef(null)
-  const [scrollProgress, setScrollProgress] = useState(0)
   const [planos, setPlanos] = useState([])
   const [loadingPlanos, setLoadingPlanos] = useState(true)
   
-  // Função para obter o horário atual
-  const getCurrentTime = () => {
-    const now = new Date()
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    return `${hours}:${minutes}`
-  }
-
-  const [chatMessages, setChatMessages] = useState([
-    { 
-      type: 'user', 
-      text: 'No que você pode me ajudar?', 
-      time: getCurrentTime(),
-      visible: false
-    },
-    { 
-      type: 'ai', 
-      text: 'Posso te ajudar com assuntos do seu dia a dia sobre Odontologia! Desde dúvidas sobre procedimentos, explicações para pacientes, até orientações sobre materiais e técnicas. Estou aqui para facilitar seu trabalho! 😊', 
-      time: getCurrentTime(),
-      visible: false
-    },
-    { 
-      type: 'user', 
-      text: 'Que bacana! E quando posso começar?', 
-      time: getCurrentTime(),
-      visible: false
-    },
-    { 
-      type: 'ai', 
-      text: 'É fácil! É só você nos contratar que iniciaremos juntos. Você terá acesso imediato a diagnticos e realtorios precisos e auxilio personlaizado 🚀', 
-      time: getCurrentTime(),
-      visible: false
-    }
-  ])
-
   const handlePlanToggle = (planId) => {
-    setExpandedPlan(prev => {
-      // Se o plano clicado já está expandido, colapsa
-      if (prev === planId) {
-        return null;
-      }
-      // Caso contrário, expande apenas o plano clicado
-      return planId;
-    });
+    setExpandedPlan(prev => prev === planId ? null : planId)
   }
 
-  // Função para obter valores padrão quando a API retorna null
   const getDefaultPrices = (nomePlano) => {
     switch (nomePlano) {
       case 'Plano Inicial':
@@ -98,7 +52,6 @@ const Home = () => {
     }
   }
 
-  // Função para converter valores (string ou número) para número
   const parsePrice = (value) => {
     if (value === null || value === undefined) return null
     if (typeof value === 'number') return value
@@ -113,13 +66,9 @@ const Home = () => {
   const loadPlanos = async () => {
     try {
       setLoadingPlanos(true)
-      // O baseURL já garante que termina com /api, então usamos apenas /planos
       const response = await api.get('/planos')
-      
-      // A API retorna { statusCode: 200, message: "Success", data: [...] }
       const data = response.data?.data || response.data
       
-      // A estrutura pode variar, então vamos tratar diferentes formatos
       let planosList = []
       if (Array.isArray(data)) {
         planosList = data
@@ -129,24 +78,20 @@ const Home = () => {
         planosList = data.plans
       }
       
-      // Processar planos usando os dados da API, com valores padrão quando null
       planosList = planosList
         .filter(plano => plano.ativo !== false)
         .map(plano => {
-          // Usar os valores que vêm da API (usar ?? para não substituir null)
           const valorOriginalRaw = plano.valorOriginal ?? plano.valor_original ?? plano.valor ?? null
           const valorPromocionalRaw = plano.valorPromocional ?? plano.valor_promocional ?? null
           
           let valorOriginal = parsePrice(valorOriginalRaw)
           let valorPromocional = parsePrice(valorPromocionalRaw)
           
-          // Se os valores vierem null da API, usar valores padrão
           if (valorOriginal === null && valorPromocional === null) {
             const defaultPrices = getDefaultPrices(plano.nome)
             valorOriginal = defaultPrices.original
             valorPromocional = defaultPrices.promocional
           } else if (valorOriginal === null && valorPromocional !== null) {
-            // Se só o original for null, usar o promocional como original
             valorOriginal = valorPromocional
           }
           
@@ -157,7 +102,6 @@ const Home = () => {
           }
         })
         .sort((a, b) => {
-          // Ordenar por valor promocional ou original (usando 0 se ambos forem null)
           const valorA = a.valorPromocional ?? a.valorOriginal ?? 0
           const valorB = b.valorPromocional ?? b.valorOriginal ?? 0
           return valorA - valorB
@@ -166,7 +110,6 @@ const Home = () => {
       setPlanos(planosList)
     } catch (error) {
       console.error('Erro ao carregar planos:', error)
-      console.error('Detalhes do erro:', error.response?.data || error.message)
       setPlanos([])
     } finally {
       setLoadingPlanos(false)
@@ -177,108 +120,6 @@ const Home = () => {
     loadPlanos()
   }, [])
 
-  useEffect(() => {
-    let rafId = null
-    let lastScrollTime = 0
-    const throttleDelay = 16 // ~60fps
-
-    const handleScroll = () => {
-      const now = Date.now()
-      if (now - lastScrollTime < throttleDelay) {
-        return
-      }
-      lastScrollTime = now
-
-      if (rafId) {
-        cancelAnimationFrame(rafId)
-      }
-
-      rafId = requestAnimationFrame(() => {
-        if (!chatSectionRef.current) return
-
-        const section = chatSectionRef.current
-        const rect = section.getBoundingClientRect()
-        const windowHeight = window.innerHeight
-        
-        // Verifica se a seção está visível
-        if (rect.top < windowHeight && rect.bottom > 0) {
-          setIsChatVisible(true)
-          
-          // Calcula o progresso do scroll dentro da seção de forma mais suave
-          const sectionTop = rect.top
-          const sectionHeight = rect.height
-          const triggerPoint = windowHeight * 0.7 // Inicia quando 70% da viewport
-          
-          // Progresso suave baseado na posição da seção
-          let progress = 0
-          if (sectionTop <= triggerPoint) {
-            // Seção passou do ponto de trigger
-            const scrolled = triggerPoint - sectionTop
-            const scrollRange = sectionHeight * 0.6 // 60% da altura da seção para completar
-            progress = Math.min(1, scrolled / scrollRange)
-          }
-          
-          progress = Math.min(1, Math.max(0, progress))
-          setScrollProgress(progress)
-          
-          // Mostra mensagens baseado no progresso de forma mais fluida
-          const currentTime = getCurrentTime()
-          const totalMessages = chatMessages.length
-          
-          // Cada mensagem aparece em incrementos suaves
-          // Progresso de 0 a 1 mapeado para 0 a totalMessages
-          const messagesToShow = progress * totalMessages
-          
-          setChatMessages((prev) => {
-            const updated = prev.map((msg, index) => {
-              // Usa um threshold mais suave para cada mensagem
-              const messageThreshold = (index + 0.3) / totalMessages
-              
-              if (progress >= messageThreshold && !msg.visible) {
-                // Atualizar horário quando a mensagem aparecer
-                let messageTime = currentTime
-                if (index > 0) {
-                  const timeParts = currentTime.split(':')
-                  const minutes = parseInt(timeParts[1]) + index
-                  const hours = parseInt(timeParts[0]) + Math.floor(minutes / 60)
-                  const finalMinutes = minutes % 60
-                  messageTime = `${String(hours % 24).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`
-                }
-                
-                return {
-                  ...msg,
-                  visible: true,
-                  time: messageTime
-                }
-              }
-              return msg
-            })
-            return updated
-          })
-          
-          // Mostrar indicador de digitação quando a penúltima mensagem está prestes a aparecer
-          const penultimateThreshold = (chatMessages.length - 1.5) / chatMessages.length
-          if (progress >= penultimateThreshold && progress < 0.95) {
-            setIsTyping(true)
-          } else if (progress >= 0.95) {
-            setIsTyping(false)
-          }
-        } else {
-          setIsChatVisible(false)
-        }
-      })
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Chama uma vez para verificar o estado inicial
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      if (rafId) {
-        cancelAnimationFrame(rafId)
-      }
-    }
-  }, [chatMessages])
   const [formData, setFormData] = useState({
     email: '',
     telefone: '',
@@ -304,74 +145,146 @@ const Home = () => {
     })
   }
 
+  // Função para abrir WhatsApp da Nodon
+  const handleWhatsApp = () => {
+    const phoneNumber = '5511932589622' // Número com código do país (55 = Brasil)
+    const message = encodeURIComponent('Olá! Gostaria de falar com um especialista da NODON.')
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+    window.open(whatsappUrl, '_blank')
+  }
+
+  // Funcionalidades do sistema
+  const funcionalidades = [
+    {
+      icon: faDollarSign,
+      title: 'Precificação de Tratamentos',
+      description: 'Calcule custos, margens de lucro e defina preços competitivos com gráficos detalhados',
+      color: '#8b5cf6'
+    },
+    {
+      icon: faFileAlt,
+      title: 'Diagnósticos com IA',
+      description: 'Análise automática de radiografias com detecção de mais de 50 achados radiográficos',
+      color: '#0ea5e9'
+    },
+    {
+      icon: faUsers,
+      title: 'Gestão de Clientes',
+      description: 'Cadastro completo de pacientes com histórico, anamneses e prontuários digitais',
+      color: '#10b981'
+    },
+    {
+      icon: faFileInvoiceDollar,
+      title: 'Orçamentos Inteligentes',
+      description: 'Crie e gerencie orçamentos profissionais com cálculos automáticos e relatórios',
+      color: '#f59e0b'
+    },
+    {
+      icon: faCalendarAlt,
+      title: 'Calendário e Agendamentos',
+      description: 'Gerencie sua agenda, agendamentos e consultas com links públicos para pacientes',
+      color: '#ec4899'
+    },
+    {
+      icon: faClipboardQuestion,
+      title: 'Anamneses Digitais',
+      description: 'Crie questionários personalizados e colete informações dos pacientes de forma digital',
+      color: '#06b6d4'
+    },
+    {
+      icon: faComments,
+      title: 'Chat IA Especializado',
+      description: 'Assistente virtual especializado em odontologia disponível 24/7 para suas dúvidas',
+      color: '#14b8a6'
+    },
+    {
+      icon: faComment,
+      title: 'Feedback e Avaliações',
+      description: 'Colete feedback dos pacientes e gerencie avaliações para melhorar seus serviços',
+      color: '#f97316'
+    },
+    {
+      icon: faStickyNote,
+      title: 'Anotações Rápidas',
+      description: 'Sistema de anotações para registrar informações importantes sobre pacientes e tratamentos',
+      color: '#6366f1'
+    },
+    {
+      icon: faChartBar,
+      title: 'Dashboard e Analytics',
+      description: 'Visualize estatísticas, gráficos e relatórios detalhados sobre sua clínica',
+      color: '#3b82f6'
+    }
+  ]
+
   return (
     <div className="home-page">
       {/* Navigation Bar */}
-      <nav className="top-navbar">
-        <div className="nav-container">
-          <div className="nav-logo">
-            <img src={nodoLogo} alt="NODON" className="logo-icon" />
-            <span className="logo-text">NODON</span>
+      <nav className="home-navbar">
+        <div className="home-nav-container">
+          <div className="home-nav-logo">
+            <img src={nodoLogo} alt="NODON" className="home-logo-icon" />
+            <span className="home-logo-text">NODON</span>
           </div>
           <button 
-            className="mobile-menu-toggle"
+            className="home-mobile-menu-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
             <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} size="lg" />
           </button>
-          <div className="nav-links">
-            <a href="#solucao">Solução</a>
+          <div className="home-nav-links">
+            <a href="#funcionalidades">Funcionalidades</a>
+            <a href="#precificacao">Precificação</a>
             <a href="#diagnosticos">Diagnósticos</a>
-            <a href="#chat">Chat</a>
-            <a href="#depoimentos">Depoimentos</a>
+            <a href="#chat">Chat IA</a>
             <a href="#planos">Planos</a>
             <a href="#contato">Contato</a>
           </div>
-          <div className="nav-actions">
-            <button className="nav-btn-secondary" onClick={() => navigate('/login')}>
-              Área do Assinante
+          <div className="home-nav-actions">
+            <button className="home-nav-btn-secondary" onClick={() => navigate('/login')}>
+              Entrar
             </button>
-            <button className="nav-btn-primary" onClick={() => setShowContactForm(true)}>
-              Fale com um especialista
+            <button className="home-nav-btn-primary" onClick={handleWhatsApp}>
+              Fale Conosco
             </button>
           </div>
           <div 
-            className={`mobile-menu-overlay ${mobileMenuOpen ? 'mobile-open' : ''}`}
+            className={`home-mobile-menu-overlay ${mobileMenuOpen ? 'home-mobile-open' : ''}`}
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className={`mobile-menu-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-            <div className="mobile-menu-header">
-              <h2 className="mobile-menu-title">Menu</h2>
+          <div className={`home-mobile-menu-sidebar ${mobileMenuOpen ? 'home-mobile-open' : ''}`}>
+            <div className="home-mobile-menu-header">
+              <h2 className="home-mobile-menu-title">Menu</h2>
               <button 
-                className="mobile-menu-close"
+                className="home-mobile-menu-close"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Fechar menu"
               >
                 <FontAwesomeIcon icon={faTimes} size="lg" />
               </button>
             </div>
-            <div className="mobile-menu-content">
-              <nav className="mobile-nav-links">
-                <a href="#solucao" onClick={() => setMobileMenuOpen(false)}>Solução</a>
+            <div className="home-mobile-menu-content">
+              <nav className="home-mobile-nav-links">
+                <a href="#funcionalidades" onClick={() => setMobileMenuOpen(false)}>Funcionalidades</a>
+                <a href="#precificacao" onClick={() => setMobileMenuOpen(false)}>Precificação</a>
                 <a href="#diagnosticos" onClick={() => setMobileMenuOpen(false)}>Diagnósticos</a>
-                <a href="#chat" onClick={() => setMobileMenuOpen(false)}>Chat</a>
-                <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)}>Depoimentos</a>
+                <a href="#chat" onClick={() => setMobileMenuOpen(false)}>Chat IA</a>
                 <a href="#planos" onClick={() => setMobileMenuOpen(false)}>Planos</a>
                 <a href="#contato" onClick={() => setMobileMenuOpen(false)}>Contato</a>
               </nav>
-              <div className="mobile-menu-actions">
-                <button className="nav-btn-secondary" onClick={() => {
+              <div className="home-mobile-menu-actions">
+                <button className="home-nav-btn-secondary" onClick={() => {
                   navigate('/login')
                   setMobileMenuOpen(false)
                 }}>
-                  Área do Assinante
+                  Entrar
                 </button>
-                <button className="nav-btn-primary" onClick={() => {
-                  setShowContactForm(true)
+                <button className="home-nav-btn-primary" onClick={() => {
+                  handleWhatsApp()
                   setMobileMenuOpen(false)
                 }}>
-                  Fale com um especialista
+                  Fale Conosco
                 </button>
               </div>
             </div>
@@ -380,100 +293,147 @@ const Home = () => {
       </nav>
 
       {/* Hero Section */}
-      <section 
-        className="hero-section" 
-        id="inicio"
-      >
-        {/* Spotlight overlays - circular lanterns moving across the image */}
-        <div className="hero-container">
-          <div className="hero-content">
-            <div className="hero-badge">
-              <span className="badge-dot"></span>
-              <span>Online</span>
+      <section className="home-hero-section">
+        <div className="home-hero-container">
+          <div className="home-hero-content">
+            <div className="home-hero-badge">
+              <span className="home-badge-dot"></span>
+              <span>Sistema Completo de Gestão Odontológica</span>
             </div>
-            <h1 className="hero-title">
-              Consiga mais tratamentos, deixando a comunicação com os clientes mais <span className="highlight">SIMPLES e INTUITIVA.</span>
+            <h1 className="home-hero-title">
+              Transforme sua carreira com <span className="home-highlight">Inteligência Artificial</span>
             </h1>
-            <p className="hero-subtitle">
-              Não fique para trás, conquiste a confiança dos seus pacientes e aumente a sua produtividade com a IA NODON.
-              <br /><br />
-              <strong style={{ color: '#f59e0b', fontSize: '0.9375rem' }}>✨ A NODON também oferece ajuda completa para precificação de seus tratamentos!</strong> 
-              <br />
-              <span style={{ fontSize: '0.875rem' }}>Calcule custos, margens de lucro e defina preços competitivos com gráficos e análises detalhadas.</span>
+            <p className="home-hero-subtitle">
+              Plataforma completa para gestão odontológica com IA avançada para diagnósticos, 
+              gestão de pacientes, orçamentos, precificação, agendamentos e muito mais.
             </p>
-            <div className="hero-buttons">
-              <button className="btn-hero-primary" onClick={() => setShowContactForm(true)}>
-                <FontAwesomeIcon icon={faMessage} style={{ marginRight: '0.5rem' }} />
-                Fale com um especialista
-              </button>
-              <button className="btn-hero-secondary" onClick={() => navigate('/login')}>
+            <div className="home-hero-buttons">
+              <button className="home-btn-hero-primary" onClick={() => navigate('/login')}>
                 <FontAwesomeIcon icon={faRocket} style={{ marginRight: '0.5rem' }} />
-                Faça um Tour
+                Começar Agora
+              </button>
+              <button className="home-btn-hero-secondary" onClick={handleWhatsApp}>
+                <FontAwesomeIcon icon={faMessage} style={{ marginRight: '0.5rem' }} />
+                Falar com Especialista
               </button>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="hero-image-container">
-              <div className="nodo-hero-circle">
-                <div className="nodo-hero">
-                  <img src={nodoImage} alt="NODON" className="nodo-hero-image" />
+          <div className="home-hero-visual">
+            <div className="home-nodo-hero-circle">
+              <img src={nodoLogo} alt="NODON" className="home-nodo-hero-image" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Funcionalidades Section */}
+      <section className="home-funcionalidades-section" id="funcionalidades">
+        <div className="home-section-container">
+          <div className="home-section-header">
+            <h2 className="home-section-title">Todas as Funcionalidades</h2>
+            <p className="home-section-description">
+              Uma plataforma completa com tudo que você precisa para gerenciar sua clínica odontológica
+            </p>
+          </div>
+          <div className="home-funcionalidades-grid">
+            {funcionalidades.map((func, index) => (
+              <div key={index} className="home-funcionalidade-card">
+                <div className="home-funcionalidade-icon" style={{ color: func.color }}>
+                  <FontAwesomeIcon icon={func.icon} size="2x" />
                 </div>
+                <h3 className="home-funcionalidade-title">{func.title}</h3>
+                <p className="home-funcionalidade-description">{func.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Precificação Section */}
+      <section className="home-precificacao-section" id="precificacao">
+        <div className="home-section-container">
+          <div className="home-precificacao-content">
+            <div className="home-precificacao-header">
+              <div className="home-precificacao-icon-wrapper">
+                <FontAwesomeIcon icon={faDollarSign} className="home-precificacao-icon" />
+              </div>
+              <h2 className="home-section-title">Precificação Inteligente de Tratamentos</h2>
+              <p className="home-section-description">
+                Sistema completo para calcular custos, definir margens de lucro e precificar 
+                seus tratamentos de forma profissional e competitiva.
+              </p>
+            </div>
+            <div className="home-precificacao-features">
+              <div className="home-precificacao-feature-item">
+                <FontAwesomeIcon icon={faChartBar} />
+                <h3>Cálculo Automático</h3>
+                <p>Calcule automaticamente custos de produtos, materiais e mão de obra</p>
+              </div>
+              <div className="home-precificacao-feature-item">
+                <FontAwesomeIcon icon={faDollarSign} />
+                <h3>Margem de Lucro</h3>
+                <p>Defina margens de lucro personalizadas e visualize o impacto nos preços</p>
+              </div>
+              <div className="home-precificacao-feature-item">
+                <FontAwesomeIcon icon={faChartLine} />
+                <h3>Gráficos e Análises</h3>
+                <p>Visualize gráficos detalhados de custos, lucros e rentabilidade</p>
+              </div>
+              <div className="home-precificacao-feature-item">
+                <FontAwesomeIcon icon={faClipboardList} />
+                <h3>Gestão Completa</h3>
+                <p>Gerencie produtos, categorias e tratamentos em um só lugar</p>
+              </div>
+            </div>
+            <div className="home-precificacao-benefits">
+              <div className="home-precificacao-benefit">
+                <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                <span>Controle total sobre custos e preços</span>
+              </div>
+              <div className="home-precificacao-benefit">
+                <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                <span>Precificação baseada em dados reais</span>
+              </div>
+              <div className="home-precificacao-benefit">
+                <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                <span>Aumente sua rentabilidade com preços competitivos</span>
+              </div>
+              <div className="home-precificacao-benefit">
+                <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                <span>Relatórios detalhados para tomada de decisão</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* What We Do Section */}
-      <section className="what-we-do-section" id="diagnosticos">
-        <div className="section-container">
-          <div className="what-we-do-content">
-            <div className="what-we-do-header">
-              <h2 className="what-we-do-title">O que fazemos ?</h2>
-              <p className="what-we-do-description">
-                Utilizamos inteligência artificial avançada para analisar radiografias odontológicas, 
-                detectando mais de 50 achados radiográficos de forma precisa e detalhada.
+      {/* Diagnosticos Section */}
+      <section className="home-diagnosticos-section" id="diagnosticos">
+        <div className="home-section-container">
+          <div className="home-diagnosticos-content">
+            <div className="home-diagnosticos-text">
+              <h2 className="home-section-title">Diagnósticos com IA Avançada</h2>
+              <p className="home-section-description">
+                Nossa inteligência artificial analisa radiografias odontológicas detectando 
+                mais de 50 achados radiográficos de forma precisa e detalhada.
               </p>
-            </div>
-            <div className="what-we-do-image-wrapper">
-              <img src={exameImage} alt="Análise de radiografia odontológica com IA" className="what-we-do-image" />
-              <div className="image-overlay">
-                <div className="overlay-content">
-                  <FontAwesomeIcon icon={faRobot} className="overlay-icon" />
-                  <p className="overlay-text">Análise e demonstrativo com desenhos</p>
+              <div className="home-diagnosticos-features">
+                <div className="home-diagnosticos-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                  <span>Detecção automática de mais de 50 achados</span>
                 </div>
-              </div>
-            </div>
-            <div className="what-we-do-features">
-              <div className="what-we-do-feature">
-                <FontAwesomeIcon icon={faSearch} className="feature-icon" />
-                <h3>Detecção Precisa</h3>
-                <p>Identifica mais de 50 achados radiográficos automaticamente</p>
-              </div>
-              <div className="what-we-do-feature">
-                <FontAwesomeIcon icon={faClipboardList} className="feature-icon" />
-                <h3>Relatórios Detalhados</h3>
-                <p>Gera relatórios completos e profissionais para seus pacientes</p>
-              </div>
-              <div className="what-we-do-feature">
-                <FontAwesomeIcon icon={faBolt} className="feature-icon" />
-                <h3>Resultados Rápidos</h3>
-                <p>Análise completa em poucos segundos</p>
-              </div>
-              <div className="what-we-do-feature">
-                <FontAwesomeIcon icon={faCoins} className="feature-icon" />
-                <h3>Precificação de Tratamentos</h3>
-                <p>A NODON também oferece ajuda para precificação de seus tratamentos com cálculos automáticos de custos e margens</p>
-              </div>
-              <div className="what-we-do-feature">
-                <FontAwesomeIcon icon={faDollarSign} className="feature-icon" />
-                <h3>Liberdade Financeira</h3>
-                <p>Gerencie suas finanças com ferramentas inteligentes que ajudam você a ter controle total sobre seus ganhos e despesas</p>
-              </div>
-              <div className="what-we-do-feature">
-                <FontAwesomeIcon icon={faFileInvoiceDollar} className="feature-icon" />
-                <h3>Orçamentos</h3>
-                <p>Crie e gerencie orçamentos profissionais para seus pacientes de forma rápida e organizada</p>
+                <div className="home-diagnosticos-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                  <span>Relatórios detalhados e profissionais</span>
+                </div>
+                <div className="home-diagnosticos-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                  <span>Análise em poucos segundos</span>
+                </div>
+                <div className="home-diagnosticos-feature">
+                  <FontAwesomeIcon icon={faCheckCircle} className="home-feature-check" />
+                  <span>Demonstrativos com desenhos explicativos</span>
+                </div>
               </div>
             </div>
           </div>
@@ -481,263 +441,87 @@ const Home = () => {
       </section>
 
       {/* Chat Section */}
-      <section className="chat-highlight-section" ref={chatSectionRef} id="chat">
-        <div className="section-container">
-          <div className="chat-highlight-content">
-            <div className="award-badge">
-              <FontAwesomeIcon icon={faTrophy} className="award-icon" />
-              <span className="award-text">Prêmio de Excelência</span>
-            </div>
-            <div className="chat-highlight-header">
-              <div className="chat-highlight-icon-wrapper">
-                <div className="chat-highlight-icon-orb"></div>
-                <div className="chat-highlight-icon-ring"></div>
-                <div className="stars-decoration">
-                  <FontAwesomeIcon icon={faStar} className="star star-1" />
-                  <FontAwesomeIcon icon={faStar} className="star star-2" />
-                  <FontAwesomeIcon icon={faStar} className="star star-3" />
-                </div>
-                <FontAwesomeIcon icon={faMessage} className="chat-highlight-icon" />
+      <section className="home-chat-section" id="chat">
+        <div className="home-section-container">
+          <div className="home-chat-content">
+            <div className="home-chat-header">
+              <div className="home-chat-icon-wrapper">
+                <FontAwesomeIcon icon={faComments} className="home-chat-icon" />
               </div>
-              <h2 className="chat-highlight-title">
-                O melhor chat Inteligente para Odontologia
-              </h2>
-            </div>
-            
-            {/* Chat Simulation */}
-            <div className={`chat-simulation ${isChatVisible ? 'visible' : ''}`}>
-              <div className="chat-messages">
-                {chatMessages.map((msg, index) => (
-                  <div 
-                    key={index} 
-                    className={`chat-message ${msg.type} ${msg.visible ? 'show' : ''}`}
-                    style={{ animationDelay: `${index * 0.8}s` }}
-                  >
-                    <div className="message-avatar">
-                      {msg.type === 'user' ? (
-                        <FontAwesomeIcon icon={faUserMd} />
-                      ) : (
-                        <img src={nodoLogo} alt="NODON" className="chat-avatar-logo" />
-                      )}
-                    </div>
-                    <div className="message-content">
-                      <div className="message-text">{msg.text}</div>
-                      <div className="message-time">{msg.time}</div>
-                    </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="chat-message ai typing">
-                    <div className="message-avatar">
-                      <img src={nodoLogo} alt="NODON" className="chat-avatar-logo" />
-                    </div>
-                    <div className="message-content">
-                      <div className="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Disclaimer */}
-            <div className="chat-disclaimer">
-              <div className="disclaimer-icon">
-                <FontAwesomeIcon icon={faShieldAlt} />
-              </div>
-              <p className="disclaimer-text">
-                O NODON deve servir como <strong>apoio ao profissional</strong>. A decisão final deve ser sempre do <strong>responsável</strong>.
+              <h2 className="home-section-title">Chat IA Especializado em Odontologia</h2>
+              <p className="home-section-description">
+                Assistente virtual disponível 24/7 para tirar dúvidas sobre procedimentos, 
+                técnicas, materiais e muito mais.
               </p>
             </div>
-
-            <div className="chat-highlight-features">
-              <div className="chat-feature-item">
-                <div className="chat-feature-icon">
-                  <FontAwesomeIcon icon={faBolt} />
-                </div>
+            <div className="home-chat-features">
+              <div className="home-chat-feature-item">
+                <FontAwesomeIcon icon={faBolt} />
                 <span>Respostas instantâneas</span>
               </div>
-              <div className="chat-feature-item">
-                <div className="chat-feature-icon">
-                  <FontAwesomeIcon icon={faRobot} />
-                </div>
-                <span>IA especializada</span>
+              <div className="home-chat-feature-item">
+                <FontAwesomeIcon icon={faRobot} />
+                <span>IA especializada em odontologia</span>
               </div>
-              <div className="chat-feature-item">
-                <div className="chat-feature-icon">
-                  <FontAwesomeIcon icon={faSearch} />
-                </div>
-                <span>Explicações precisas</span>
+              <div className="home-chat-feature-item">
+                <FontAwesomeIcon icon={faSearch} />
+                <span>Explicações precisas e detalhadas</span>
               </div>
+            </div>
+            <div className="home-chat-disclaimer">
+              <FontAwesomeIcon icon={faShieldAlt} />
+              <p>
+                O NODON deve servir como <strong>apoio ao profissional</strong>. 
+                A decisão final deve ser sempre do <strong>responsável</strong>.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="stats-section">
-        <div className="stats-container">
-          <div className="stat-item">
-            <div className="stat-number" data-count="0">+ 50000</div>
-            <div className="stat-label">Radiografias analisadas</div>
+      <section className="home-stats-section">
+        <div className="home-stats-container">
+          <div className="home-stat-item">
+            <div className="home-stat-number">+ 50.000</div>
+            <div className="home-stat-label">Radiografias analisadas</div>
           </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <div className="stat-number" data-count="0">+ 50M</div>
-            <div className="stat-label">Tokens no chat</div>
+          <div className="home-stat-divider"></div>
+          <div className="home-stat-item">
+            <div className="home-stat-number">+ 50M</div>
+            <div className="home-stat-label">Tokens no chat</div>
           </div>
-          <div className="stat-divider"></div>
-          <div className="stat-map">
-            <FontAwesomeIcon icon={faMapMarkerAlt} className="map-icon" size="lg" />
-            <div className="map-text">Presença em todo Brasil</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Solution Section */}
-      <section className="solution-section" id="solucao">
-        <div className="section-container">
-          <div className="section-header">
-            <h2 className="section-title">Como Funciona?</h2>
-            <p className="section-description">
-              Acreditamos em uma <strong>odontologia onde o paciente compreende</strong> o diagnóstico e o plano de tratamento com clareza.
-            </p>
-          </div>
-
-          <div className="solution-grid">
-            <div className="solution-card">
-              <div className="solution-icon">
-                <FontAwesomeIcon icon={faCamera} size="3x" />
-              </div>
-              <h3>1. Envie a Radiografia</h3>
-              <p>Faça upload da radiografia do paciente através da nossa plataforma segura e intuitiva.</p>
-            </div>
-            <div className="solution-card">
-              <div className="solution-icon">
-                <FontAwesomeIcon icon={faRobot} size="3x" />
-              </div>
-              <h3>2. IA Analisa</h3>
-              <p>Nossa inteligência artificial processa a imagem em segundos, identificando mais de 50 achados diferentes.</p>
-            </div>
-            <div className="solution-card">
-              <div className="solution-icon">
-                <FontAwesomeIcon icon={faClipboardList} size="3x" />
-              </div>
-              <h3>3. Receba o Relatório</h3>
-              <p>Obtenha um relatório detalhado e interativo que facilita a explicação para o paciente.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="testimonials-section" id="depoimentos">
-        <div className="section-container">
-          <div className="testimonial-card">
-            <div className="testimonial-content">
-              <div className="quote-icon">"</div>
-              <p className="testimonial-text">
-                Acreditamos em uma odontologia onde o paciente compreende o diagnóstico e o plano de tratamento com clareza.
-              </p>
-              <div className="testimonial-author">
-                <div className="author-info">
-                  <div className="author-name">Dr. Rafael Oliveira</div>
-                  <div className="author-role">Murai Odontologia</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Access Section */}
-      <section className="access-section">
-        <div className="section-container">
-          <div className="access-content">
-            <div className="access-text">
-              <h2>É fácil acessar</h2>
-            <div className="access-feature">
-              <div className="feature-icon-large">
-                <FontAwesomeIcon icon={faLaptop} size="4x" />
-              </div>
-              <h3>100% Online</h3>
-              <p>
-                Acesse as radiografias dos seus pacientes de <strong>qualquer dispositivo</strong> com acesso à internet: tablet, celular, smart TV ou computador.
-              </p>
-            </div>
-          </div>
-          <div className="access-devices">
-            <div className="device device-1">
-              <FontAwesomeIcon icon={faMobileAlt} size="3x" />
-            </div>
-            <div className="device device-2">
-              <FontAwesomeIcon icon={faLaptop} size="3x" />
-            </div>
-            <div className="device device-3">
-              <FontAwesomeIcon icon={faTv} size="3x" />
-            </div>
-            <div className="device device-4">
-              <FontAwesomeIcon icon={faDesktop} size="3x" />
-            </div>
-          </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Leaders Section */}
-      <section className="leaders-section">
-        <div className="section-container">
-          <h2 className="leaders-title">Junte-se aos líderes em Odontologia do Brasil</h2>
-          <div className="leaders-grid">
-            <div className="leader-card">
-              <div className="leader-avatar">
-                <FontAwesomeIcon icon={faUserMd} size="3x" />
-              </div>
-              <div className="leader-name">Dr. Lucas Ferreira</div>
-              <div className="leader-clinic">Clínica OdontoPlus</div>
-            </div>
-            <div className="leader-card">
-              <div className="leader-avatar">
-                <FontAwesomeIcon icon={faUserMd} size="3x" />
-              </div>
-              <div className="leader-name">Dra. Mariana Alves</div>
-              <div className="leader-clinic">Smile Dental</div>
-            </div>
-            <div className="leader-card">
-              <div className="leader-avatar">
-                <FontAwesomeIcon icon={faUserMd} size="3x" />
-              </div>
-              <div className="leader-name">Dr. Gabriel Martins</div>
-              <div className="leader-clinic">Odonto Excellence</div>
-            </div>
+          <div className="home-stat-divider"></div>
+          <div className="home-stat-item">
+            <div className="home-stat-number">100%</div>
+            <div className="home-stat-label">Online e acessível</div>
           </div>
         </div>
       </section>
 
       {/* Plans Section */}
-      <section className="plans-section" id="planos">
-        <div className="section-container">
-          <div className="section-header">
-            <h2 className="section-title">Escolha o plano mais adequado para a sua clínica.</h2>
+      <section className="home-plans-section" id="planos">
+        <div className="home-section-container">
+          <div className="home-section-header">
+            <h2 className="home-section-title">Escolha o plano ideal para sua clínica</h2>
+            <p className="home-section-description">
+              Planos flexíveis que se adaptam às necessidades da sua clínica
+            </p>
           </div>
           {loadingPlanos ? (
-            <div className="plans-loading">
-              <div className="loading-spinner"></div>
+            <div className="home-plans-loading">
+              <div className="home-loading-spinner"></div>
               <p>Carregando planos...</p>
             </div>
           ) : planos.length === 0 ? (
-            <div className="plans-empty">
+            <div className="home-plans-empty">
               <p>Nenhum plano disponível no momento.</p>
             </div>
           ) : (
-            <div className="plans-grid">
+            <div className="home-plans-grid">
               {planos.map((plano, index) => {
                 const planoId = plano.id || plano.nome?.toLowerCase().replace(/\s+/g, '-') || `plano-${index}`
                 const nomePlano = plano.nome || 'Plano'
-                // Os valores já foram processados em loadPlanos, então usar diretamente
                 const valorOriginal = plano.valorOriginal !== null && plano.valorOriginal !== undefined ? plano.valorOriginal : null
                 const valorPromocional = plano.valorPromocional !== null && plano.valorPromocional !== undefined ? plano.valorPromocional : null
                 const limiteAnalises = plano.limiteAnalises || plano.limite_analises || 0
@@ -749,7 +533,6 @@ const Home = () => {
                 const isPlanoChat = acesso === 'chat' || nomePlano.toLowerCase().includes('chat')
                 const isPlanoInicial = nomePlano.toLowerCase().includes('inicial')
                 
-                // Formatar valores monetários
                 const formatarValor = (valor) => {
                   return new Intl.NumberFormat('pt-BR', {
                     style: 'currency',
@@ -759,7 +542,6 @@ const Home = () => {
                   }).format(valor)
                 }
                 
-                // Formatar tokens
                 const formatarTokens = (tokens) => {
                   const numTokens = parseInt(tokens) || 0
                   if (numTokens >= 1000000) {
@@ -770,10 +552,8 @@ const Home = () => {
                   return numTokens.toString()
                 }
                 
-                // Construir features baseadas nos dados do plano
                 const featuresList = []
                 
-                // Se for Plano Chat, mostrar apenas features específicas
                 if (isPlanoChat) {
                   if (tokenChat && parseInt(tokenChat) > 0) {
                     featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
@@ -785,7 +565,6 @@ const Home = () => {
                   featuresList.push('Acesso mobile')
                   featuresList.push('Sem fidelidade - cancele quando quiser')
                 } else if (isPlanoInicial) {
-                  // Plano Inicial - Mesmas features das LPs
                   featuresList.push('Diagnósticos com IA avançada')
                   featuresList.push(`Até ${limiteAnalises || 12} análises por mês`)
                   featuresList.push('Agendamento de consultas')
@@ -793,9 +572,9 @@ const Home = () => {
                   featuresList.push('Chat especializado em odontologia 24/7')
                   featuresList.push('Precificação de tratamentos')
                   featuresList.push('Feedbacks e avaliações')
-                  featuresList.push('Gráficos customizados para melhor entendimento')
+                  featuresList.push('Gráficos customizados')
                   featuresList.push('Gestão completa de pacientes')
-                  featuresList.push('Relatórios detalhados e profissionais')
+                  featuresList.push('Relatórios detalhados')
                   featuresList.push('Armazenamento ilimitado na nuvem')
                   if (tokenChat && parseInt(tokenChat) > 0) {
                     featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
@@ -803,7 +582,6 @@ const Home = () => {
                   featuresList.push('Acesso mobile completo')
                   featuresList.push('Sem fidelidade - cancele quando quiser')
                 } else {
-                  // Features completas para outros planos - Mesmas features das LPs
                   featuresList.push('Diagnósticos com IA avançada')
                   if (limiteAnalises > 0) {
                     featuresList.push(`Até ${limiteAnalises} análises por mês`)
@@ -815,9 +593,9 @@ const Home = () => {
                   featuresList.push('Chat especializado em odontologia 24/7')
                   featuresList.push('Precificação de tratamentos')
                   featuresList.push('Feedbacks e avaliações')
-                  featuresList.push('Gráficos customizados para melhor entendimento')
+                  featuresList.push('Gráficos customizados')
                   featuresList.push('Gestão completa de pacientes')
-                  featuresList.push('Relatórios detalhados e profissionais')
+                  featuresList.push('Relatórios detalhados')
                   featuresList.push('Armazenamento ilimitado na nuvem')
                   if (tokenChat && parseInt(tokenChat) > 0) {
                     featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
@@ -825,7 +603,6 @@ const Home = () => {
                   featuresList.push('Acesso mobile completo')
                   featuresList.push('Sem fidelidade - cancele quando quiser')
                   
-                  // Se houver features adicionais da API, adicionar
                   if (plano.features && Array.isArray(plano.features)) {
                     featuresList.push(...plano.features)
                   } else if (plano.caracteristicas && Array.isArray(plano.caracteristicas)) {
@@ -834,74 +611,72 @@ const Home = () => {
                 }
                 
                 return (
-                  <div key={planoId} className={`plan-card ${featured ? 'featured' : ''}`}>
+                  <div key={planoId} className={`home-plan-card ${featured ? 'home-featured' : ''}`}>
                     {badge && (
-                      <div className="plan-badge-new">{badge}</div>
+                      <div className="home-plan-badge">{badge}</div>
                     )}
-                    <div className="plan-header-card">
+                    <div className="home-plan-header">
                       <h3>{nomePlano}</h3>
-                      <div className="plan-price">
+                      <div className="home-plan-price">
                         {temPromocao && valorPromocional && valorOriginal ? (
                           <>
-                            <span className="price-old">De: {formatarValor(valorOriginal)}/mês*</span>
-                            <span className="price-new">Por: {formatarValor(valorPromocional)}/mês*</span>
+                            <span className="home-price-old">De: {formatarValor(valorOriginal)}/mês*</span>
+                            <span className="home-price-new">Por: {formatarValor(valorPromocional)}/mês*</span>
                           </>
                         ) : valorPromocional !== null && valorPromocional > 0 ? (
-                          <span className="price-single">{formatarValor(valorPromocional)}/mês*</span>
+                          <span className="home-price-single">{formatarValor(valorPromocional)}/mês*</span>
                         ) : valorOriginal !== null && valorOriginal > 0 ? (
-                          <span className="price-single">{formatarValor(valorOriginal)}/mês*</span>
+                          <span className="home-price-single">{formatarValor(valorOriginal)}/mês*</span>
                         ) : (
-                          <span className="price-single">{formatarValor(valorOriginal || 0)}/mês*</span>
+                          <span className="home-price-single">{formatarValor(valorOriginal || 0)}/mês*</span>
                         )}
                       </div>
-                      <div className="plan-feature-count">
+                      <div className="home-plan-feature-count">
                         {plano.descricao || (limiteAnalises > 0 ? `Até ${limiteAnalises} análises por mês` : 'Análises ilimitadas')}
                       </div>
                     </div>
                     <button 
                       type="button"
-                      className="plan-details-btn" 
+                      className="home-plan-details-btn" 
                       onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handlePlanToggle(planoId);
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handlePlanToggle(planoId)
                       }}
                     >
                       <FontAwesomeIcon 
                         icon={faChevronDown} 
-                        className={`plan-chevron ${expandedPlan === planoId ? 'expanded' : ''}`}
+                        className={`home-plan-chevron ${expandedPlan === planoId ? 'home-expanded' : ''}`}
                       />
                     </button>
-                    <div className={expandedPlan === planoId ? 'plan-details expanded' : 'plan-details'}>
-                      <ul className="plan-features">
+                    <div className={expandedPlan === planoId ? 'home-plan-details home-expanded' : 'home-plan-details'}>
+                      <ul className="home-plan-features">
                         {featuresList.length > 0 ? (
-                          // Usar features da API
                           featuresList.map((feature, idx) => (
                             <li key={idx}>
                               <FontAwesomeIcon icon={faCheckCircle} /> {feature}
                             </li>
                           ))
                         ) : (
-                          // Fallback para features padrão se não houver dados da API
                           <>
                             <li><FontAwesomeIcon icon={faCheckCircle} /> Análise de radiografias</li>
                             <li><FontAwesomeIcon icon={faCheckCircle} /> Relatórios detalhados</li>
                             <li><FontAwesomeIcon icon={faCheckCircle} /> Suporte por email</li>
                             <li><FontAwesomeIcon icon={faCheckCircle} /> Armazenamento na nuvem</li>
                             {tokenChat && (
-                              <li><FontAwesomeIcon icon={faCheckCircle} /> {formatarTokens(tokenChat)} de tokens no chat da NODON</li>
+                              <li><FontAwesomeIcon icon={faCheckCircle} /> {formatarTokens(tokenChat)} de tokens no chat</li>
                             )}
                           </>
                         )}
                       </ul>
                     </div>
                     <button 
-                      className={`btn-plan ${featured ? 'featured' : ''}`} 
+                      className={`home-btn-plan ${featured ? 'home-featured' : ''}`} 
                       onClick={() => navigate(`/checkout?plano=${encodeURIComponent(nomePlano)}&planoId=${planoId}`)}
                     >
                       Assine Agora
                     </button>
-                    <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+                    <p className="home-plan-note">*Plano mensal. Cobrança recorrente com renovação automática.</p>
                   </div>
                 )
               })}
@@ -911,43 +686,43 @@ const Home = () => {
       </section>
 
       {/* Important Info Section */}
-      <section className="important-info">
-        <div className="section-container">
-          <div className="section-header">
-            <h2 className="section-title">O que é importante saber?</h2>
+      <section className="home-important-info">
+        <div className="home-section-container">
+          <div className="home-section-header">
+            <h2 className="home-section-title">O que é importante saber?</h2>
           </div>
-          <div className="info-grid">
-            <div className="info-card">
-              <div className="info-icon-wrapper">
-                <FontAwesomeIcon icon={faComments} className="info-icon" size="2x" />
+          <div className="home-info-grid">
+            <div className="home-info-card">
+              <div className="home-info-icon-wrapper">
+                <FontAwesomeIcon icon={faComments} className="home-info-icon" size="2x" />
               </div>
               <h3>Suporte humanizado</h3>
               <p>Equipe de especialistas disponível via WhatsApp.</p>
             </div>
-            <div className="info-card">
-              <div className="info-icon-wrapper">
-                <FontAwesomeIcon icon={faShieldAlt} className="info-icon" size="2x" />
+            <div className="home-info-card">
+              <div className="home-info-icon-wrapper">
+                <FontAwesomeIcon icon={faShieldAlt} className="home-info-icon" size="2x" />
               </div>
               <h3>Confiável</h3>
               <p>Dados criptografados e em conformidade com a LGPD.</p>
             </div>
-            <div className="info-card">
-              <div className="info-icon-wrapper">
-                <FontAwesomeIcon icon={faUsers} className="info-icon" size="2x" />
+            <div className="home-info-card">
+              <div className="home-info-icon-wrapper">
+                <FontAwesomeIcon icon={faUsers} className="home-info-icon" size="2x" />
               </div>
               <h3>Profissionais ilimitados</h3>
               <p>Adicione quantos profissionais quiser sem custo adicional.</p>
             </div>
-            <div className="info-card">
-              <div className="info-icon-wrapper">
-                <FontAwesomeIcon icon={faCloud} className="info-icon" size="2x" />
+            <div className="home-info-card">
+              <div className="home-info-icon-wrapper">
+                <FontAwesomeIcon icon={faCloud} className="home-info-icon" size="2x" />
               </div>
               <h3>Armazenamento ilimitado</h3>
               <p>Nuvem com espaço ilimitado para seus dados.</p>
             </div>
-            <div className="info-card">
-              <div className="info-icon-wrapper">
-                <FontAwesomeIcon icon={faMessage} className="info-icon" size="2x" />
+            <div className="home-info-card">
+              <div className="home-info-icon-wrapper">
+                <FontAwesomeIcon icon={faMessage} className="home-info-icon" size="2x" />
               </div>
               <h3>Chat especializado</h3>
               <p>IA especializada em odontologia disponível 24/7.</p>
@@ -957,84 +732,84 @@ const Home = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="faq-section">
-        <div className="section-container">
-          <div className="section-header">
-            <h2 className="section-title">FAQ</h2>
+      <section className="home-faq-section">
+        <div className="home-section-container">
+          <div className="home-section-header">
+            <h2 className="home-section-title">Perguntas Frequentes</h2>
           </div>
-          <div className="faq-list">
-            <div className={`faq-item ${expandedFaq === 0 ? 'expanded' : ''}`}>
+          <div className="home-faq-list">
+            <div className={`home-faq-item ${expandedFaq === 0 ? 'home-expanded' : ''}`}>
               <button 
-                className="faq-question" 
+                className="home-faq-question" 
                 onClick={() => setExpandedFaq(expandedFaq === 0 ? null : 0)}
               >
                 <h3>Como funciona a análise de radiografias?</h3>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
-                  className="faq-icon"
+                  className="home-faq-icon"
                 />
               </button>
-              <div className="faq-answer">
+              <div className="home-faq-answer">
                 <p>Nossa IA analisa radiografias em segundos, detectando mais de 50 achados radiográficos diferentes de forma precisa e detalhada. O sistema identifica problemas, anomalias e fornece relatórios completos.</p>
               </div>
             </div>
-            <div className={`faq-item ${expandedFaq === 1 ? 'expanded' : ''}`}>
+            <div className={`home-faq-item ${expandedFaq === 1 ? 'home-expanded' : ''}`}>
               <button 
-                className="faq-question" 
+                className="home-faq-question" 
                 onClick={() => setExpandedFaq(expandedFaq === 1 ? null : 1)}
               >
                 <h3>Os dados dos pacientes são seguros?</h3>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
-                  className="faq-icon"
+                  className="home-faq-icon"
                 />
               </button>
-              <div className="faq-answer">
-                <p>Sim, todos os dados são criptografados e armazenados em conformidade com a LGPD. Temos registro na ANVISA (Nº: 82937060001) e seguimos os mais altos padrões de segurança.</p>
+              <div className="home-faq-answer">
+                <p>Sim, todos os dados são criptografados e armazenados em conformidade com a LGPD. Temos registro na ANVISA e seguimos os mais altos padrões de segurança.</p>
               </div>
             </div>
-            <div className={`faq-item ${expandedFaq === 2 ? 'expanded' : ''}`}>
+            <div className={`home-faq-item ${expandedFaq === 2 ? 'home-expanded' : ''}`}>
               <button 
-                className="faq-question" 
+                className="home-faq-question" 
                 onClick={() => setExpandedFaq(expandedFaq === 2 ? null : 2)}
               >
                 <h3>Posso adicionar múltiplos profissionais?</h3>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
-                  className="faq-icon"
+                  className="home-faq-icon"
                 />
               </button>
-              <div className="faq-answer">
+              <div className="home-faq-answer">
                 <p>Sim, você pode adicionar quantos profissionais quiser na conta da sua clínica, sem custo adicional. Cada profissional terá acesso individualizado à plataforma.</p>
               </div>
             </div>
-            <div className={`faq-item ${expandedFaq === 3 ? 'expanded' : ''}`}>
+            <div className={`home-faq-item ${expandedFaq === 3 ? 'home-expanded' : ''}`}>
               <button 
-                className="faq-question" 
+                className="home-faq-question" 
                 onClick={() => setExpandedFaq(expandedFaq === 3 ? null : 3)}
               >
                 <h3>Preciso de equipamento especial?</h3>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
-                  className="faq-icon"
+                  className="home-faq-icon"
                 />
               </button>
-              <div className="faq-answer">
+              <div className="home-faq-answer">
                 <p>Não, a plataforma é 100% online e pode ser acessada de qualquer dispositivo com internet: computador, tablet, celular ou smart TV.</p>
               </div>
             </div>
-            <div className={`faq-item ${expandedFaq === 4 ? 'expanded' : ''}`}>
+            <div className={`home-faq-item ${expandedFaq === 4 ? 'home-expanded' : ''}`}>
               <button 
-                className="faq-question" 
+                className="home-faq-question" 
                 onClick={() => setExpandedFaq(expandedFaq === 4 ? null : 4)}
               >
                 <h3>Como faço para começar?</h3>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
-                  className="faq-icon"
+                  className="home-faq-icon"
                 />
               </button>
-              <div className="faq-answer">
+              <div className="home-faq-answer">
                 <p>É simples! Basta se cadastrar, escolher um plano e começar a usar. Nossa equipe está pronta para ajudar você a aproveitar ao máximo a plataforma.</p>
               </div>
             </div>
@@ -1043,25 +818,25 @@ const Home = () => {
       </section>
 
       {/* Contact Section */}
-      <section className="contact-section" id="contato">
-        <div className="section-container">
-          <div className="section-header">
-            <h2 className="section-title">Fale conosco</h2>
-            <p className="section-description">
-              Olá, quer saber como você pode mudar a experiência do seu paciente no consultório usando inteligência artificial?
+      <section className="home-contact-section" id="contato">
+        <div className="home-section-container">
+          <div className="home-section-header">
+            <h2 className="home-section-title">Fale conosco</h2>
+            <p className="home-section-description">
+              Quer saber como você pode transformar sua clínica usando inteligência artificial?
             </p>
           </div>
           {!showContactForm ? (
-            <div className="contact-cta">
-            <button className="btn-contact-primary" onClick={() => setShowContactForm(true)}>
-              <FontAwesomeIcon icon={faMessage} style={{ marginRight: '0.5rem' }} />
-              Iniciar conversa
-            </button>
+            <div className="home-contact-cta">
+              <button className="home-btn-contact-primary" onClick={() => setShowContactForm(true)}>
+                <FontAwesomeIcon icon={faMessage} style={{ marginRight: '0.5rem' }} />
+                Iniciar conversa
+              </button>
             </div>
           ) : (
-            <form className="contact-form" onSubmit={handleSubmit}>
-              <div className="form-row">
-                <div className="form-group">
+            <form className="home-contact-form" onSubmit={handleSubmit}>
+              <div className="home-form-row">
+                <div className="home-form-group">
                   <label>E-mail *</label>
                   <input 
                     type="email" 
@@ -1071,8 +846,7 @@ const Home = () => {
                     required
                   />
                 </div>
-
-                <div className="form-group">
+                <div className="home-form-group">
                   <label>Telefone *</label>
                   <input 
                     type="tel" 
@@ -1083,9 +857,8 @@ const Home = () => {
                   />
                 </div>
               </div>
-
-              <div className="form-row">
-                <div className="form-group">
+              <div className="home-form-row">
+                <div className="home-form-group">
                   <label>Você possui aparelho de raio-X em sua clínica?</label>
                   <select 
                     value={formData.raioX} 
@@ -1099,8 +872,7 @@ const Home = () => {
                     <option value="ambos">Sensor digital e aparelho de raio-X panorâmico</option>
                   </select>
                 </div>
-
-                <div className="form-group">
+                <div className="home-form-group">
                   <label>Você pede radiografias panorâmicas ou periapicais na avaliação inicial?</label>
                   <select 
                     value={formData.radiografias} 
@@ -1115,9 +887,8 @@ const Home = () => {
                   </select>
                 </div>
               </div>
-
-              <div className="form-row">
-                <div className="form-group">
+              <div className="home-form-row">
+                <div className="home-form-group">
                   <label>Qual seu cargo?</label>
                   <select 
                     value={formData.cargo} 
@@ -1132,8 +903,7 @@ const Home = () => {
                     <option value="estudante">Estudante</option>
                   </select>
                 </div>
-
-                <div className="form-group">
+                <div className="home-form-group">
                   <label>Quantos novos pacientes você atende por mês?</label>
                   <select 
                     value={formData.pacientes} 
@@ -1150,8 +920,7 @@ const Home = () => {
                   </select>
                 </div>
               </div>
-
-              <div className="form-group full-width">
+              <div className="home-form-group home-full-width">
                 <label>Informações adicionais (opcional)</label>
                 <textarea 
                   value={formData.informacoes} 
@@ -1160,12 +929,11 @@ const Home = () => {
                   placeholder="Conte-nos mais sobre suas necessidades..."
                 />
               </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn-submit">
+              <div className="home-form-actions">
+                <button type="submit" className="home-btn-submit">
                   Enviar
                 </button>
-                <button type="button" className="btn-cancel" onClick={() => setShowContactForm(false)}>
+                <button type="button" className="home-btn-cancel" onClick={() => setShowContactForm(false)}>
                   Cancelar
                 </button>
               </div>
@@ -1175,44 +943,43 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-logo-section">
-            <div className="footer-logo">
-              <img src={nodoLogo} alt="NODON" className="footer-logo-icon" />
-              <span className="footer-logo-text">NODON</span>
+      <footer className="home-footer">
+        <div className="home-footer-container">
+          <div className="home-footer-logo-section">
+            <div className="home-footer-logo">
+              <img src={nodoLogo} alt="NODON" className="home-footer-logo-icon" />
+              <span className="home-footer-logo-text">NODON</span>
             </div>
           </div>
-          <div className="footer-section">
+          <div className="home-footer-section">
             <h4>Institucional</h4>
             <ul>
-              <li><a href="#inicio">Home</a></li>
-              <li><a href="#solucao">Solução</a></li>
+              <li><a href="#funcionalidades">Funcionalidades</a></li>
+              <li><a href="#precificacao">Precificação</a></li>
               <li><a href="#diagnosticos">Diagnósticos</a></li>
-              <li><a href="#chat">Chat</a></li>
-              <li><a href="#depoimentos">Depoimentos</a></li>
+              <li><a href="#chat">Chat IA</a></li>
               <li><a href="#planos">Planos</a></li>
               <li><a href="#contato">Contato</a></li>
             </ul>
           </div>
-          <div className="footer-section">
+          <div className="home-footer-section">
             <h4>Fale Conosco</h4>
             <p>Av. Paulista, 2173<br />São Paulo - SP</p>
           </div>
-          <div className="footer-section">
+          <div className="home-footer-section">
             <h4>Redes sociais</h4>
-            <div className="social-links">
-              <a href="#" className="social-link">
+            <div className="home-social-links">
+              <a href="#" className="home-social-link">
                 <FontAwesomeIcon icon={faInstagram} style={{ marginRight: '0.5rem' }} />
                 Instagram
               </a>
-              <a href="#" className="social-link">
+              <a href="#" className="home-social-link">
                 <FontAwesomeIcon icon={faYoutube} style={{ marginRight: '0.5rem' }} />
                 YouTube
               </a>
             </div>
           </div>
-          <div className="footer-bottom">
+          <div className="home-footer-bottom">
             <p>NODON DIAGNOSTICO POR IMAGEM LTDA - ME - CNPJ 41.300.720/0001-50</p>
             <p><a href="#">Termos de Uso e Política de Privacidade</a></p>
           </div>
