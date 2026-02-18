@@ -198,15 +198,17 @@ const LPDentista = () => {
       const response = await api.get('/planos')
       const planosBackend = response.data?.data || response.data || []
       
-      // IDs dos planos que devem ser excluídos (apenas planos de teste)
+      // IDs dos planos que devem ser excluídos (planos de teste e Plano Chat)
       const planosExcluidos = [
-        'ca772fbf-d9c7-4ef7-9f6c-84e535c393f0'  // Plano Teste
+        'ca772fbf-d9c7-4ef7-9f6c-84e535c393f0',  // Plano Teste
+        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'   // Plano Chat
       ]
       
       // Filtra todos os planos ativos, exceto os planos excluídos
-      // Agora mostra TODOS os planos, incluindo o Plano Chat
+      // Exclui o Plano Chat da landing page de dentista
       const planosIniciais = planosBackend.filter(plano => {
-        return plano.ativo && !planosExcluidos.includes(plano.id)
+        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('chat')
+        return plano.ativo && !planosExcluidos.includes(plano.id) && !isPlanoChat
       })
 
       // Função auxiliar para formatar tokens

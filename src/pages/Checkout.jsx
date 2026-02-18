@@ -1304,7 +1304,7 @@ const Checkout = () => {
                         {couponApplied && appliedCoupon && (
                           <div className="summary-item discount">
                             <span>Desconto ({appliedCoupon.name})</span>
-                            <span>- R$ {parseFloat(discountValue || 0).toFixed(2)}</span>
+                            <span>- {parseFloat(discount || 0).toFixed(1)}%</span>
                           </div>
                         )}
                         <div className="summary-total">
