@@ -111,7 +111,7 @@ const Checkout = () => {
 
           if (isPlanoChat) {
             // Plano Chat - Apenas Chat
-            badge = 'Ideal para Consultórios Pequenos'
+            badge = 'Ideal para estudantes'
             features = [
               'Chat especializado em odontologia 24/7',
               'IA treinada especificamente para odontologia',

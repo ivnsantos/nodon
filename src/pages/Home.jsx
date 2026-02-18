@@ -545,7 +545,7 @@ const Home = () => {
                 const formatarTokens = (tokens) => {
                   const numTokens = parseInt(tokens) || 0
                   if (numTokens >= 1000000) {
-                    return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
+                    return `${(numTokens / 1000000).toFixed(1)} Milhõe ${numTokens > 1000000 ? 's' : ''}`
                   } else if (numTokens >= 1000) {
                     return `${(numTokens / 1000).toFixed(0)} mil`
                   }

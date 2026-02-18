@@ -1,10 +1,9 @@
 .register-by-hash-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #0a0e27 0%, #1a1f3a 100%);
-  padding: 2rem;
+  padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   position: relative;
 }
 
@@ -25,11 +24,71 @@
 .register-by-hash-container {
   max-width: 900px;
   width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
   display: grid;
   grid-template-columns: 1fr 1.5fr;
   gap: 2rem;
   position: relative;
   z-index: 1;
+  flex: 1;
+}
+
+/* Header Nodon */
+.nodon-header {
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.nodon-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.nodon-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.nodon-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+/* Footer Nodon */
+.nodon-footer {
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem 1.5rem;
+  margin-top: auto;
+}
+
+.nodon-footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.nodon-footer-content p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 .loading-container,
@@ -38,10 +97,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  flex: 1;
+  min-height: calc(100vh - 200px);
   color: #ffffff;
   gap: 1.5rem;
   text-align: center;
+  padding: 2rem;
 }
 
 .error-container h2 {
@@ -478,6 +539,10 @@
 
 @media (max-width: 768px) {
   .register-by-hash-page {
+    padding: 0;
+  }
+
+  .register-by-hash-container {
     padding: 1rem;
   }
 
@@ -492,6 +557,33 @@
 
   .form-row .form-group:last-child {
     grid-column: span 1;
+  }
+
+  .nodon-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .nodon-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .nodon-logo {
+    font-size: 1.25rem;
+  }
+
+  .nodon-footer {
+    padding: 1rem;
+  }
+
+  .nodon-footer-content p {
+    font-size: 0.8125rem;
+  }
+
+  .loading-container,
+  .error-container {
+    min-height: calc(100vh - 150px);
+    padding: 1.5rem 1rem;
   }
 }
 

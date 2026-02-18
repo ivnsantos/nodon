@@ -64,7 +64,7 @@ const Register = () => {
         'Relatórios detalhados',
         'Suporte por email',
         'Armazenamento na nuvem',
-        '1 milhão de tokens no chat da NODON'
+        '1 Milhõe  de tokens no chat da NODON'
       ]
     },
     {
@@ -80,7 +80,7 @@ const Register = () => {
         'Suporte prioritário',
         'Múltiplos profissionais',
         'Relatórios personalizados',
-        '1 milhão de tokens no chat da NODON'
+        '1 Milhõe  de tokens no chat da NODON'
       ]
     },
     {
@@ -93,7 +93,7 @@ const Register = () => {
         'Tudo do Plano Básico',
         'Suporte 24/7',
         'Treinamento dedicado',
-        '1.5 milhão de tokens no chat da NODON',
+        '1.5 Milhõe  de tokens no chat da NODON',
         'Gerente de Conta especializado'
       ]
     },
@@ -107,7 +107,7 @@ const Register = () => {
         'Tudo do Plano Premium',
         'Suporte 24/7',
         'Treinamento dedicado',
-        '1.5 milhão de tokens no chat da NODON',
+        '1.5 Milhõe  de tokens no chat da NODON',
         'Gerente de Conta especializado'
       ]
     },
@@ -120,7 +120,7 @@ const Register = () => {
         'Tudo do Plano Essencial',
         'Suporte 24/7',
         'Treinamento dedicado',
-        '1.5 milhão de tokens no chat da NODON',
+        '1.5 Milhõe  de tokens no chat da NODON',
         'Gerente de Conta especializado'
       ]
     }

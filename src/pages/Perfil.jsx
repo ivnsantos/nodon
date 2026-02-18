@@ -396,14 +396,14 @@ const Perfil = () => {
           >
             <FontAwesomeIcon icon={faWhatsapp} /> Suporte
           </button>
-          {isMaster && (
+          {/* {isMaster && (
             <button 
               className="btn-edit-perfil"
               onClick={() => navigate('/complete-master-data')}
             >
               <FontAwesomeIcon icon={faEdit} /> Editar Perfil
             </button>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -709,10 +709,10 @@ const Perfil = () => {
               <div className="invite-link-card">
                 <div className="invite-link-header">
                   <FontAwesomeIcon icon={faLink} />
-                  <h3>Link de Convite para Dentistas</h3>
+                  <h3>Link de Convite Para Seu Time</h3>
                 </div>
                 <p className="invite-link-description">
-                  Compartilhe este link com os dentistas que deseja adicionar à sua clínica. 
+                  Compartilhe este link com as pessoas do seu time para ter uma gestão completa. 
                   Eles poderão se cadastrar ou vincular sua conta existente através deste link.
                 </p>
                 <div className="invite-link-container">

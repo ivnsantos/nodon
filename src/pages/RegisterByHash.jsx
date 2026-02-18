@@ -15,6 +15,7 @@ import {
   faExclamationTriangle,
   faArrowRight
 } from '@fortawesome/free-solid-svg-icons'
+import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
 import './RegisterByHash.css'
 
@@ -112,11 +113,77 @@ const RegisterByHash = () => {
     }
   }, [])
 
+  // Função para formatar CPF
+  const formatCPF = (value) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 11) {
+      return numbers
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+    }
+    return value
+  }
+
+  // Função para formatar telefone com código do país 55
+  const formatTelefone = (value) => {
+    // Remove tudo que não é número
+    let numbers = value.replace(/\D/g, '')
+    
+    // Se começar com 55, remove para não duplicar
+    if (numbers.startsWith('55')) {
+      numbers = numbers.substring(2)
+    }
+    
+    // Limita a 11 dígitos (DDD + número de 9 dígitos para celular ou 8 para fixo)
+    // Mas permite até 11 dígitos completos
+    if (numbers.length > 11) {
+      numbers = numbers.slice(0, 11)
+    }
+    
+    // Formata: +55 (DD) 9XXXX-XXXX para celular ou +55 (DD) XXXX-XXXX para fixo
+    if (numbers.length === 0) {
+      return ''
+    } else if (numbers.length <= 2) {
+      return `+55 (${numbers}`
+    } else if (numbers.length <= 6) {
+      return `+55 (${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+    } else if (numbers.length === 10) {
+      // Telefone fixo: +55 (DD) XXXX-XXXX (10 dígitos)
+      return `+55 (${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6, 10)}`
+    } else if (numbers.length === 11) {
+      // Celular: +55 (DD) 9XXXX-XXXX (11 dígitos)
+      // Garantir que pega todos os 11 dígitos: DDD (2) + 9 dígitos (9)
+      // DDD: posições 0-1 (2 dígitos)
+      // Primeira parte: posições 2-6 (5 dígitos) = slice(2, 7)
+      // Segunda parte: posições 7-10 (4 dígitos) = slice(7, 11) ou slice(7)
+      const ddd = numbers.substring(0, 2)
+      const parte1 = numbers.substring(2, 7)
+      const parte2 = numbers.substring(7, 11)
+      return `+55 (${ddd}) ${parte1}-${parte2}`
+    } else {
+      // Para qualquer outro caso, retornar formatado até onde conseguir
+      return `+55 (${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+    }
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    let formattedValue = value
+    
+    // Formatar CPF
+    if (name === 'cpf') {
+      formattedValue = formatCPF(value)
+    }
+    
+    // Formatar telefone
+    if (name === 'telefone') {
+      formattedValue = formatTelefone(value)
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: formattedValue
     }))
     // Limpar erro do campo quando o usuário começar a digitar
     if (formErrors[name]) {
@@ -218,11 +285,16 @@ const RegisterByHash = () => {
 
     if (!formData.telefone.trim()) {
       errors.telefone = 'Telefone é obrigatório'
+    } else {
+      // Validar que tem pelo menos 10 dígitos (DDD + número) ou 11 dígitos (DDD + celular)
+      const telefoneLimpo = formData.telefone.replace(/\D/g, '')
+      const telefoneSem55 = telefoneLimpo.startsWith('55') ? telefoneLimpo.substring(2) : telefoneLimpo
+      if (telefoneSem55.length < 10 || telefoneSem55.length > 11) {
+        errors.telefone = 'Telefone inválido (deve ter 10 ou 11 dígitos)'
+      }
     }
 
-    if (!formData.cro.trim()) {
-      errors.cro = 'CRO é obrigatório'
-    }
+    // CRO é opcional - não precisa validar
 
     setFormErrors(errors)
     
@@ -262,17 +334,28 @@ const RegisterByHash = () => {
     try {
       let telefoneLimpo = formData.telefone.replace(/\D/g, '')
       
-      // Se não começar com 55, adicionar código do país
-      if (!telefoneLimpo.startsWith('55')) {
-        telefoneLimpo = '55' + telefoneLimpo
+      // Remover o código 55 se já estiver presente para processar
+      let telefoneSem55 = telefoneLimpo
+      if (telefoneLimpo.startsWith('55')) {
+        telefoneSem55 = telefoneLimpo.substring(2)
       }
+      
+      // Validar que tem pelo menos 10 dígitos (DDD + número) ou 11 dígitos (DDD + celular)
+      if (telefoneSem55.length < 10 || telefoneSem55.length > 11) {
+        setError('Telefone inválido. Deve ter 10 ou 11 dígitos (incluindo DDD).')
+        setSubmitting(false)
+        return
+      }
+      
+      // Garantir que o código 55 está presente no telefone enviado
+      const telefoneFinal = '55' + telefoneSem55
       
       const payload = {
         nome: formData.nome,
         email: formData.email,
         cpf: formData.cpf.replace(/\D/g, ''),
-        telefone: telefoneLimpo,
-        cro: formData.cro,
+        telefone: telefoneFinal,
+        cro: formData.cro.trim() || '000000', // Se não preenchido, enviar 6 zeros
         postalCode: formData.postalCode.replace(/\D/g, ''),
         address: formData.address,
         addressNumber: formData.addressNumber,
@@ -353,13 +436,32 @@ const RegisterByHash = () => {
     }
   }
 
+  const Header = () => (
+    <header className="nodon-header">
+      <div className="nodon-header-content">
+        <img src={nodoLogo} alt="Nodon Logo" className="nodon-icon" />
+        <h1 className="nodon-logo">Nodon</h1>
+      </div>
+    </header>
+  )
+
+  const Footer = () => (
+    <footer className="nodon-footer">
+      <div className="nodon-footer-content">
+        <p>&copy; {new Date().getFullYear()} Nodon. Todos os direitos reservados.</p>
+      </div>
+    </footer>
+  )
+
   if (loading) {
     return (
       <div className="register-by-hash-page">
+        <Header />
         <div className="loading-container">
           <FontAwesomeIcon icon={faSpinner} spin size="3x" />
           <p>Carregando informações do consultório...</p>
         </div>
+        <Footer />
       </div>
     )
   }
@@ -367,12 +469,14 @@ const RegisterByHash = () => {
   if (error && !clinicData) {
     return (
       <div className="register-by-hash-page">
+        <Header />
         <div className="error-container">
           <FontAwesomeIcon icon={faExclamationTriangle} size="3x" />
           <h2>Erro</h2>
           <p>{error}</p>
           <Link to="/login" className="btn-primary">Ir para Login</Link>
         </div>
+        <Footer />
       </div>
     )
   }
@@ -381,6 +485,7 @@ const RegisterByHash = () => {
 
   return (
     <div className="register-by-hash-page">
+      <Header />
       <div className="register-by-hash-container">
         <div className="clinic-info-card">
           <div className="clinic-header">
@@ -410,7 +515,7 @@ const RegisterByHash = () => {
         </div>
 
         <div className="register-form-card">
-          <h3>{user ? 'Vincular-se ao Consultório' : 'Cadastro de Dentista'}</h3>
+          <h3>{user ? 'Vincular-se ao Consultório' : 'Cadastro de Profissional'}</h3>
           
           {error && !success && (
             <div className="error-message" role="alert">
@@ -540,6 +645,7 @@ const RegisterByHash = () => {
                   required
                   disabled={submitting || success}
                   maxLength={14}
+                  placeholder="000.000.000-00"
                 />
                 {formErrors.cpf && <span className="field-error">{formErrors.cpf}</span>}
               </div>
@@ -557,6 +663,8 @@ const RegisterByHash = () => {
                   onChange={handleInputChange}
                   required
                   disabled={submitting || success}
+                  maxLength={20}
+                  placeholder="+55 (99) 99999-9999"
                 />
                 {formErrors.telefone && <span className="field-error">{formErrors.telefone}</span>}
               </div>
@@ -565,7 +673,7 @@ const RegisterByHash = () => {
             <div className="form-group">
               <label htmlFor="cro">
                 <FontAwesomeIcon icon={faIdCard} />
-                CRO (Conselho Regional de Odontologia) *
+                CRO (Conselho Regional de Odontologia)
               </label>
               <input
                 type="text"
@@ -573,8 +681,8 @@ const RegisterByHash = () => {
                 name="cro"
                 value={formData.cro}
                 onChange={handleInputChange}
-                required
                 disabled={submitting || success}
+                placeholder="Opcional"
               />
               {formErrors.cro && <span className="field-error">{formErrors.cro}</span>}
             </div>
@@ -703,6 +811,7 @@ const RegisterByHash = () => {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

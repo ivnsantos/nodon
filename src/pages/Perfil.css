@@ -16,6 +16,7 @@
   background: #1e293b;
   border-bottom: 2px solid rgba(14, 165, 233, 0.2);
   margin-bottom: 0;
+  flex-wrap: wrap;
 }
 
 .perfil-avatar-container {
@@ -85,14 +86,15 @@
 
 .perfil-header-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.75rem;
-  align-items: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .perfil-plan-badge-btn {
   padding: 0.625rem 1.25rem;
-  background: #f97316;
+  background: #0e9fe3;
   border: none;
   border-radius: 0.5rem;
   color: #ffffff;
@@ -313,7 +315,7 @@
 }
 
 .token-value.critical {
-  color: #f97316;
+  color: #0e9fe3;
 }
 
 .token-value.critical.pulsing {
@@ -402,7 +404,7 @@
 }
 
 .token-progress-fill.critical {
-  background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+  background: linear-gradient(90deg, #0e9fe3 0%, #ea580c 100%);
 }
 
 .token-progress-fill.critical.pulsing {
@@ -426,7 +428,7 @@
 }
 
 .token-progress-percent.critical {
-  color: #f97316 !important;
+  color: #0e9fe3 !important;
 }
 
 .token-progress-percent.critical.pulsing {
@@ -919,44 +921,117 @@
 
 @media (max-width: 768px) {
   .perfil-page {
-    padding: 1rem;
+    padding: 0;
   }
 
   .perfil-content {
     grid-template-columns: 1fr;
-    gap: 1.25rem;
+    gap: 1rem;
+    padding: 1rem 0.75rem;
   }
 
   .perfil-header-section {
     flex-direction: column;
-    text-align: center;
-    gap: 1.5rem;
-    padding: 1.5rem;
+    align-items: flex-start;
+    padding: 1rem 0.75rem;
+    gap: 0.875rem;
   }
 
-  .perfil-avatar {
-    width: 80px;
-    height: 80px;
-    font-size: 2rem;
+  .perfil-header-info {
+    width: 100%;
   }
 
   .perfil-header-info h1 {
-    font-size: 1.75rem;
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+  }
+
+  .perfil-email {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .user-type-badge-large {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.625rem;
+  }
+
+  .perfil-header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .perfil-header-actions button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .perfil-plan-badge-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
   }
 
   .btn-suporte-whatsapp {
     width: 100%;
     justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
   }
 
   .btn-edit-perfil {
     width: 100%;
     justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .perfil-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+
+  .avatar-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.625rem;
   }
 
   .token-main-stat {
     flex-direction: column;
     text-align: center;
+    gap: 0.75rem;
+  }
+
+  .token-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .token-value {
+    font-size: 1.75rem;
+  }
+
+  .token-label {
+    font-size: 0.6875rem;
+  }
+
+  .token-details {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .token-detail-item {
+    padding: 0.5rem;
+    font-size: 0.75rem;
   }
 
   .token-card {
@@ -966,7 +1041,7 @@
   .assinatura-plan {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   .clientes-stat {
@@ -975,7 +1050,188 @@
   }
 
   .card-body {
-    padding: 1.25rem;
+    padding: 1rem;
+  }
+
+  .card-header {
+    padding: 1rem;
+  }
+
+  .card-header h2 {
+    font-size: 0.9375rem;
+    gap: 0.5rem;
+  }
+
+  .card-header h2 svg {
+    font-size: 0.875rem;
+  }
+
+  .info-row {
+    padding: 0.875rem 0;
+  }
+
+  .info-label {
+    font-size: 0.8125rem;
+    gap: 0.5rem;
+  }
+
+  .info-value {
+    font-size: 0.8125rem;
+  }
+
+  .perfil-tabs {
+    padding: 0 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 0.5rem;
+  }
+
+  .perfil-tab-button {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+    gap: 0.375rem;
+  }
+
+  .perfil-tab-button svg {
+    font-size: 0.8125rem;
+  }
+
+
+  .invite-link-card {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .invite-link-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .invite-link-header svg {
+    font-size: 1.25rem;
+  }
+
+  .invite-link-header h3 {
+    font-size: 0.9375rem;
+  }
+
+  .invite-link-description {
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .invite-link-container {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .invite-link-input {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    text-align: left;
+  }
+
+  .btn-copy-link {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    min-width: auto;
+    font-size: 0.8125rem;
+  }
+
+  .dentistas-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .dentista-card {
+    border-radius: 0.75rem;
+  }
+
+  .dentista-image {
+    height: 80px;
+  }
+
+  .dentista-image-placeholder {
+    font-size: 1.75rem;
+  }
+
+  .dentista-info {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .dentista-info h4 {
+    font-size: 0.9375rem;
+  }
+
+  .dentista-crm {
+    font-size: 0.75rem;
+  }
+
+  .dentista-contact {
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .dentista-contact p {
+    font-size: 0.75rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .dentista-actions {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .status-toggle-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    min-height: 36px;
+  }
+
+  .empty-state-dentistas {
+    padding: 2rem 1rem;
+  }
+
+  .empty-state-dentistas svg {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .empty-state-dentistas h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state-dentistas p {
+    font-size: 0.8125rem;
+  }
+
+  .error-message-dentistas {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+  }
+
+  .dentistas-loading {
+    padding: 2rem 1rem;
+  }
+
+  .dentistas-loading svg {
+    font-size: 1.5rem;
+  }
+
+  .dentistas-loading p {
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
   }
 }
 
@@ -989,6 +1245,12 @@
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  background: rgba(10, 14, 39, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.perfil-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .perfil-tabs::-webkit-scrollbar {
@@ -999,8 +1261,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.25rem;
+  gap: 0.625rem;
+  padding: 1rem 1.5rem;
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
@@ -1015,6 +1277,7 @@
   flex-shrink: 0;
   min-width: fit-content;
   box-sizing: border-box;
+  border-radius: 0.5rem 0.5rem 0 0;
 }
 
 .perfil-tab-button svg {
@@ -1030,13 +1293,26 @@
 .perfil-tab-button.active {
   color: #0ea5e9;
   border-bottom-color: #0ea5e9;
-  background: rgba(14, 165, 233, 0.1);
+  background: rgba(14, 165, 233, 0.15);
+}
+
+.perfil-tab-button.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
+  opacity: 0.5;
 }
 
 /* Conteúdo da aba Usuários */
 .perfil-usuarios-tab {
-  padding: 2rem 2.5rem;
+  padding: 0rem 0rem;
   animation: fadeIn 0.3s ease;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 @keyframes fadeIn {
@@ -1053,34 +1329,45 @@
 /* Estilos do Dentistas integrados */
 .dentistas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
   margin-top: 1.5rem;
+}
+
+@media (min-width: 1200px) {
+  .dentistas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
 }
 
 .dentista-card {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
 }
 
 .dentista-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  border-color: rgba(14, 165, 233, 0.3);
+  transform: translateY(-6px);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(14, 165, 233, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: rgba(14, 165, 233, 0.4);
 }
 
 .dentista-image {
   width: 100%;
-  height: 120px;
+  height: 140px;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%);
   position: relative;
 }
 
@@ -1092,20 +1379,24 @@
   justify-content: center;
   background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: #ffffff;
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dentista-info {
-  padding: 1rem;
+  padding: 1.25rem;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .dentista-info h4 {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: #ffffff;
-  margin-bottom: 0.5rem;
+  margin: 0;
   line-height: 1.3;
 }
 
@@ -1119,18 +1410,29 @@
 }
 
 .dentista-contact {
-  margin-top: 0.75rem;
+  margin-top: auto;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dentista-contact p {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
+  word-break: break-word;
+}
+
+.dentista-contact p:last-child {
+  margin-bottom: 0;
+}
+
+.dentista-contact p svg {
+  flex-shrink: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .dentista-card.inactive {
@@ -1177,18 +1479,19 @@
 }
 
 .dentista-actions {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   gap: 0.5rem;
-  background: rgba(14, 165, 233, 0.03);
+  background: rgba(14, 165, 233, 0.05);
+  margin-top: auto;
 }
 
 .status-toggle-btn {
   flex: 1;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1196,7 +1499,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
+  min-height: 44px;
 }
 
 .status-toggle-btn.active {
@@ -1246,87 +1550,126 @@
   padding: 4rem 2rem;
   text-align: center;
   color: #9ca3af;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 1.25rem;
+  border: 2px dashed rgba(14, 165, 233, 0.2);
+  margin-top: 1rem;
 }
 
 .empty-state-dentistas svg {
-  opacity: 0.3;
-  margin-bottom: 1rem;
+  opacity: 0.4;
+  margin-bottom: 1.5rem;
   color: #7dd3fc;
+  filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.3));
 }
 
 .empty-state-dentistas h3 {
   font-size: 1.5rem;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-state-dentistas p {
+  font-size: 1rem;
+  color: #9ca3af;
+  line-height: 1.6;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .invite-link-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
   backdrop-filter: blur(20px);
-  border-radius: 1.5rem;
-  padding: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  padding: 1rem;
+  border: 2px solid rgba(14, 165, 233, 0.2);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
+}
+
+.invite-link-card:hover {
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .invite-link-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
 }
 
 .invite-link-header svg {
   color: #0ea5e9;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.5));
 }
 
 .invite-link-header h3 {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 700;
   color: #ffffff;
   margin: 0;
+  background: linear-gradient(135deg, #ffffff 0%, #7dd3fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .invite-link-description {
-  color: #9ca3af;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
+  color: #e0f2fe;
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 1.75rem;
+  font-weight: 400;
 }
 
 .invite-link-container {
   display: flex;
   gap: 1rem;
-  align-items: center;
+  align-items: stretch;
+  background: rgba(10, 14, 39, 0.6);
+  border-radius: 1rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .invite-link-input {
   flex: 1;
-  padding: 0.875rem 1rem;
-  background: rgba(10, 14, 39, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.25rem;
+  background: transparent;
+  border: none;
   border-radius: 0.75rem;
   color: #ffffff;
   font-size: 0.9375rem;
   font-family: 'Courier New', monospace;
   cursor: text;
   transition: all 0.3s ease;
+  min-width: 0;
 }
 
 .invite-link-input:focus {
   outline: none;
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-  background: rgba(10, 14, 39, 0.7);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.invite-link-input::selection {
+  background: rgba(14, 165, 233, 0.3);
 }
 
 .btn-copy-link {
-  padding: 0.875rem 1.5rem;
+  padding: 1rem 1.75rem;
   background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: #ffffff;
   border: none;
@@ -1337,15 +1680,21 @@
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.625rem;
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  min-width: 140px;
 }
 
 .btn-copy-link:hover {
   background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+}
+
+.btn-copy-link:active {
+  transform: translateY(0);
 }
 
 .dentistas-loading {
@@ -1357,31 +1706,4 @@
   color: #9ca3af;
 }
 
-@media (max-width: 768px) {
-  .perfil-tabs {
-    padding: 0 1rem;
-  }
-
-  .perfil-usuarios-tab {
-    padding: 1.5rem 1rem;
-  }
-
-  .dentistas-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .invite-link-container {
-    flex-direction: column;
-  }
-
-  .invite-link-input {
-    width: 100%;
-    font-size: 0.8125rem;
-  }
-
-  .btn-copy-link {
-    width: 100%;
-    justify-content: center;
-  }
-}
 

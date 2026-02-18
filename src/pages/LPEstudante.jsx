@@ -121,7 +121,7 @@ const LPEstudante = () => {
             'Gráficos customizados para melhor entendimento',
             'Suporte por email',
             'Armazenamento ilimitado na nuvem',
-            '1 milhão de tokens no chat IA',
+            '1 Milhõe  de tokens no chat IA',
             'Acesso mobile completo',
             'Sem fidelidade - cancele quando quiser'
           ]
@@ -212,7 +212,7 @@ const LPEstudante = () => {
   const formatarTokens = (tokens) => {
     const numTokens = parseInt(tokens) || 0
     if (numTokens >= 1000000) {
-      return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
+      return `${(numTokens / 1000000).toFixed(1)} Milhõe ${numTokens > 1000000 ? 's' : ''}`
     } else if (numTokens >= 1000) {
       return `${(numTokens / 1000).toFixed(0)} mil`
     }
