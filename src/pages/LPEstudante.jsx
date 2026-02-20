@@ -667,7 +667,6 @@ const LPEstudante = () => {
                 </div>
               </div>
               <div className="urgency-cta-box">
-                <div className="cta-box-content">
                   <h3>Pronto para transformar sua vida acadêmica?</h3>
                   <p>Comece agora e veja a diferença na sua próxima nota</p>
                   <div className="cta-benefits">
@@ -689,7 +688,7 @@ const LPEstudante = () => {
                     <FontAwesomeIcon icon={faArrowRight} />
                   </button>
                 </div>
-              </div>
+              
             </div>
           </div>
         </div>
