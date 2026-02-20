@@ -226,26 +226,30 @@ const LPEstudante = () => {
 
   // Determina qual imagem usar
   const getHeroImage = () => {
-    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+    const cupomUpper = cupomCode?.toUpperCase() || ''
+    
+    if (cupomUpper === 'DRAISADENTISTA' && cupomValido) {
       return draisadentistaImg
     }
-    if (cupomCode === 'JULIA20' && cupomValido) {
+    if (cupomUpper === 'JULIA20' && cupomValido) {
       return julia20Img
     }
-    if (cupomCode === 'XL20' && cupomValido) {
+    if (cupomUpper === 'XL20' && cupomValido) {
       return xl20Img
     }
     return estudanteImg
   }
 
   const getHeroImageAlt = () => {
-    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+    const cupomUpper = cupomCode?.toUpperCase() || ''
+    
+    if (cupomUpper === 'DRAISADENTISTA' && cupomValido) {
       return "Cupom DRAISADENTISTA"
     }
-    if (cupomCode === 'JULIA20' && cupomValido) {
+    if (cupomUpper === 'JULIA20' && cupomValido) {
       return "Cupom JULIA20"
     }
-    if (cupomCode === 'XL20' && cupomValido) {
+    if (cupomUpper === 'XL20' && cupomValido) {
       return "Cupom XL20"
     }
     return "Estudantes de Odontologia"
@@ -275,13 +279,13 @@ const LPEstudante = () => {
       {cupomCode && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
-            {cupomCode === 'DRAISADENTISTA' && cupomValido && (
+            {cupomCode?.toUpperCase() === 'DRAISADENTISTA' && cupomValido && (
               <img src={draisadentistaImg} alt="Cupom DRAISADENTISTA" className="cupom-image" />
             )}
-            {cupomCode === 'JULIA20' && cupomValido && (
+            {cupomCode?.toUpperCase() === 'JULIA20' && cupomValido && (
               <img src={julia20Img} alt="Cupom JULIA20" className="cupom-image" />
             )}
-            {cupomCode === 'XL20' && cupomValido && (
+            {cupomCode?.toUpperCase() === 'XL20' && cupomValido && (
               <img src={xl20Img} alt="Cupom XL20" className="cupom-image" />
             )}
             <FontAwesomeIcon icon={faTag} />
