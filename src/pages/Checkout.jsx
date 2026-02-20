@@ -815,21 +815,42 @@ const Checkout = () => {
       console.log('Payload completo:', tokenizePayload)
       console.log('IP do cliente:', clientIp)
 
-      // Usar sempre /asaas-proxy - em dev usa proxy do Vite, em prod usa Edge Function do Vercel
-      const tokenizeURL = '/asaas-proxy/creditCard/tokenizeCreditCard'
+      // Detectar ambiente: em dev usa proxy do Vite, em prod chama direto a API Asaas
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       
-      console.log('=== TOKENIZANDO CARTÃO ===')
+      let tokenizeURL
+      let requestHeaders = {
+        'Content-Type': 'application/json'
+      }
+      
+      if (isDev) {
+        // Dev: usa proxy do Vite (que adiciona headers automaticamente)
+        tokenizeURL = '/asaas-proxy/creditCard/tokenizeCreditCard'
+        console.log('=== TOKENIZANDO CARTÃO (DEV - Vite Proxy) ===')
+      } else {
+        // Prod: chama direto a API Asaas com headers
+        const asaasApiUrl = import.meta.env.VITE_ASAAS_API_URL
+        const asaasToken = import.meta.env.VITE_ASAAS_TOKEN
+        
+        if (!asaasToken) {
+          throw new Error('Token Asaas não configurado. Configure VITE_ASAAS_TOKEN nas variáveis de ambiente.')
+        }
+        
+        tokenizeURL = `${asaasApiUrl}/v3/creditCard/tokenizeCreditCard`
+        requestHeaders['access_token'] = asaasToken
+        requestHeaders['User-Agent'] = 'Checkout assas.com'
+        console.log('=== TOKENIZANDO CARTÃO (PROD - Direto Asaas) ===')
+      }
+      
       console.log('URL:', tokenizeURL)
       console.log('Payload completo:', tokenizePayload)
+      console.log('Headers:', requestHeaders)
       
       const tokenizeResponse = await axios.post(
         tokenizeURL,
         tokenizePayload,
         {
-          headers: {
-            'Content-Type': 'application/json'
-            // Headers adicionados automaticamente pelo proxy (Vite em dev, Edge Function em prod)
-          }
+          headers: requestHeaders
         }
       )
       

@@ -19,6 +19,7 @@ import nodoLogo from '../img/nodo.png'
 import dentistaImg from '../img/especializacao-em-odontologia-1.jpg'
 import xldentistaImg from '../img/xldentista.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
+import julia20Img from '../img/JULIA20.jpeg'
 import './LPDentista.css'
 
 // Componente individual para cada card de plano - gerencia seu próprio estado
@@ -403,22 +404,30 @@ const LPDentista = () => {
 
   // Determina qual imagem usar - igual ao esquema da LP de estudante
   const getHeroImage = () => {
-    // Verifica se o cupom é DRAISADENTISTA (já vem em maiúsculas do useEffect)
-    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+    const cupomUpper = cupomCode?.toUpperCase() || ''
+    
+    if (cupomUpper === 'DRAISADENTISTA' && cupomValido) {
       return draisadentistaImg
     }
-    // Verifica se o cupom é XL20 ou XLDENTISTA (já vem em maiúsculas do useEffect)
-    if ((cupomCode === 'XL20' || cupomCode === 'XLDENTISTA') && cupomValido) {
+    if (cupomUpper === 'JULIA20' && cupomValido) {
+      return julia20Img
+    }
+    if ((cupomUpper === 'XL20' || cupomUpper === 'XLDENTISTA') && cupomValido) {
       return xldentistaImg
     }
     return dentistaImg
   }
 
   const getHeroImageAlt = () => {
-    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+    const cupomUpper = cupomCode?.toUpperCase() || ''
+    
+    if (cupomUpper === 'DRAISADENTISTA' && cupomValido) {
       return "Cupom DRAISADENTISTA"
     }
-    if ((cupomCode === 'XL20' || cupomCode === 'XLDENTISTA') && cupomValido) {
+    if (cupomUpper === 'JULIA20' && cupomValido) {
+      return "Cupom JULIA20"
+    }
+    if ((cupomUpper === 'XL20' || cupomUpper === 'XLDENTISTA') && cupomValido) {
       return `Cupom ${cupomCode}`
     }
     return "Dentistas"
@@ -448,10 +457,13 @@ const LPDentista = () => {
       {cupomCode && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
-            {cupomCode === 'DRAISADENTISTA' && cupomValido && (
+            {cupomCode?.toUpperCase() === 'DRAISADENTISTA' && cupomValido && (
               <img src={draisadentistaImg} alt="Cupom DRAISADENTISTA" className="cupom-image" />
             )}
-            {(cupomCode === 'XL20' || cupomCode === 'XLDENTISTA') && cupomValido && (
+            {cupomCode?.toUpperCase() === 'JULIA20' && cupomValido && (
+              <img src={julia20Img} alt="Cupom JULIA20" className="cupom-image" />
+            )}
+            {(cupomCode?.toUpperCase() === 'XL20' || cupomCode?.toUpperCase() === 'XLDENTISTA') && cupomValido && (
               <img src={xldentistaImg} alt={`Cupom ${cupomCode}`} className="cupom-image" />
             )}
             <FontAwesomeIcon icon={faTag} />

@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/asaas-proxy/(.*)",
-      "destination": "/api/asaas-proxy/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
