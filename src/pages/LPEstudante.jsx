@@ -17,6 +17,8 @@ import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag
 import nodoLogo from '../img/nodo.png'
 import estudanteImg from '../img/especializacao-em-odontologia-1.jpg'
 import xl20Img from '../img/xl20.jpeg'
+import julia20Img from '../img/JULIA20.jpeg'
+import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import './LPEstudante.css'
 
 const LPEstudante = () => {
@@ -156,9 +158,12 @@ const LPEstudante = () => {
       return
     }
 
+    // Garantir que o código do cupom sempre seja enviado em maiúsculas
+    const codigoNormalizado = codigo.toString().toUpperCase().trim()
+
     setValidandoCupom(true)
     try {
-      const response = await api.get(`/cupons/name/${codigo.toUpperCase().trim()}`)
+      const response = await api.get(`/cupons/name/${codigoNormalizado}`)
       const cupom = response.data?.data || response.data
 
       if (cupom && cupom.active) {
@@ -221,6 +226,12 @@ const LPEstudante = () => {
 
   // Determina qual imagem usar
   const getHeroImage = () => {
+    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+      return draisadentistaImg
+    }
+    if (cupomCode === 'JULIA20' && cupomValido) {
+      return julia20Img
+    }
     if (cupomCode === 'XL20' && cupomValido) {
       return xl20Img
     }
@@ -228,6 +239,12 @@ const LPEstudante = () => {
   }
 
   const getHeroImageAlt = () => {
+    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+      return "Cupom DRAISADENTISTA"
+    }
+    if (cupomCode === 'JULIA20' && cupomValido) {
+      return "Cupom JULIA20"
+    }
     if (cupomCode === 'XL20' && cupomValido) {
       return "Cupom XL20"
     }
@@ -258,6 +275,12 @@ const LPEstudante = () => {
       {cupomCode && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
+            {cupomCode === 'DRAISADENTISTA' && cupomValido && (
+              <img src={draisadentistaImg} alt="Cupom DRAISADENTISTA" className="cupom-image" />
+            )}
+            {cupomCode === 'JULIA20' && cupomValido && (
+              <img src={julia20Img} alt="Cupom JULIA20" className="cupom-image" />
+            )}
             {cupomCode === 'XL20' && cupomValido && (
               <img src={xl20Img} alt="Cupom XL20" className="cupom-image" />
             )}
@@ -304,7 +327,7 @@ const LPEstudante = () => {
             <div className="hero-text">
               <div className="hero-label">
                 <FontAwesomeIcon icon={faFire} />
-                <span>FEITA ESPECIFICAMENTE PARA ESTUDANTES</span>
+                <span>IA Especializada em Odontologia</span>
               </div>
               <h1 className="hero-title">
                 NODON

@@ -7,6 +7,7 @@ import {
   faChevronRight, faChevronLeft, faTag, faLock, faChevronDown, faChevronUp,
   faExclamationTriangle, faTimes, faCheck, faPhone, faUsers, faShieldAlt
 } from '@fortawesome/free-solid-svg-icons'
+import axios from 'axios'
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
 import { trackCheckoutStep, trackPlanSelection, trackConversion, trackEvent } from '../utils/gtag'
@@ -259,9 +260,12 @@ const Checkout = () => {
       return false
     }
 
+    // Garantir que o código do cupom sempre seja enviado em maiúsculas
+    const codigoNormalizado = code.toString().toUpperCase().trim()
+
     setIsApplyingCoupon(true)
     try {
-      const response = await api.get(`/cupons/name/${code.toUpperCase().trim()}`)
+      const response = await api.get(`/cupons/name/${codigoNormalizado}`)
       // A API pode retornar { message, data } ou diretamente o cupom
       const cupom = response.data?.data || response.data
 
@@ -557,7 +561,78 @@ const Checkout = () => {
     setExpandedPlan(expandedPlan === planId ? null : planId)
   }
 
-  const handleNext = () => {
+  // Função para cadastrar cliente na API
+  const createCustomer = async () => {
+    if (isCreatingCustomer) return
+    
+    setIsCreatingCustomer(true)
+    try {
+      // Validar telefone
+      let phoneNumbers = formData.telefone.replace(/\D/g, '')
+      if (!phoneNumbers.startsWith('55')) {
+        phoneNumbers = '55' + phoneNumbers
+      }
+      
+      const customerPayload = {
+        name: formData.nome,
+        email: formData.email,
+        password: formData.password,
+        cpf: formData.cpf.replace(/\D/g, ''),
+        phone: phoneNumbers,
+        postalCode: formData.cep.replace(/\D/g, ''),
+        address: formData.rua,
+        addressNumber: formData.numero,
+        complement: formData.complemento || '',
+        province: formData.bairro,
+        city: formData.cidade,
+        state: formData.estado
+      }
+      
+      console.log('=== CRIANDO CLIENTE /api/assinaturas/customer ===')
+      console.log(customerPayload)
+      
+      const response = await api.post('/assinaturas/customer', customerPayload)
+      
+      // Log completo da resposta para debug
+      console.log('=== RESPOSTA /api/assinaturas/customer ===')
+      console.log('Response completo:', response)
+      console.log('Response.data:', response.data)
+      
+      // Estrutura aninhada: response.data.data.data contém { asaasCustomerId, userId }
+      const outerData = response.data?.data
+      const innerData = outerData?.data
+      
+      // Tentar diferentes níveis de aninhamento
+      const customerId = innerData?.asaasCustomerId || outerData?.asaasCustomerId || response.data?.asaasCustomerId
+      const user = innerData?.userId || outerData?.userId || response.data?.userId
+      
+      console.log('Dados extraídos:', { 
+        customerId, 
+        userId: user
+      })
+      
+      if (!user) {
+        console.error('userId não encontrado na resposta:', response.data)
+        throw new Error('userId não retornado pela API')
+      }
+      
+      setAsaasCustomerId(customerId)
+      setUserId(user) // IMPORTANTE: Usar userId, não clienteMasterId
+      console.log('Cliente criado com sucesso. userId salvo:', user)
+      
+    } catch (error) {
+      console.error('Erro ao criar cliente:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao cadastrar cliente. Tente novamente.'
+      showAlert(errorMessage, 'error')
+      setIsCreatingCustomer(false)
+      throw error // Re-throw para impedir avanço de etapa
+    } finally {
+      setIsCreatingCustomer(false)
+    }
+  }
+
+
+  const handleNext = async () => {
     if (currentStep === 1) {
       if (!selectedPlan) {
         showAlert('Por favor, selecione um plano para continuar')
@@ -595,6 +670,17 @@ const Checkout = () => {
         showAlert('Por favor, preencha todos os campos de endereço')
         return
       }
+      
+      // Se já tem o userId, não precisa criar novamente
+      if (!userId) {
+        try {
+          // Cadastrar cliente antes de avançar para etapa 3
+          await createCustomer()
+        } catch (error) {
+          // Erro já foi tratado na função createCustomer
+          return // Não avança para próxima etapa se houver erro
+        }
+      }
     }
     if (currentStep === 3) {
       // Validar dados do cartão
@@ -613,10 +699,14 @@ const Checkout = () => {
   const [pollingAttempt, setPollingAttempt] = useState(0)
   const [pollingStatus, setPollingStatus] = useState('Verificando pagamento...')
   const [loadingMessage, setLoadingMessage] = useState('Criando assinatura...')
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
+  const [asaasCustomerId, setAsaasCustomerId] = useState(null)
+  const [userId, setUserId] = useState(null)
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
 
   // Bloquear scroll do body quando modal estiver aberto
   useEffect(() => {
-    if (showLoadingModal || showPollingModal) {
+    if (showLoadingModal || showPollingModal || showSuccessAnimation) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -625,7 +715,7 @@ const Checkout = () => {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [showLoadingModal, showPollingModal])
+  }, [showLoadingModal, showPollingModal, showSuccessAnimation])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -664,60 +754,247 @@ const Checkout = () => {
         return
       }
 
-      // Mostrar modal de loading ao criar assinatura
+      // Validar se tem userId
+      if (!userId) {
+        showAlert('Erro: Cliente não cadastrado. Por favor, volte e tente novamente.', 'error')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Mostrar modal de loading
       setShowLoadingModal(true)
-      setLoadingMessage('Criando assinatura...')
+      setLoadingMessage('Tokenizando cartão...')
 
       // Preparar dados do cartão
       const [expiryMonth, expiryYear] = formData.validade.split('/')
-      const fullYear = `20${expiryYear}`
+      // Para a Asaas, o ano deve ser apenas os 2 últimos dígitos (ex: "26" para 2026)
+      const yearTwoDigits = expiryYear
 
-      // Preparar payload
-      const payload = {
-        name: formData.nome,
-        email: formData.email,
-        password: formData.password,
-        cpf: formData.cpf.replace(/\D/g, ''),
-        phone: phoneNumbers, // Telefone apenas com números (DDD + número)
-        postalCode: formData.cep.replace(/\D/g, ''),
-        address: formData.rua,
-        addressNumber: formData.numero,
-        complement: formData.complemento || '',
-        province: formData.bairro,
-        city: formData.cidade,
-        state: formData.estado,
-        planoId: selectedPlan.id,
-        billingType: 'CREDIT_CARD',
-        creditCardHolderName: formData.nomeCartao,
-        creditCardNumber: formData.numeroCartao.replace(/\D/g, ''),
-        creditCardExpiryMonth: expiryMonth,
-        creditCardExpiryYear: fullYear,
-        creditCardCcv: formData.cvv,
-        ...(appliedCoupon ? { couponName: appliedCoupon.name } : {}),
+      // Validar se tem asaasCustomerId para tokenização
+      if (!asaasCustomerId) {
+        showAlert('Erro: Cliente Asaas não encontrado. Por favor, volte e tente novamente.', 'error')
+        setIsSubmitting(false)
+        setShowLoadingModal(false)
+        return
       }
 
-      // Criar assinatura
-      const response = await api.post('/assinaturas', payload)
+      // Obter IP do cliente
+      let clientIp = '0.0.0.0'
+      try {
+        const ipResponse = await axios.get('https://api.ipify.org?format=json')
+        clientIp = ipResponse.data?.ip || '0.0.0.0'
+      } catch (error) {
+        console.warn('Não foi possível obter o IP do cliente:', error)
+        // Se falhar, tentar obter de outra forma ou usar um valor padrão
+      }
+
+      // 1. Tokenizar cartão primeiro na Asaas
+      const tokenizePayload = {
+        customer: asaasCustomerId,
+        creditCard: {
+          holderName: formData.nomeCartao,
+          number: formData.numeroCartao.replace(/\D/g, ''),
+          expiryMonth: expiryMonth,
+          expiryYear: yearTwoDigits, // Apenas 2 dígitos (ex: "26")
+          ccv: formData.cvv
+        },
+        creditCardHolderInfo: {
+          name: formData.nome,
+          email: formData.email,
+          cpfCnpj: formData.cpf.replace(/\D/g, ''),
+          postalCode: formData.cep.replace(/\D/g, ''),
+          addressNumber: formData.numero,
+          addressComplement: formData.complemento || '',
+          phone: phoneNumbers,
+          mobilePhone: phoneNumbers
+        },
+        remoteIp: clientIp
+      }
+
+      console.log('=== TOKENIZANDO CARTÃO DIRETO NA ASAAS ===')
+      console.log('Payload completo:', tokenizePayload)
+      console.log('IP do cliente:', clientIp)
+
+      // Chamar através do proxy do Vite (resolve CORS e adiciona User-Agent no servidor)
+      // O proxy está configurado no vite.config.js para fazer proxy de /asaas-proxy para a Asaas
+      const tokenizeURL = '/asaas-proxy/creditCard/tokenizeCreditCard'
       
-      // A API pode retornar { statusCode, message, data } ou diretamente os dados
-      const responseData = response.data?.data || response.data
+      console.log('=== TOKENIZANDO CARTÃO VIA PROXY VITE ===')
+      console.log('URL:', tokenizeURL)
+      console.log('Payload completo:', tokenizePayload)
+      console.log('O proxy do Vite adiciona access_token e User-Agent automaticamente')
       
-      if (!responseData || !responseData.userId) {
+      const tokenizeResponse = await axios.post(
+        tokenizeURL,
+        tokenizePayload,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+            // access_token e User-Agent são adicionados pelo proxy do Vite no servidor
+          }
+        }
+      )
+      
+      console.log('=== RESPOSTA TOKENIZAÇÃO ===')
+      console.log('Response completo:', tokenizeResponse)
+      console.log('Response.data:', tokenizeResponse.data)
+      
+      // Extrair token da resposta (pode estar em diferentes níveis)
+      const tokenizeData = tokenizeResponse.data?.data || tokenizeResponse.data
+      const creditCardToken = tokenizeData?.creditCardToken || tokenizeResponse.data?.creditCardToken
+
+      if (!creditCardToken) {
+        console.error('Token não encontrado na resposta:', tokenizeResponse.data)
+        throw new Error('Token do cartão não retornado pela API')
+      }
+
+      console.log('Cartão tokenizado com sucesso. Token:', creditCardToken)
+
+      // Atualizar mensagem de loading
+      setLoadingMessage('Processando pagamento...')
+
+      // 2. Fazer checkout com apenas o token
+      const checkoutPayload = {
+        userId: userId,
+        planoId: selectedPlan.id,
+        billingType: 'CREDIT_CARD',
+        creditCardToken: creditCardToken,
+        ...(appliedCoupon ? { couponName: appliedCoupon.name } : {})
+      }
+
+      // Log do payload enviado para debug
+      console.log('=== PAYLOAD ENVIADO /api/assinaturas/checkout ===')
+      console.log(checkoutPayload)
+      console.log('========================================')
+
+      // Fazer checkout
+      const response = await api.post('/assinaturas/checkout', checkoutPayload)
+      
+      // Log do retorno da API para debug
+      console.log('=== RETORNO DA API /api/assinaturas ===')
+      console.log('Response completo:', response)
+      console.log('Response.data:', response.data)
+      console.log('Status Code:', response.status)
+      console.log('========================================')
+      
+      // Verificar se há erro na resposta (statusCode 400, 500, etc)
+      const responseStatusCode = response.data?.statusCode || response.status
+      if (responseStatusCode >= 400) {
+        const errorMessage = response.data?.message || 'Erro ao processar pagamento. Tente novamente.'
+        // Limpar mensagens duplicadas ou muito técnicas
+        const cleanMessage = errorMessage
+          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
+          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
+          .trim()
+        throw new Error(cleanMessage || 'Erro ao processar pagamento. Verifique os dados e tente novamente.')
+      }
+      
+      // Estrutura aninhada: response.data.data.data contém { pagamento, assinatura }
+      // response.data.data.statusCode contém o statusCode interno (200 ou 202)
+      const outerData = response.data?.data
+      const innerData = outerData?.data
+      const innerStatusCode = outerData?.statusCode
+      
+      // Tentar diferentes níveis de aninhamento para compatibilidade
+      const responseData = innerData || outerData || response.data
+      const statusCode = innerStatusCode || outerData?.statusCode || response.data?.statusCode || response.status
+      
+      if (!responseData) {
         console.error('Resposta inválida do servidor:', response.data)
         throw new Error('Resposta inválida do servidor')
       }
       
-      // Mudar para modal de polling
-      setShowLoadingModal(false)
-      setIsPolling(true)
-      setShowPollingModal(true)
-      setPollingAttempt(0)
-      setPollingStatus('Verificando pagamento...')
-      await pollPaymentStatus(responseData.userId)
+      // Extrair dados do pagamento e assinatura (pode estar em data.data.data ou data.data)
+      const pagamento = responseData.pagamento || innerData?.pagamento
+      const assinatura = responseData.assinatura || innerData?.assinatura
+      
+      console.log('Pagamento extraído:', pagamento)
+      console.log('Assinatura extraída:', assinatura)
+      console.log('Status Code interno:', statusCode)
+      
+      if (!pagamento || !pagamento.id) {
+        console.error('Dados do pagamento não encontrados na resposta:', response.data)
+        throw new Error('Dados do pagamento não encontrados')
+      }
+      
+      const paymentId = pagamento.id
+      const paymentStatus = pagamento.status
+      
+      // Cenário 1: statusCode 200 e status CONFIRMED - Pagamento já confirmado
+      if (statusCode === 200 && paymentStatus === 'CONFIRMED') {
+        setShowLoadingModal(false)
+        setIsPolling(false)
+        setIsSubmitting(false)
+        
+        // Evento GTM - Conversão (pagamento confirmado)
+        const totalValue = selectedPlan ? calculateTotal() : 0
+        const userId = assinatura?.userId || paymentId
+        trackConversion('purchase', totalValue, 'BRL')
+        trackEvent('purchase', {
+          transaction_id: userId,
+          value: totalValue,
+          currency: 'BRL',
+          items: selectedPlan ? [{
+            item_name: selectedPlan.name,
+            item_id: selectedPlan.id,
+            price: selectedPlan.price,
+            quantity: 1
+          }] : []
+        })
+        
+        // Mostrar animação de sucesso
+        setShowSuccessAnimation(true)
+        
+        // Redirecionar após a animação (3.5 segundos)
+        setTimeout(() => {
+          setShowSuccessAnimation(false)
+          navigate('/login')
+        }, 3500)
+        return
+      }
+      
+      // Cenário 2: statusCode 202 e status PENDING - Precisa fazer polling
+      if (statusCode === 202 && paymentStatus === 'PENDING') {
+        setShowLoadingModal(false)
+        setIsPolling(true)
+        setShowPollingModal(true)
+        setPollingAttempt(0)
+        setPollingStatus('Aguardando confirmação do pagamento...')
+        await pollPaymentStatus(paymentId)
+        return
+      }
+      
+      // Caso não se encaixe nos cenários esperados
+      console.error('Status inesperado:', { statusCode, paymentStatus })
+      throw new Error(`Status inesperado: ${statusCode} - ${paymentStatus}`)
       
     } catch (error) {
       console.error('Erro ao criar assinatura:', error)
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao processar pagamento. Tente novamente.'
+      
+      // Extrair mensagem de erro de forma amigável
+      let errorMessage = 'Erro ao processar pagamento. Tente novamente.'
+      
+      if (error.response?.data) {
+        // Erro da API com estrutura { statusCode, message, ... }
+        const apiError = error.response.data
+        errorMessage = apiError.message || errorMessage
+        
+        // Limpar mensagens duplicadas ou muito técnicas
+        errorMessage = errorMessage
+          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
+          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
+          .replace(/Tokenização\s+falhou:\s*/gi, '')
+          .trim()
+      } else if (error.message) {
+        // Erro lançado manualmente
+        errorMessage = error.message
+      }
+      
+      // Garantir que a mensagem não esteja vazia
+      if (!errorMessage || errorMessage.trim() === '') {
+        errorMessage = 'Erro ao processar pagamento. Verifique os dados do cartão e tente novamente.'
+      }
+      
       showAlert(errorMessage, 'error')
       setIsSubmitting(false)
       setShowLoadingModal(false)
@@ -725,9 +1002,9 @@ const Checkout = () => {
     }
   }
 
-  const pollPaymentStatus = async (userId) => {
+  const pollPaymentStatus = async (paymentId) => {
     const maxAttempts = 3 // Máximo de 3 tentativas
-    const interval = 5000 // 5 segundos entre tentativas
+    const interval = 8000 // 8 segundos entre tentativas
     let attempts = 0
 
     const poll = async () => {
@@ -736,8 +1013,15 @@ const Checkout = () => {
       setPollingStatus(`Verificando pagamento... (Tentativa ${attempts}/${maxAttempts})`)
 
       try {
-        const response = await api.get(`/assinaturas/check-payment-status/${userId}`)
-        const status = response.data.status
+        // Usar o ID do pagamento na rota
+        const response = await api.get(`/assinaturas/check-payment-status/${paymentId}`)
+        
+        // A resposta pode vir em diferentes formatos:
+        // { statusCode, message, data: { pagamento: { status } } }
+        // ou { status } diretamente
+        const responseData = response.data?.data || response.data
+        const pagamento = responseData?.pagamento || responseData
+        const status = pagamento?.status || responseData?.status || response.data?.status
 
         if (status === 'CONFIRMED') {
           setPollingStatus('Pagamento confirmado!')
@@ -748,7 +1032,7 @@ const Checkout = () => {
           const totalValue = selectedPlan ? calculateTotal() : 0
           trackConversion('purchase', totalValue, 'BRL')
           trackEvent('purchase', {
-            transaction_id: userId,
+            transaction_id: paymentId,
             value: totalValue,
             currency: 'BRL',
             items: selectedPlan ? [{
@@ -759,12 +1043,14 @@ const Checkout = () => {
             }] : []
           })
           
-          showAlert('Pagamento confirmado! Redirecionando para login...', 'success')
+          // Mostrar animação de sucesso
+          setShowSuccessAnimation(true)
           
+          // Redirecionar após a animação (3.5 segundos)
           setTimeout(() => {
-            setShowPollingModal(false)
+            setShowSuccessAnimation(false)
             navigate('/login')
-          }, 2000)
+          }, 3500)
           return
         }
 
@@ -1436,9 +1722,9 @@ const Checkout = () => {
                   <button 
                     className="btn-next" 
                     onClick={handleNext}
-                    disabled={currentStep === 1 && !selectedPlan}
+                    disabled={(currentStep === 1 && !selectedPlan) || isCreatingCustomer}
                   >
-                    Continuar
+                    {isCreatingCustomer && currentStep === 2 ? 'Cadastrando...' : 'Continuar'}
                     <FontAwesomeIcon icon={faChevronRight} />
                   </button>
                 ) : (
@@ -1520,6 +1806,42 @@ const Checkout = () => {
 
               {/* Status Text */}
               <p className="polling-status">{loadingMessage}</p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Success Animation Modal */}
+      {showSuccessAnimation && typeof document !== 'undefined' && document.body && createPortal(
+        <div 
+          className="success-animation-overlay" 
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(10, 14, 39, 0.98)',
+            backdropFilter: 'blur(20px)',
+            animation: 'fadeIn 0.3s ease'
+          }}
+        >
+          <div className="success-animation-modal">
+            <div className="success-logo-container">
+              <div className="success-logo-circle">
+                <img src={nodoLogo} alt="NODON" className="success-logo" />
+              </div>
+            </div>
+            <h2 className="success-title">Pagamento Confirmado!</h2>
+            <p className="success-message">Sua assinatura foi ativada com sucesso</p>
+            <div className="success-loading">
+              <span>Redirecionando para o login...</span>
             </div>
           </div>
         </div>,

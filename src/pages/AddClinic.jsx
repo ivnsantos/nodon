@@ -117,9 +117,12 @@ const AddClinic = () => {
       return false
     }
 
+    // Garantir que o código do cupom sempre seja enviado em maiúsculas
+    const codigoNormalizado = code.toString().toUpperCase().trim()
+
     setIsApplyingCoupon(true)
     try {
-      const response = await api.get(`/cupons/name/${code.toUpperCase().trim()}`)
+      const response = await api.get(`/cupons/name/${codigoNormalizado}`)
       const cupom = response.data
 
       if (!cupom || !cupom.active) {

@@ -18,6 +18,7 @@ import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag
 import nodoLogo from '../img/nodo.png'
 import dentistaImg from '../img/especializacao-em-odontologia-1.jpg'
 import xldentistaImg from '../img/xldentista.jpeg'
+import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import './LPDentista.css'
 
 // Componente individual para cada card de plano - gerencia seu próprio estado
@@ -327,9 +328,12 @@ const LPDentista = () => {
       return
     }
 
+    // Garantir que o código do cupom sempre seja enviado em maiúsculas
+    const codigoNormalizado = codigo.toString().toUpperCase().trim()
+
     setValidandoCupom(true)
     try {
-      const response = await api.get(`/cupons/name/${codigo.toUpperCase().trim()}`)
+      const response = await api.get(`/cupons/name/${codigoNormalizado}`)
       const cupom = response.data?.data || response.data
 
       if (cupom && cupom.active) {
@@ -399,6 +403,10 @@ const LPDentista = () => {
 
   // Determina qual imagem usar - igual ao esquema da LP de estudante
   const getHeroImage = () => {
+    // Verifica se o cupom é DRAISADENTISTA (já vem em maiúsculas do useEffect)
+    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+      return draisadentistaImg
+    }
     // Verifica se o cupom é XL20 ou XLDENTISTA (já vem em maiúsculas do useEffect)
     if ((cupomCode === 'XL20' || cupomCode === 'XLDENTISTA') && cupomValido) {
       return xldentistaImg
@@ -407,6 +415,9 @@ const LPDentista = () => {
   }
 
   const getHeroImageAlt = () => {
+    if (cupomCode === 'DRAISADENTISTA' && cupomValido) {
+      return "Cupom DRAISADENTISTA"
+    }
     if ((cupomCode === 'XL20' || cupomCode === 'XLDENTISTA') && cupomValido) {
       return `Cupom ${cupomCode}`
     }
@@ -437,6 +448,9 @@ const LPDentista = () => {
       {cupomCode && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
+            {cupomCode === 'DRAISADENTISTA' && cupomValido && (
+              <img src={draisadentistaImg} alt="Cupom DRAISADENTISTA" className="cupom-image" />
+            )}
             {(cupomCode === 'XL20' || cupomCode === 'XLDENTISTA') && cupomValido && (
               <img src={xldentistaImg} alt={`Cupom ${cupomCode}`} className="cupom-image" />
             )}
