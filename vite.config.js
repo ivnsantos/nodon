@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
         configure: (proxy, _options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
             // Adicionar headers necessários para a Asaas
-            const asaasToken = env.VITE_ASAAS_TOKEN || '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmNhZDU0OTA1LWU2MDgtNGMxYS05Yzc4LWZjN2M0MDQ3NWU5MTo6JGFhY2hfMzgwMjI5ODMtMGZmZi00ZmFmLThkMWUtZDE3MDIwMzNkMmY5'
+            const asaasToken = env.VITE_ASAAS_TOKEN || VITE_ASAAS_TOKEN_DEV
             proxyReq.setHeader('access_token', asaasToken)
             proxyReq.setHeader('User-Agent', 'Checkout assas.com')
           })
