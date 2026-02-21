@@ -591,15 +591,7 @@ const Checkout = () => {
         state: formData.estado
       }
       
-      console.log('=== CRIANDO CLIENTE /api/assinaturas/customer ===')
-      console.log(customerPayload)
-      
       const response = await api.post('/assinaturas/customer', customerPayload)
-      
-      // Log completo da resposta para debug
-      console.log('=== RESPOSTA /api/assinaturas/customer ===')
-      console.log('Response completo:', response)
-      console.log('Response.data:', response.data)
       
       // Estrutura aninhada: response.data.data.data contém { asaasCustomerId, userId }
       const outerData = response.data?.data
@@ -609,19 +601,13 @@ const Checkout = () => {
       const customerId = innerData?.asaasCustomerId || outerData?.asaasCustomerId || response.data?.asaasCustomerId
       const user = innerData?.userId || outerData?.userId || response.data?.userId
       
-      console.log('Dados extraídos:', { 
-        customerId, 
-        userId: user
-      })
-      
       if (!user) {
-        console.error('userId não encontrado na resposta:', response.data)
+        console.error('userId não encontrado na resposta')
         throw new Error('userId não retornado pela API')
       }
       
       setAsaasCustomerId(customerId)
       setUserId(user) // IMPORTANTE: Usar userId, não clienteMasterId
-      console.log('Cliente criado com sucesso. userId salvo:', user)
       
     } catch (error) {
       console.error('Erro ao criar cliente:', error)
@@ -815,17 +801,9 @@ const Checkout = () => {
         remoteIp: clientIp
       }
 
-      console.log('=== TOKENIZANDO CARTÃO DIRETO NA ASAAS ===')
-      console.log('Payload completo:', tokenizePayload)
-      console.log('IP do cliente:', clientIp)
-
       // Sempre usa o proxy: em dev usa proxy do Vite, em prod usa Vercel Edge Function
       // Isso evita problemas de CORS e permite adicionar headers necessários (User-Agent, access_token)
       const tokenizeURL = '/asaas-proxy/creditCard/tokenizeCreditCard'
-      
-      console.log('=== TOKENIZANDO CARTÃO (via Proxy) ===')
-      console.log('URL:', tokenizeURL)
-      console.log('Payload completo:', tokenizePayload)
       
       const tokenizeResponse = await axios.post(
         tokenizeURL,
@@ -837,47 +815,33 @@ const Checkout = () => {
         }
       )
       
-      console.log('=== RESPOSTA TOKENIZAÇÃO ===')
-      console.log('Response completo:', tokenizeResponse)
-      console.log('Response.data:', tokenizeResponse.data)
-      
-      // Extrair token da resposta (pode estar em diferentes níveis)
+      // Extrair dados da resposta (pode estar em diferentes níveis)
       const tokenizeData = tokenizeResponse.data?.data || tokenizeResponse.data
       const creditCardToken = tokenizeData?.creditCardToken || tokenizeResponse.data?.creditCardToken
+      const creditCardNumber = tokenizeData?.creditCardNumber || tokenizeResponse.data?.creditCardNumber
+      const creditCardBrand = tokenizeData?.creditCardBrand || tokenizeResponse.data?.creditCardBrand
 
       if (!creditCardToken) {
-        console.error('Token não encontrado na resposta:', tokenizeResponse.data)
+        console.error('Token não encontrado na resposta')
         throw new Error('Token do cartão não retornado pela API')
       }
-
-      console.log('Cartão tokenizado com sucesso. Token:', creditCardToken)
 
       // Atualizar mensagem de loading
       setLoadingMessage('Processando pagamento...')
 
-      // 2. Fazer checkout com apenas o token
+      // 2. Fazer checkout com os dados do cartão tokenizado
       const checkoutPayload = {
         userId: userId,
         planoId: selectedPlan.id,
         billingType: 'CREDIT_CARD',
         creditCardToken: creditCardToken,
+        ...(creditCardNumber && { creditCardNumber: creditCardNumber }),
+        ...(creditCardBrand && { creditCardBrand: creditCardBrand }),
         ...(appliedCoupon ? { couponName: appliedCoupon.name } : {})
       }
 
-      // Log do payload enviado para debug
-      console.log('=== PAYLOAD ENVIADO /api/assinaturas/checkout ===')
-      console.log(checkoutPayload)
-      console.log('========================================')
-
       // Fazer checkout
       const response = await api.post('/assinaturas/checkout', checkoutPayload)
-      
-      // Log do retorno da API para debug
-      console.log('=== RETORNO DA API /api/assinaturas ===')
-      console.log('Response completo:', response)
-      console.log('Response.data:', response.data)
-      console.log('Status Code:', response.status)
-      console.log('========================================')
       
       // Verificar se há erro na resposta (statusCode 400, 500, etc)
       const responseStatusCode = response.data?.statusCode || response.status
@@ -904,7 +868,7 @@ const Checkout = () => {
       const statusCode = innerStatusCode || outerData?.statusCode || outerStatusCode
       
       if (!responseData) {
-        console.error('Resposta inválida do servidor:', response.data)
+        console.error('Resposta inválida do servidor')
         throw new Error('Resposta inválida do servidor')
       }
       
@@ -913,11 +877,6 @@ const Checkout = () => {
       const pagamento = responseData.pagamento || innerData?.pagamento
       const assinatura = responseData.assinatura || innerData?.assinatura
       const periodoGratisData = responseData.periodoGratis || innerData?.periodoGratis
-      
-      console.log('Pagamento extraído:', pagamento)
-      console.log('Assinatura extraída:', assinatura)
-      console.log('Período Grátis extraído:', periodoGratisData)
-      console.log('Status Code interno:', statusCode)
       
       // Armazenar dados do período grátis
       if (periodoGratisData) {
@@ -928,7 +887,7 @@ const Checkout = () => {
       if (!assinatura || !assinatura.id) {
         // Se não tem assinatura, verificar se tem pagamento (formato antigo)
         if (!pagamento || !pagamento.id) {
-          console.error('Dados da assinatura/pagamento não encontrados na resposta:', response.data)
+          console.error('Dados da assinatura/pagamento não encontrados na resposta')
           throw new Error('Dados da assinatura não encontrados')
         }
       }
@@ -983,7 +942,7 @@ const Checkout = () => {
       }
       
       // Caso não se encaixe nos cenários esperados
-      console.error('Status inesperado:', { statusCode, paymentStatus })
+      console.error('Status inesperado no checkout')
       throw new Error(`Status inesperado: ${statusCode} - ${paymentStatus}`)
       
     } catch (error) {
