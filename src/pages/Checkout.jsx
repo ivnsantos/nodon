@@ -1538,6 +1538,11 @@ const Checkout = () => {
                           <span className="summary-plan-price">R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}/mês</span>
                         </div>
                         
+                        <div className="summary-free-trial">
+                          <FontAwesomeIcon icon={faGift} />
+                          <span>7 dias grátis para testar</span>
+                        </div>
+                        
                         <div className="summary-plan-details">
                           {selectedPlan.patients && (
                             <div className="summary-detail-item">
