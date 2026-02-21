@@ -80,7 +80,7 @@ const LPEstudante = () => {
       ]
       
       const planosIniciais = planosBackend.filter(plano => {
-        return planosIdsPermitidos.includes(plano.id)
+        return planosIdsPermitidos.includes(plano.id) && plano.ativo !== false
       })
 
       const planosMapeados = planosIniciais.map((plano) => {

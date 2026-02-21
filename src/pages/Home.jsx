@@ -79,7 +79,7 @@ const Home = () => {
       }
       
       planosList = planosList
-        .filter(plano => plano.ativo !== false)
+        .filter(plano => plano.ativo === true)
         .map(plano => {
           const valorOriginalRaw = plano.valorOriginal ?? plano.valor_original ?? plano.valor ?? null
           const valorPromocionalRaw = plano.valorPromocional ?? plano.valor_promocional ?? null

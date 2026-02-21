@@ -95,7 +95,10 @@ const Checkout = () => {
         }
 
         // Mapear planos do backend para o formato esperado no frontend
-        const planosMapeados = planosBackend.map((plano) => {
+        // Filtrar apenas planos ativos
+        const planosAtivos = planosBackend.filter(plano => plano.ativo !== false)
+        
+        const planosMapeados = planosAtivos.map((plano) => {
           // Validar campos obrigatórios
           if (!plano.id || !plano.nome) {
             // Plano com dados incompletos - será filtrado depois
