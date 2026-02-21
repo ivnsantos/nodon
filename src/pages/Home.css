@@ -771,6 +771,25 @@
   color: #e0f2fe;
 }
 
+.home-plan-free-trial {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.2) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.5rem;
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.home-plan-free-trial svg {
+  font-size: 1rem;
+  color: #10b981;
+}
+
 .home-plan-details-btn {
   width: 100%;
   padding: 0.75rem;

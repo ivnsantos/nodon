@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCreditCard, faMapMarkerAlt, faCheckCircle,
   faChevronRight, faChevronLeft, faTag, faLock, faChevronDown, faChevronUp,
-  faExclamationTriangle, faTimes, faCheck, faPhone, faUsers, faShieldAlt
+  faExclamationTriangle, faTimes, faCheck, faPhone, faUsers, faShieldAlt, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import axios from 'axios'
 import nodoLogo from '../img/nodo.png'
@@ -706,6 +706,7 @@ const Checkout = () => {
   const [asaasCustomerId, setAsaasCustomerId] = useState(null)
   const [userId, setUserId] = useState(null)
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
+  const [periodoGratis, setPeriodoGratis] = useState(null)
 
   // Bloquear scroll do body quando modal estiver aberto
   useEffect(() => {
@@ -890,15 +891,17 @@ const Checkout = () => {
         throw new Error(cleanMessage || 'Erro ao processar pagamento. Verifique os dados e tente novamente.')
       }
       
-      // Estrutura aninhada: response.data.data.data contém { pagamento, assinatura }
+      // Estrutura aninhada: response.data.data.data contém { assinatura, periodoGratis }
       // response.data.data.statusCode contém o statusCode interno (200 ou 202)
+      // response.data.statusCode contém o statusCode externo (201)
       const outerData = response.data?.data
       const innerData = outerData?.data
       const innerStatusCode = outerData?.statusCode
+      const outerStatusCode = response.data?.statusCode || response.status
       
       // Tentar diferentes níveis de aninhamento para compatibilidade
       const responseData = innerData || outerData || response.data
-      const statusCode = innerStatusCode || outerData?.statusCode || response.data?.statusCode || response.status
+      const statusCode = innerStatusCode || outerData?.statusCode || outerStatusCode
       
       if (!responseData) {
         console.error('Resposta inválida do servidor:', response.data)
@@ -906,23 +909,37 @@ const Checkout = () => {
       }
       
       // Extrair dados do pagamento e assinatura (pode estar em data.data.data ou data.data)
+      // Novo formato: innerData contém { assinatura, periodoGratis }
       const pagamento = responseData.pagamento || innerData?.pagamento
       const assinatura = responseData.assinatura || innerData?.assinatura
+      const periodoGratisData = responseData.periodoGratis || innerData?.periodoGratis
       
       console.log('Pagamento extraído:', pagamento)
       console.log('Assinatura extraída:', assinatura)
+      console.log('Período Grátis extraído:', periodoGratisData)
       console.log('Status Code interno:', statusCode)
       
-      if (!pagamento || !pagamento.id) {
-        console.error('Dados do pagamento não encontrados na resposta:', response.data)
-        throw new Error('Dados do pagamento não encontrados')
+      // Armazenar dados do período grátis
+      if (periodoGratisData) {
+        setPeriodoGratis(periodoGratisData)
       }
       
-      const paymentId = pagamento.id
-      const paymentStatus = pagamento.status
+      // Verificar se temos assinatura (novo formato) ou pagamento (formato antigo)
+      if (!assinatura || !assinatura.id) {
+        // Se não tem assinatura, verificar se tem pagamento (formato antigo)
+        if (!pagamento || !pagamento.id) {
+          console.error('Dados da assinatura/pagamento não encontrados na resposta:', response.data)
+          throw new Error('Dados da assinatura não encontrados')
+        }
+      }
       
-      // Cenário 1: statusCode 200 e status CONFIRMED - Pagamento já confirmado
-      if (statusCode === 200 && paymentStatus === 'CONFIRMED') {
+      // Para o novo formato (statusCode 201/200), a assinatura já está criada e ativa
+      // Para o formato antigo, ainda precisa verificar o status do pagamento
+      const paymentId = pagamento?.id || assinatura?.id
+      const paymentStatus = pagamento?.status || (assinatura?.status === 'ACTIVE' ? 'CONFIRMED' : null)
+      
+      // Cenário 1: statusCode 200/201 e assinatura ACTIVE - Assinatura criada com sucesso (período grátis)
+      if ((statusCode === 200 || statusCode === 201 || outerStatusCode === 201) && (assinatura?.status === 'ACTIVE' || paymentStatus === 'CONFIRMED')) {
         setShowLoadingModal(false)
         setIsPolling(false)
         setIsSubmitting(false)
@@ -1239,6 +1256,10 @@ const Checkout = () => {
                           )}
                         </div>
                         <div className="plan-feature-count">{plan.patients}</div>
+                        <div className="plan-free-trial-checkout">
+                          <FontAwesomeIcon icon={faGift} />
+                          <span>7 dias grátis para testar</span>
+                        </div>
                       </div>
                       <button 
                         type="button"
@@ -1841,6 +1862,20 @@ const Checkout = () => {
             </div>
             <h2 className="success-title">Pagamento Confirmado!</h2>
             <p className="success-message">Sua assinatura foi ativada com sucesso</p>
+            {periodoGratis && periodoGratis.ativo && (
+              <div className="success-free-trial">
+                <FontAwesomeIcon icon={faGift} />
+                <div className="free-trial-content">
+                  <strong>Período grátis de {periodoGratis.diasRestantes} dias ativado!</strong>
+                  {periodoGratis.primeiraCobranca && (
+                    <p>A primeira cobrança será processada em {new Date(periodoGratis.primeiraCobranca).toLocaleDateString('pt-BR')}</p>
+                  )}
+                  {periodoGratis.mensagem && (
+                    <p className="free-trial-message">{periodoGratis.mensagem}</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="success-loading">
               <span>Redirecionando para o login...</span>
             </div>

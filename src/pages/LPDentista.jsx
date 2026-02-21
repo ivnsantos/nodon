@@ -10,7 +10,7 @@ import {
   faFileMedical, faCalendarAlt, faClipboardList, faChevronDown, faChevronUp,
   faCalendarCheck, faQuestionCircle, faComments as faCommentsAlt, faPercent,
   faChartBar, faExclamationTriangle, faDollarSign, faFileInvoiceDollar, faClock,
-  faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat
+  faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -112,6 +112,10 @@ const PricingCard = ({
         {plano.tokenChat && (
           <div className="plan-tokens">{formatarTokens(plano.tokenChat)} de tokens</div>
         )}
+        <div className="plan-free-trial">
+          <FontAwesomeIcon icon={faGift} />
+          <span>7 dias grátis para testar</span>
+        </div>
       </div>
       <div className="plan-features-wrapper">
         <button

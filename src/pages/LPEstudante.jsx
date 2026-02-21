@@ -9,7 +9,7 @@ import {
   faChartLine, faHandHoldingHeart, faTag, faCoins,
   faFileAlt, faFileMedical, faClipboardList, faPen,
   faClock, faFire, faTrophy, faUserCheck, faArrowUp,
-  faChartBar, faHeartbeat
+  faChartBar, faHeartbeat, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -773,6 +773,10 @@ const LPEstudante = () => {
                       {plano.tokenChat && (
                         <div className="plan-tokens">{formatarTokens(plano.tokenChat)} de tokens</div>
                       )}
+                      <div className="plan-free-trial">
+                        <FontAwesomeIcon icon={faGift} />
+                        <span>7 dias grátis para testar</span>
+                      </div>
                     </div>
                     <div className="plan-features-list">
                       {plano.features.map((feature, idx) => (

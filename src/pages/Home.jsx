@@ -10,7 +10,7 @@ import {
   faChevronDown, faTrophy, faStar, faDollarSign, 
   faFileInvoiceDollar, faCalendarAlt, faComment,
   faStickyNote, faFileAlt, faClipboardQuestion,
-  faArrowRight, faCheck, faXmark, faChartLine
+  faArrowRight, faCheck, faXmark, faChartLine, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -633,6 +633,10 @@ const Home = () => {
                       </div>
                       <div className="home-plan-feature-count">
                         {plano.descricao || (limiteAnalises > 0 ? `Até ${limiteAnalises} análises por mês` : 'Análises ilimitadas')}
+                      </div>
+                      <div className="home-plan-free-trial">
+                        <FontAwesomeIcon icon={faGift} />
+                        <span>7 dias grátis para testar</span>
                       </div>
                     </div>
                     <button 
