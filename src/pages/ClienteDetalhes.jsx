@@ -1841,7 +1841,7 @@ const ClienteDetalhes = () => {
                 {isMaster && (
                   <button
                     className="btn-add-anamnese"
-                    onClick={() => navigate(`/app/orcamentos/novo/${id}`)}
+                    onClick={() => navigate(`/app/orcamentos/novo?pacienteId=${id}`)}
                   >
                     <FontAwesomeIcon icon={faPlus} />
                     Novo Orçamento

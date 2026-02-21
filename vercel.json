@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/asaas-proxy/(.*)",
+      "destination": "/api/asaas-proxy/creditCard/tokenizeCreditCard"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
