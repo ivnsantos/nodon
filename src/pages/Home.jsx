@@ -636,7 +636,7 @@ const Home = () => {
                       </div>
                       <div className="home-plan-free-trial">
                         <FontAwesomeIcon icon={faGift} />
-                        <span>7 dias grátis para testar</span>
+                        <span>7 dias grátis para você</span>
                       </div>
                     </div>
                     <button 
