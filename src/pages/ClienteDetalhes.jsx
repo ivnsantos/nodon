@@ -491,6 +491,19 @@ const ClienteDetalhes = () => {
     return cpf
   }
 
+  // Função para formatar data de nascimento sem problemas de timezone
+  const formatarDataNascimento = (dataString) => {
+    if (!dataString) return ''
+    // Se já está no formato DD/MM/YYYY, retornar como está
+    if (dataString.includes('/')) return dataString
+    // Se está no formato YYYY-MM-DD, converter para DD/MM/YYYY
+    if (dataString.includes('-')) {
+      const [year, month, day] = dataString.split('-')
+      return `${day}/${month}/${year}`
+    }
+    return dataString
+  }
+
   const formatCEP = (cep) => {
     if (!cep) return ''
     const cleaned = cep.replace(/\D/g, '')
@@ -1369,7 +1382,7 @@ const ClienteDetalhes = () => {
                     <label>
                       <FontAwesomeIcon icon={faCalendarAlt} /> Data de Nascimento
                     </label>
-                    <p>{new Date(cliente.dataNascimento).toLocaleDateString('pt-BR')}</p>
+                    <p>{formatarDataNascimento(cliente.dataNascimento)}</p>
                   </div>
                 )}
                 <div className="ficha-item">

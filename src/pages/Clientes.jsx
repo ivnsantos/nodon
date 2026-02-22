@@ -108,6 +108,19 @@ const Clientes = () => {
     }
   }, [activeTab, activeAnalyticsTab, selectedClinicData, selectedMonth])
 
+  // Função para formatar data de nascimento sem problemas de timezone
+  const formatarDataNascimento = (dataString) => {
+    if (!dataString) return ''
+    // Se já está no formato DD/MM/YYYY, retornar como está
+    if (dataString.includes('/')) return dataString
+    // Se está no formato YYYY-MM-DD, converter para DD/MM/YYYY
+    if (dataString.includes('-')) {
+      const [year, month, day] = dataString.split('-')
+      return `${day}/${month}/${year}`
+    }
+    return dataString
+  }
+
   const loadClientes = async () => {
     try {
       // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
@@ -580,7 +593,7 @@ const Clientes = () => {
                   <div className="detail-item">
                     <FontAwesomeIcon icon={faCalendarAlt} />
                     <span>
-                      {new Date(cliente.dataNascimento).toLocaleDateString('pt-BR')}
+                      {formatarDataNascimento(cliente.dataNascimento)}
                     </span>
                   </div>
                 )}
