@@ -6,7 +6,7 @@ import {
   faSpinner, faTimes, faClock, faLayerGroup, faShoppingCart,
   faChevronDown, faChevronUp, faCoins, faChartLine, faPercent,
   faExclamationTriangle, faCheckCircle, faSearch, faBuilding,
-  faChartBar, faChartPie
+  faChartBar, faChartPie, faWrench, faSave
 } from '@fortawesome/free-solid-svg-icons'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -47,10 +47,28 @@ const Precificacao = () => {
   const [showDeleteCategoriaModal, setShowDeleteCategoriaModal] = useState(false)
   const [showDeleteProdutoModal, setShowDeleteProdutoModal] = useState(false)
   const [itemToDelete, setItemToDelete] = useState({ type: null, id: null, name: null })
+  
+  // Estados para Valor Mão de Obra
+  const [showValorHoraModal, setShowValorHoraModal] = useState(false)
+  const [valorHora, setValorHora] = useState(null)
+  const [loadingValorHora, setLoadingValorHora] = useState(false)
+  const [valorHoraInput, setValorHoraInput] = useState('')
+  const [valorHoraLoaded, setValorHoraLoaded] = useState(false)
 
   useEffect(() => {
     loadData()
   }, [activeTab])
+
+  // Carregar valor da mão de obra quando selectedClinicData estiver disponível
+  useEffect(() => {
+    const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+    
+    // Carregar sempre que selectedClinicData mudar e tiver clienteMasterId
+    if (clienteMasterId) {
+      loadValorHoraOnMount()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClinicData])
 
   const loadData = async () => {
     try {
@@ -217,6 +235,173 @@ const Precificacao = () => {
     return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`
   }
 
+  // Funções para Valor Mão de Obra
+  const loadValorHora = async () => {
+    try {
+      setLoadingValorHora(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        showError('Cliente Master não encontrado')
+        return
+      }
+
+      const response = await api.get(`/clientes-master/${clienteMasterId}/valorhora`)
+      
+      // A estrutura é: response.data.data.data.valorhora (aninhada)
+      let valor = null
+      
+      // Tentar todas as formas possíveis de acessar o valor
+      if (response.data?.data?.data?.valorhora !== undefined) {
+        valor = response.data.data.data.valorhora
+      }
+      else if (response.data?.data?.data?.valorHora !== undefined) {
+        valor = response.data.data.data.valorHora
+      }
+      else if (response.data?.data?.valorhora !== undefined) {
+        valor = response.data.data.valorhora
+      }
+      else if (response.data?.data?.valorHora !== undefined) {
+        valor = response.data.data.valorHora
+      }
+      else if (response.data?.valorhora !== undefined) {
+        valor = response.data.valorhora
+      }
+      else if (response.data?.valorHora !== undefined) {
+        valor = response.data.valorHora
+      }
+      
+      // Converter para número e validar (o valor vem como string "500.50")
+      if (valor !== null && valor !== undefined && valor !== '' && !isNaN(Number(valor)) && Number(valor) >= 0) {
+        const valorNumerico = Number(valor)
+        setValorHora(valorNumerico)
+        setValorHoraInput(valorNumerico.toString())
+      } else {
+        setValorHora(null)
+        setValorHoraInput('')
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setValorHora(null)
+        setValorHoraInput('')
+      } else {
+        console.error('Erro ao carregar valor hora:', error)
+        showError('Erro ao carregar valor da mão de obra')
+      }
+    } finally {
+      setLoadingValorHora(false)
+    }
+  }
+
+  const saveValorHora = async () => {
+    try {
+      setLoadingValorHora(true)
+      
+      // Limpar espaços e validar se está vazio
+      const valorInput = valorHoraInput.trim()
+      if (!valorInput) {
+        showError('Por favor, informe um valor')
+        setLoadingValorHora(false)
+        return
+      }
+
+      // Converter para número
+      const valor = Number(valorInput)
+      
+      // Validar se é um número válido e >= 0 (backend aceita 0 ou maior)
+      if (isNaN(valor) || valor < 0) {
+        showError('Por favor, informe um valor válido maior ou igual a zero')
+        setLoadingValorHora(false)
+        return
+      }
+
+      // Enviar como número válido usando camelCase (backend aceita ambos)
+      await api.post('/clientes-master/meus-dados', {
+        valorHora: valor
+      })
+      
+      setValorHora(valor)
+      showSuccess('Valor da mão de obra salvo com sucesso!')
+      setShowValorHoraModal(false)
+      
+      // Mostrar loading e recarregar os dados da página
+      setLoading(true)
+      await loadData()
+      setLoading(false)
+    } catch (error) {
+      console.error('Erro ao salvar valor hora:', error)
+      showError(error.response?.data?.message || 'Erro ao salvar valor da mão de obra')
+    } finally {
+      setLoadingValorHora(false)
+    }
+  }
+
+  const handleOpenValorHoraModal = async () => {
+    setShowValorHoraModal(true)
+    // Carregar o valor antes de abrir o modal para garantir que está atualizado
+    await loadValorHora()
+  }
+
+  // Carregar valor da mão de obra ao montar (sem abrir modal automaticamente)
+  const loadValorHoraOnMount = async () => {
+    try {
+      setLoadingValorHora(true)
+      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (!clienteMasterId) {
+        return
+      }
+
+      const response = await api.get(`/clientes-master/${clienteMasterId}/valorhora`)
+      
+      // A estrutura é: response.data.data.data.valorhora (aninhada)
+      let valor = null
+      
+      // Tentar todas as formas possíveis de acessar o valor
+      if (response.data?.data?.data?.valorhora !== undefined) {
+        valor = response.data.data.data.valorhora
+      }
+      else if (response.data?.data?.data?.valorHora !== undefined) {
+        valor = response.data.data.data.valorHora
+      }
+      else if (response.data?.data?.valorhora !== undefined) {
+        valor = response.data.data.valorhora
+      }
+      else if (response.data?.data?.valorHora !== undefined) {
+        valor = response.data.data.valorHora
+      }
+      else if (response.data?.valorhora !== undefined) {
+        valor = response.data.valorhora
+      }
+      else if (response.data?.valorHora !== undefined) {
+        valor = response.data.valorHora
+      }
+      
+      // Converter para número e validar (o valor vem como string "500.50")
+      if (valor !== null && valor !== undefined && valor !== '' && !isNaN(Number(valor)) && Number(valor) >= 0) {
+        const valorNumerico = Number(valor)
+        setValorHora(valorNumerico)
+        setValorHoraInput(valorNumerico.toString())
+      } else {
+        setValorHora(null)
+        setValorHoraInput('')
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // Se não encontrar (404), não tem valor configurado
+        setValorHora(null)
+        setValorHoraInput('')
+        // Não abrir modal automaticamente - deixar o usuário abrir quando quiser
+      } else {
+        console.error('Erro ao carregar valor hora:', error)
+        setValorHora(null)
+        setValorHoraInput('')
+      }
+    } finally {
+      setLoadingValorHora(false)
+    }
+  }
+
   if (loading && tratamentos.length === 0 && categorias.length === 0 && produtos.length === 0) {
     return (
       <div className="precificacao-page">
@@ -230,6 +415,22 @@ const Precificacao = () => {
 
   return (
     <div className="precificacao-page">
+      <AlertModal {...alertConfig} onClose={hideAlert} />
+
+      {/* Botão Valor Mão de Obra */}
+      <div className="precificacao-header-actions">
+        <button 
+          className="btn-valor-hora"
+          onClick={handleOpenValorHoraModal}
+          title="Gerenciar Valor Mão de Obra"
+        >
+          <FontAwesomeIcon icon={faWrench} />
+          <span>Valor Mão de Obra</span>
+          {valorHora !== null && valorHora !== undefined && !isNaN(Number(valorHora)) && Number(valorHora) >= 0 && (
+            <span className="valor-hora-badge">{formatCurrency(Number(valorHora))}/hora</span>
+          )}
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="precificacao-tabs">
@@ -1026,6 +1227,79 @@ const Precificacao = () => {
         message={alertConfig.message}
         type={alertConfig.type}
       />
+
+      {/* Modal Valor Mão de Obra */}
+      {showValorHoraModal && (
+        <div className="modal-overlay" onClick={() => setShowValorHoraModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <FontAwesomeIcon icon={faWrench} />
+                Valor Mão de Obra
+              </h3>
+              <button 
+                className="btn-close-modal"
+                onClick={() => setShowValorHoraModal(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Valor por Hora (R$) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={valorHoraInput}
+                  onChange={(e) => setValorHoraInput(e.target.value)}
+                  placeholder="Ex: 200.50"
+                  disabled={loadingValorHora}
+                />
+                <small className="form-help">
+                  Este valor será usado para calcular automaticamente o preço dos tratamentos baseado no tempo de duração.
+                </small>
+              </div>
+              
+              {valorHora !== null && valorHora !== undefined && !isNaN(Number(valorHora)) && Number(valorHora) >= 0 && (
+                <div className="valor-hora-info">
+                  <p>
+                    <strong>Valor atual:</strong> {formatCurrency(Number(valorHora))}/hora
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowValorHoraModal(false)}
+                disabled={loadingValorHora}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-primary"
+                onClick={saveValorHora}
+                disabled={loadingValorHora}
+              >
+                {loadingValorHora ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faSave} />
+                    Salvar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

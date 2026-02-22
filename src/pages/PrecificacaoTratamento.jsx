@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faArrowLeft, faSave, faTrash, faPlus, faSpinner, faTimes, faCheck, faSearch, faLink
+  faArrowLeft, faSave, faTrash, faPlus, faSpinner, faTimes, faCheck, faSearch, faLink, faCalculator, faExchangeAlt
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -40,6 +40,10 @@ const PrecificacaoTratamento = () => {
     products: []
   })
   const [produtosVinculados, setProdutosVinculados] = useState(new Set())
+  const [showConverter, setShowConverter] = useState(null) // index do produto que tem a calculadora aberta
+  const [converterData, setConverterData] = useState({ fromUnit: '', toUnit: '', value: '', result: '' })
+  const [valorHora, setValorHora] = useState(null)
+  const [autoCalculatePrice, setAutoCalculatePrice] = useState(true)
 
   // Função para carregar produtos com busca
   const loadProducts = useCallback(async (clienteMasterId, nome = '') => {
@@ -83,6 +87,20 @@ const PrecificacaoTratamento = () => {
       // Carregar produtos inicialmente (sem busca)
       loadProducts(clienteMasterId, '')
 
+      // Carregar valor hora
+      try {
+        const valorHoraResponse = await api.get(`/clientes-master/${clienteMasterId}/valorhora`)
+        const valorHoraData = valorHoraResponse.data?.data
+        if (valorHoraData?.valorhora) {
+          setValorHora(valorHoraData.valorhora)
+        }
+      } catch (error) {
+        // Se não encontrar, valorHora fica null (não é erro crítico)
+        if (error.response?.status !== 404) {
+          console.error('Erro ao carregar valor hora:', error)
+        }
+      }
+
       // Se estiver editando, carregar dados do tratamento
       if (id) {
         try {
@@ -105,17 +123,44 @@ const PrecificacaoTratamento = () => {
           
           // Marcar todos os produtos como vinculados ao carregar tratamento existente
           setProdutosVinculados(new Set(produtosDoTratamento.map((_, index) => index)))
+          
+          // Desativar cálculo automático ao editar (já tem preço definido)
+          setAutoCalculatePrice(false)
         } catch (error) {
           console.error('Erro ao carregar tratamento:', error)
           showError('Erro ao carregar tratamento')
         } finally {
           setLoadingData(false)
         }
+      } else {
+        // Se for novo tratamento, garantir que cálculo automático está ativo
+        setAutoCalculatePrice(true)
       }
     }
 
     loadData()
   }, [id, selectedClinicData, loadProducts, showError])
+
+  // Calcular preço automaticamente quando tempo mudar
+  useEffect(() => {
+    // Sempre calcular automaticamente se tiver valorHora e duração
+    if (valorHora && formData.averageDurationMinutes && autoCalculatePrice) {
+      const minutos = Number(formData.averageDurationMinutes)
+      if (!isNaN(minutos) && minutos > 0) {
+        const valorCalculado = (valorHora / 60) * minutos
+        setFormData(prev => ({
+          ...prev,
+          price: valorCalculado.toFixed(2)
+        }))
+      } else if (minutos === 0 || minutos === '') {
+        // Limpar preço se duração for 0 ou vazia
+        setFormData(prev => ({
+          ...prev,
+          price: ''
+        }))
+      }
+    }
+  }, [formData.averageDurationMinutes, valorHora, autoCalculatePrice])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -292,6 +337,175 @@ const PrecificacaoTratamento = () => {
     return formData.products.some(p => p.productId === productId)
   }
 
+  // Função de conversão de medidas
+  const convertUnit = (value, fromUnit, toUnit) => {
+    if (!value || isNaN(value)) return ''
+    
+    const conversions = {
+      // Massa (Grama)
+      'Grama': {
+        'Grama': 1,
+        'Quilograma': 0.001,
+        'Miligrama': 1000,
+        'Tonelada': 0.000001
+      },
+      'Quilograma': {
+        'Grama': 1000,
+        'Quilograma': 1,
+        'Miligrama': 1000000,
+        'Tonelada': 0.001
+      },
+      'Miligrama': {
+        'Grama': 0.001,
+        'Quilograma': 0.000001,
+        'Miligrama': 1,
+        'Tonelada': 0.000000001
+      },
+      'Tonelada': {
+        'Grama': 1000000,
+        'Quilograma': 1000,
+        'Miligrama': 1000000000,
+        'Tonelada': 1
+      },
+      // Volume (Litro)
+      'Litro': {
+        'Litro': 1,
+        'Mililitro': 1000,
+        'Centilitro': 100,
+        'Decilitro': 10
+      },
+      'Mililitro': {
+        'Litro': 0.001,
+        'Mililitro': 1,
+        'Centilitro': 0.1,
+        'Decilitro': 0.01
+      },
+      'Centilitro': {
+        'Litro': 0.01,
+        'Mililitro': 10,
+        'Centilitro': 1,
+        'Decilitro': 0.1
+      },
+      'Decilitro': {
+        'Litro': 0.1,
+        'Mililitro': 100,
+        'Centilitro': 10,
+        'Decilitro': 1
+      },
+      // Comprimento (Metro)
+      'Metro': {
+        'Metro': 1,
+        'Centímetro': 100,
+        'Milímetro': 1000,
+        'Quilômetro': 0.001,
+        'Decímetro': 10
+      },
+      'Centímetro': {
+        'Metro': 0.01,
+        'Centímetro': 1,
+        'Milímetro': 10,
+        'Quilômetro': 0.00001,
+        'Decímetro': 0.1
+      },
+      'Milímetro': {
+        'Metro': 0.001,
+        'Centímetro': 0.1,
+        'Milímetro': 1,
+        'Quilômetro': 0.000001,
+        'Decímetro': 0.01
+      },
+      'Quilômetro': {
+        'Metro': 1000,
+        'Centímetro': 100000,
+        'Milímetro': 1000000,
+        'Quilômetro': 1,
+        'Decímetro': 10000
+      },
+      'Decímetro': {
+        'Metro': 0.1,
+        'Centímetro': 10,
+        'Milímetro': 100,
+        'Quilômetro': 0.0001,
+        'Decímetro': 1
+      },
+      // Unitário (sem conversão)
+      'Unitário': {
+        'Unitário': 1
+      }
+    }
+
+    // Verificar se as unidades são compatíveis
+    if (fromUnit === toUnit) {
+      return parseFloat(value).toFixed(2)
+    }
+
+    // Verificar se há conversão direta
+    if (conversions[fromUnit] && conversions[fromUnit][toUnit]) {
+      const result = parseFloat(value) * conversions[fromUnit][toUnit]
+      return result.toFixed(2)
+    }
+
+    // Tentar encontrar conversão através de unidade base
+    const baseUnits = {
+      'Grama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Quilograma': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Miligrama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Tonelada': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Litro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Mililitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Centilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Decilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Metro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Centímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Milímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Quilômetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Decímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Unitário': ['Unitário']
+    }
+
+    const fromGroup = Object.keys(baseUnits).find(group => baseUnits[group].includes(fromUnit))
+    const toGroup = Object.keys(baseUnits).find(group => baseUnits[group].includes(toUnit))
+
+    if (fromGroup && toGroup && fromGroup === toGroup) {
+      // Converter através da unidade base
+      const baseUnit = baseUnits[fromGroup][0]
+      const toBase = conversions[fromUnit]?.[baseUnit] || 1
+      const fromBase = conversions[baseUnit]?.[toUnit] || 1
+      const result = parseFloat(value) * toBase * fromBase
+      return result.toFixed(2)
+    }
+
+    return 'Conversão não disponível'
+  }
+
+  // Obter unidades relacionadas para conversão
+  const getRelatedUnits = (unit) => {
+    const unitGroups = {
+      'Grama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Quilograma': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Miligrama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Tonelada': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
+      'Litro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Mililitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Centilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Decilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
+      'Metro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Centímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Milímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Quilômetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Decímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Unitário': ['Unitário']
+    }
+
+    // Encontrar o grupo da unidade
+    for (const [baseUnit, units] of Object.entries(unitGroups)) {
+      if (units.includes(unit)) {
+        return units
+      }
+    }
+    return [unit]
+  }
+
   // Debounce para busca de produtos
   useEffect(() => {
     const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
@@ -457,10 +671,30 @@ const PrecificacaoTratamento = () => {
                 onChange={(e) => {
                   const value = e.target.value === '' ? '' : parseInt(e.target.value) || 0
                   setFormData({ ...formData, averageDurationMinutes: value })
+                  // Reativar cálculo automático quando duração mudar
+                  setAutoCalculatePrice(true)
                 }}
                 min="1"
                 required
               />
+              {valorHora && formData.averageDurationMinutes && (
+                <small className="form-help">
+                  {autoCalculatePrice ? (
+                    <>
+                      <strong>Valor calculado automaticamente:</strong> {formatCurrency((valorHora / 60) * (Number(formData.averageDurationMinutes) || 0))}
+                    </>
+                  ) : (
+                    <>
+                      Valor sugerido: {formatCurrency((valorHora / 60) * (Number(formData.averageDurationMinutes) || 0))}
+                    </>
+                  )}
+                </small>
+              )}
+              {!valorHora && (
+                <small className="form-help" style={{ color: '#f59e0b' }}>
+                  Configure o valor da mão de obra na página de precificação para cálculo automático
+                </small>
+              )}
             </div>
             <div className="form-group">
               <label>Preço (R$) *</label>
@@ -471,10 +705,19 @@ const PrecificacaoTratamento = () => {
                 onChange={(e) => {
                   const value = e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                   setFormData({ ...formData, price: value })
+                  // Desativa cálculo automático quando usuário edita manualmente
+                  setAutoCalculatePrice(false)
                 }}
                 min="0"
                 required
               />
+              {valorHora && (
+                <small className="form-help">
+                  {autoCalculatePrice 
+                    ? 'Calculado automaticamente baseado na duração e valor da mão de obra' 
+                    : 'Edite manualmente ou altere a duração para recalcular automaticamente'}
+                </small>
+              )}
             </div>
           </div>
         </div>
@@ -763,7 +1006,131 @@ const PrecificacaoTratamento = () => {
                             <span className="unit-type-badge">{selectedProduct.unitType}</span>
                           ) : null
                         })()}
+                        {product.productId && (() => {
+                          const selectedProduct = produtos.find(p => p.id === product.productId)
+                          if (selectedProduct?.unitType && selectedProduct.unitType !== 'Unitário') {
+                            return (
+                              <button
+                                type="button"
+                                className="btn-converter"
+                                onClick={() => {
+                                  const selectedProduct = produtos.find(p => p.id === product.productId)
+                                  if (selectedProduct) {
+                                    setShowConverter(showConverter === index ? null : index)
+                                    setConverterData({
+                                      fromUnit: selectedProduct.unitType,
+                                      toUnit: selectedProduct.unitType, // Sempre converte para a unidade do produto
+                                      value: '',
+                                      result: ''
+                                    })
+                                  }
+                                }}
+                                title="Conversor de medidas"
+                              >
+                                <FontAwesomeIcon icon={faCalculator} />
+                              </button>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
+                      {showConverter === index && (() => {
+                        const selectedProduct = produtos.find(p => p.id === product.productId)
+                        if (!selectedProduct) return null
+                        const relatedUnits = getRelatedUnits(selectedProduct.unitType)
+                        return (
+                          <div className="unit-converter">
+                            <div className="converter-header">
+                              <h4>Conversor de Medidas</h4>
+                              <button
+                                type="button"
+                                className="btn-close-converter"
+                                onClick={() => setShowConverter(null)}
+                              >
+                                <FontAwesomeIcon icon={faTimes} />
+                              </button>
+                            </div>
+                            <div className="converter-content">
+                              <div className="converter-row">
+                                <div className="converter-input-group">
+                                  <label>De</label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={converterData.value}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      const toUnit = selectedProduct.unitType // Sempre converte para a unidade do produto
+                                      setConverterData({
+                                        ...converterData,
+                                        value,
+                                        toUnit: toUnit,
+                                        result: value && converterData.fromUnit && toUnit
+                                          ? convertUnit(value, converterData.fromUnit, toUnit)
+                                          : ''
+                                      })
+                                    }}
+                                    placeholder="0.00"
+                                  />
+                                  <select
+                                    value={converterData.fromUnit}
+                                    onChange={(e) => {
+                                      const toUnit = selectedProduct.unitType // Sempre converte para a unidade do produto
+                                      setConverterData({
+                                        ...converterData,
+                                        fromUnit: e.target.value,
+                                        toUnit: toUnit,
+                                        result: converterData.value && e.target.value && toUnit
+                                          ? convertUnit(converterData.value, e.target.value, toUnit)
+                                          : ''
+                                      })
+                                    }}
+                                  >
+                                    {relatedUnits.map(unit => (
+                                      <option key={unit} value={unit}>{unit}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="converter-arrow">
+                                  <FontAwesomeIcon icon={faExchangeAlt} />
+                                </div>
+                                <div className="converter-input-group">
+                                  <label>Para</label>
+                                  <input
+                                    type="text"
+                                    value={converterData.result || ''}
+                                    readOnly
+                                    placeholder="0.00"
+                                    className="converter-result"
+                                  />
+                                  <select
+                                    value={selectedProduct.unitType}
+                                    disabled
+                                    className="converter-unit-disabled"
+                                  >
+                                    <option value={selectedProduct.unitType}>{selectedProduct.unitType}</option>
+                                  </select>
+                                </div>
+                              </div>
+                              {converterData.result && converterData.result !== 'Conversão não disponível' && (
+                                <button
+                                  type="button"
+                                  className="btn-apply-conversion"
+                                  onClick={() => {
+                                    if (converterData.result && converterData.result !== 'Conversão não disponível') {
+                                      handleUpdateProduct(index, 'quantityUsed', parseFloat(converterData.result))
+                                      setShowConverter(null)
+                                    }
+                                  }}
+                                >
+                                  <FontAwesomeIcon icon={faCheck} />
+                                  Usar este valor
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                     <div className="product-item-actions">
                       {product.productId && product.quantityUsed && (
