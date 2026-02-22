@@ -181,7 +181,7 @@ const Home = () => {
     },
     {
       icon: faCalendarAlt,
-      title: 'Calendário e Agendamentos',
+      title: 'Agenda e Agendamentos',
       description: 'Gerencie sua agenda, agendamentos e consultas com links públicos para pacientes',
       color: '#ec4899'
     },

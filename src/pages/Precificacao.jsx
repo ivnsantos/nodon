@@ -251,22 +251,27 @@ const Precificacao = () => {
       // A estrutura é: response.data.data.data.valorhora (aninhada)
       let valor = null
       
-      // Tentar todas as formas possíveis de acessar o valor
+      // Forma 1: response.data.data.data.valorhora (estrutura real da API)
       if (response.data?.data?.data?.valorhora !== undefined) {
         valor = response.data.data.data.valorhora
       }
+      // Forma 2: response.data.data.data.valorHora
       else if (response.data?.data?.data?.valorHora !== undefined) {
         valor = response.data.data.data.valorHora
       }
+      // Forma 3: response.data.data.valorhora
       else if (response.data?.data?.valorhora !== undefined) {
         valor = response.data.data.valorhora
       }
+      // Forma 4: response.data.data.valorHora
       else if (response.data?.data?.valorHora !== undefined) {
         valor = response.data.data.valorHora
       }
+      // Forma 5: response.data.valorhora
       else if (response.data?.valorhora !== undefined) {
         valor = response.data.valorhora
       }
+      // Forma 6: response.data.valorHora
       else if (response.data?.valorHora !== undefined) {
         valor = response.data.valorHora
       }
@@ -357,22 +362,27 @@ const Precificacao = () => {
       // A estrutura é: response.data.data.data.valorhora (aninhada)
       let valor = null
       
-      // Tentar todas as formas possíveis de acessar o valor
+      // Forma 1: response.data.data.data.valorhora (estrutura real da API)
       if (response.data?.data?.data?.valorhora !== undefined) {
         valor = response.data.data.data.valorhora
       }
+      // Forma 2: response.data.data.data.valorHora
       else if (response.data?.data?.data?.valorHora !== undefined) {
         valor = response.data.data.data.valorHora
       }
+      // Forma 3: response.data.data.valorhora
       else if (response.data?.data?.valorhora !== undefined) {
         valor = response.data.data.valorhora
       }
+      // Forma 4: response.data.data.valorHora
       else if (response.data?.data?.valorHora !== undefined) {
         valor = response.data.data.valorHora
       }
+      // Forma 5: response.data.valorhora
       else if (response.data?.valorhora !== undefined) {
         valor = response.data.valorhora
       }
+      // Forma 6: response.data.valorHora
       else if (response.data?.valorHora !== undefined) {
         valor = response.data.valorHora
       }

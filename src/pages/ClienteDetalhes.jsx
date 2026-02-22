@@ -825,7 +825,7 @@ const ClienteDetalhes = () => {
       const link = `${baseUrl}/responder-anamnese/${respostaAnamneseId}`
       
       await navigator.clipboard.writeText(link)
-      showSuccess('Link copiado para a área de transferência!')
+      showSuccess('Link copiado')
     } catch (error) {
       console.error('Erro ao copiar link:', error)
       // Fallback para navegadores que não suportam clipboard API
@@ -837,7 +837,7 @@ const ClienteDetalhes = () => {
       textArea.select()
       try {
         document.execCommand('copy')
-        showSuccess('Link copiado para a área de transferência!')
+        showSuccess('Link copiado')
       } catch (err) {
         showError('Não foi possível copiar o link. Por favor, copie manualmente: ' + link)
       }
@@ -875,7 +875,7 @@ const ClienteDetalhes = () => {
       const link = `${baseUrl}/responder-questionario/${respostaQuestionarioId}`
       
       await navigator.clipboard.writeText(link)
-      showSuccess('Link copiado para a área de transferência!')
+      showSuccess('Link copiado')
     } catch (error) {
       console.error('Erro ao copiar link:', error)
       // Fallback para navegadores que não suportam clipboard API
@@ -887,7 +887,7 @@ const ClienteDetalhes = () => {
       textArea.select()
       try {
         document.execCommand('copy')
-        showSuccess('Link copiado para a área de transferência!')
+        showSuccess('Link copiado')
       } catch (err) {
         showError('Não foi possível copiar o link. Por favor, copie manualmente: ' + link)
       }

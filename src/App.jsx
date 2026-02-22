@@ -49,6 +49,7 @@ import PrecificacaoCategoria from './pages/PrecificacaoCategoria'
 import PrecificacaoProduto from './pages/PrecificacaoProduto'
 import Anotacoes from './pages/Anotacoes'
 import AgendamentoPublico from './pages/AgendamentoPublico'
+import ConfirmarAgendamento from './pages/ConfirmarAgendamento'
 import { AuthProvider } from './context/AuthContext'
 import { ChatHeaderProvider } from './context/ChatHeaderContext'
 
@@ -152,6 +153,11 @@ function AppRoutes() {
         <Route path="/agendamento/:id" element={
           <PublicRoute>
             <AgendamentoPublico />
+          </PublicRoute>
+        } />
+        <Route path="/confirmar-agendamento/:consultaId" element={
+          <PublicRoute>
+            <ConfirmarAgendamento />
           </PublicRoute>
         } />
         <Route path="/app" element={

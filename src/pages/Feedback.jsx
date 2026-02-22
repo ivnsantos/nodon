@@ -142,7 +142,7 @@ const Feedback = () => {
     
     try {
       await navigator.clipboard.writeText(publicLink)
-      showSuccess('Link copiado para a área de transferência!')
+      showSuccess('Link copiado')
     } catch (error) {
       console.error('Erro ao copiar link:', error)
       // Fallback para navegadores mais antigos
@@ -154,7 +154,7 @@ const Feedback = () => {
       textArea.select()
       try {
         document.execCommand('copy')
-        showSuccess('Link copiado para a área de transferência!')
+        showSuccess('Link copiado')
       } catch (err) {
         showError('Erro ao copiar link. Tente copiar manualmente.')
       }

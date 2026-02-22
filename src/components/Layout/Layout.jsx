@@ -81,7 +81,7 @@ const Layout = () => {
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
     { path: '/app/orcamentos', label: 'Orçamentos', icon: faFileInvoiceDollar },
     { path: '/app/precificacao', label: 'Precificação', icon: faDollarSign },
-    { path: '/app/calendario', label: 'Calendário', icon: faCalendarAlt },
+    { path: '/app/calendario', label: 'Agenda', icon: faCalendarAlt },
     { path: '/app/feedback', label: 'Feedback', icon: faComment },
     { path: '/app/chat', label: 'Chat IA NODON', icon: faComments },
     { path: '/app/anotacoes', label: 'Anotações', icon: faStickyNote },

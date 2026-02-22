@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faCalendarAlt, faChevronLeft, faChevronRight, faPlus,
   faClock, faUser, faMapMarkerAlt, faCog, faTrash, faEdit, faPalette, faTimes, faStickyNote, faUserCircle, faUserMd,
-  faSpinner, faIdCard, faEnvelope, faCheckCircle, faLink, faInfoCircle
+  faSpinner, faIdCard, faEnvelope, faCheckCircle, faLink, faInfoCircle, faPhone, faComment, faBell
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
@@ -50,6 +50,9 @@ const Calendario = () => {
   const [clienteMasterInfo, setClienteMasterInfo] = useState(null) // Info do cliente master para o filtro
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [linkGerado, setLinkGerado] = useState('')
+  const [consultaGeradaData, setConsultaGeradaData] = useState(null)
+  const [smsNomeModal, setSmsNomeModal] = useState('')
+  const [smsTelefoneModal, setSmsTelefoneModal] = useState('')
 
   // Carregar tipos da API
   useEffect(() => {
@@ -263,7 +266,8 @@ const Calendario = () => {
               professional: consulta.profissional_nome || null,
               professionalId: consulta.profissional_id || null,
               professionalType: consulta.profissional_id ? 'professional' : 'self',
-              notes: consulta.observacoes || ''
+              notes: consulta.observacoes || '',
+              status: consulta.status || 'agendada'
             }
           } catch (err) {
             return null
@@ -489,10 +493,24 @@ const Calendario = () => {
         return
       }
 
-      if (!eventData.time || !/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(eventData.time)) {
+      // Normalizar hora para formato HH:MM (aceitar HH:MM:SS e converter)
+      let normalizedTime = eventData.time
+      if (normalizedTime && normalizedTime.includes(':')) {
+        const timeParts = normalizedTime.split(':')
+        if (timeParts.length >= 2) {
+          // Pegar apenas horas e minutos, ignorar segundos se existirem
+          normalizedTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}`
+        }
+      }
+      
+      // Validar formato HH:MM
+      if (!normalizedTime || !/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(normalizedTime)) {
         showError('Por favor, informe uma hora válida no formato HH:MM.')
         return
       }
+      
+      // Usar hora normalizada
+      eventData.time = normalizedTime
 
       // Determinar profissionalId corretamente conforme regras
       // A lógica já foi aplicada no handleSubmit do formulário, apenas usar o valor
@@ -507,7 +525,8 @@ const Calendario = () => {
         titulo: eventData.title || null, // Será gerado automaticamente se null
         dataConsulta: dateStr,
         horaConsulta: eventData.time,
-        observacoes: eventData.notes || null
+        observacoes: eventData.notes || null,
+        status: eventData.status || 'agendada'
       }
 
 
@@ -537,6 +556,27 @@ const Calendario = () => {
           if (consultaId) {
             const link = `${window.location.origin}/agendamento/${consultaId}`
             console.log('Link gerado:', link)
+            
+            // Armazenar dados da consulta para possível envio de SMS
+            const dateStr = eventData.date instanceof Date
+              ? `${eventData.date.getFullYear()}-${String(eventData.date.getMonth() + 1).padStart(2, '0')}-${String(eventData.date.getDate()).padStart(2, '0')}`
+              : eventData.date.split('T')[0]
+            
+            let horaConsulta = eventData.time
+            if (horaConsulta && horaConsulta.includes(':') && horaConsulta.split(':').length === 3) {
+              const [hours, minutes] = horaConsulta.split(':')
+              horaConsulta = `${hours}:${minutes}`
+            }
+            
+            setConsultaGeradaData({
+              telefone: null, // Não tem paciente quando gera link
+              nome: null,
+              typeId: eventData.typeId,
+              dataConsulta: dateStr,
+              horaConsulta: horaConsulta,
+              consultaId: consultaId,
+              link: link
+            })
             
             // Fechar o modal de gerar link primeiro
             setShowEventModal(false)
@@ -596,6 +636,179 @@ const Calendario = () => {
     }
   }
 
+  // Função para formatar telefone para envio (apenas números com 55, sem +)
+  const formatPhoneForAPI = (phone) => {
+    // Remove tudo que não é número
+    let numbers = phone.replace(/\D/g, '')
+    
+    // Se não começar com 55, adicionar
+    if (!numbers.startsWith('55')) {
+      // Remover zeros à esquerda se houver
+      numbers = numbers.replace(/^0+/, '')
+      numbers = '55' + numbers
+    }
+    
+    // Retornar apenas números (sem o +) - formato esperado pela API: "5511965899998"
+    return numbers
+  }
+
+  // Função para enviar SMS do modal de link gerado
+  const handleSendSMSFromModal = async () => {
+    if (!smsTelefoneModal.trim()) {
+      showError('Por favor, informe o telefone para enviar SMS')
+      return
+    }
+
+    if (!smsNomeModal.trim()) {
+      showError('Por favor, informe o nome do paciente para enviar SMS')
+      return
+    }
+
+    if (!consultaGeradaData) {
+      showError('Erro: dados da consulta não encontrados')
+      return
+    }
+
+    try {
+      // Formatar telefone para envio (com +55)
+      const telefoneFormatado = formatPhoneForAPI(smsTelefoneModal)
+      
+      await handleSendSMS({
+        ...consultaGeradaData,
+        telefone: telefoneFormatado,
+        nome: smsNomeModal.trim(),
+        consultaId: consultaGeradaData.consultaId,
+        link: linkGerado
+      })
+      
+      // Limpar os campos após envio bem-sucedido
+      setSmsTelefoneModal('')
+      setSmsNomeModal('')
+    } catch (error) {
+      console.error('Erro ao enviar SMS:', error)
+      // O erro já é tratado na função handleSendSMS
+    }
+  }
+
+  // Função para verificar se a consulta é hoje ou amanhã (day ou day + 1)
+  const isTodayOrTomorrow = (eventDate) => {
+    if (!eventDate) return false
+    
+    try {
+      const hoje = new Date()
+      hoje.setHours(0, 0, 0, 0)
+      
+      const amanha = new Date(hoje)
+      amanha.setDate(amanha.getDate() + 1)
+      
+      // Converter a data do evento para Date se necessário
+      let dataConsulta
+      if (eventDate instanceof Date) {
+        dataConsulta = new Date(eventDate)
+      } else if (typeof eventDate === 'string') {
+        // Se for string, pode ser formato ISO ou outro formato
+        dataConsulta = new Date(eventDate)
+      } else {
+        dataConsulta = new Date(eventDate)
+      }
+      
+      // Verificar se a data é válida
+      if (isNaN(dataConsulta.getTime())) {
+        console.error('Data inválida:', eventDate)
+        return false
+      }
+      
+      dataConsulta.setHours(0, 0, 0, 0)
+      
+      // Retorna true APENAS se a consulta é hoje ou amanhã
+      const isToday = dataConsulta.getTime() === hoje.getTime()
+      const isTomorrow = dataConsulta.getTime() === amanha.getTime()
+      
+      return isToday || isTomorrow
+    } catch (error) {
+      console.error('Erro ao verificar data:', error, eventDate)
+      return false
+    }
+  }
+
+  // Função para solicitar confirmação do paciente
+  const handleSolicitarConfirmacao = async (consultaId) => {
+    try {
+      if (!consultaId) {
+        showError('ID da consulta não encontrado')
+        return
+      }
+
+      await api.post('/calendario/consultas/solicitar-confirmacao', {
+        consultaId: consultaId
+      })
+      
+      showSuccess('Solicitação de confirmação enviada com sucesso!')
+      
+      // Recarregar consultas para atualizar o status
+      await fetchConsultas()
+    } catch (error) {
+      console.error('Erro ao solicitar confirmação:', error)
+      showError(error.response?.data?.message || 'Erro ao solicitar confirmação. Tente novamente.')
+    }
+  }
+
+  // Função para enviar SMS de agendamento
+  const handleSendSMS = async (consultaData) => {
+    try {
+      // Validar se tem telefone
+      if (!consultaData.telefone) {
+        showError('Telefone do paciente não encontrado. Não é possível enviar SMS.')
+        return
+      }
+
+      // Preparar dados para a API
+      const dateStr = consultaData.date instanceof Date
+        ? `${consultaData.date.getFullYear()}-${String(consultaData.date.getMonth() + 1).padStart(2, '0')}-${String(consultaData.date.getDate()).padStart(2, '0')}`
+        : consultaData.date ? consultaData.date.split('T')[0] : consultaData.dataConsulta
+
+      // Normalizar hora para HH:MM
+      let horaConsulta = consultaData.time || consultaData.horaConsulta
+      if (horaConsulta && horaConsulta.includes(':') && horaConsulta.split(':').length === 3) {
+        const [hours, minutes] = horaConsulta.split(':')
+        horaConsulta = `${hours}:${minutes}`
+      }
+
+      // Formatar telefone para envio (apenas números com 55, sem +)
+      // Se o telefone já estiver formatado (vindo de formatPhoneForAPI), usar direto
+      // Caso contrário, formatar agora
+      let telefoneFormatado = consultaData.telefone
+      // Se contém caracteres não numéricos (exceto +), precisa formatar
+      if (telefoneFormatado.includes('+') || telefoneFormatado.includes('(') || telefoneFormatado.includes(')') || telefoneFormatado.includes('-') || telefoneFormatado.includes(' ')) {
+        telefoneFormatado = formatPhoneForAPI(telefoneFormatado)
+      } else if (!telefoneFormatado.startsWith('55')) {
+        // Se não tem código 55, adicionar
+        telefoneFormatado = formatPhoneForAPI(telefoneFormatado)
+      }
+
+      const payload = {
+        telefone: telefoneFormatado, // Formato: "5511965899998" (apenas números)
+        nome: consultaData.nome || 'Paciente',
+        tipoConsultaId: consultaData.typeId,
+        dataConsulta: dateStr,
+        horaConsulta: horaConsulta
+      }
+
+      // Se for status "link", incluir o link do agendamento
+      if (consultaData.consultaId || consultaData.link) {
+        const link = consultaData.link || `${window.location.origin}/agendamento/${consultaData.consultaId}`
+        payload.link = link
+        payload.consultaId = consultaData.consultaId
+      }
+
+      await api.post('/calendario/consultas/enviar-sms-agendamento', payload)
+      showSuccess('SMS enviado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao enviar SMS:', error)
+      showError(error.response?.data?.message || 'Erro ao enviar SMS. Tente novamente.')
+    }
+  }
+
   const days = getDaysInMonth(currentDate)
   const selectedDateEvents = getEventsForDate(selectedDate)
 
@@ -604,7 +817,7 @@ const Calendario = () => {
       <div className="calendario-header">
         <div className="calendario-title">
           <FontAwesomeIcon icon={faCalendarAlt} />
-          <h2>Calendário</h2>
+          <h2>Agenda</h2>
         </div>
         <div className="calendario-actions">
           <button 
@@ -762,26 +975,55 @@ const Calendario = () => {
                       // Buscar detalhes completos da consulta
                       try {
                         const response = await api.get(`/calendario/consultas/${event.id}`)
-                        if (response.data.statusCode === 200) {
-                          const consulta = response.data.data?.consulta
-                          if (consulta) {
-                            const [year, month, day] = consulta.data_consulta.split('-').map(Number)
-                            const eventData = {
-                              id: consulta.id,
-                              title: consulta.titulo,
-                              date: new Date(year, month - 1, day),
-                              time: consulta.hora_consulta,
-                              typeId: consulta.tipo_consulta?.id || consulta.tipo_consulta_id,
-                              patient: consulta.paciente?.nome || consulta.paciente_nome,
-                              patientId: consulta.paciente?.id || consulta.paciente_id,
-                              professional: consulta.profissional?.nome || null,
-                              professionalId: consulta.profissional?.id || null,
-                              professionalType: consulta.profissional_id ? 'professional' : 'self',
-                              notes: consulta.observacoes || ''
-                            }
-                            setEditingEvent(eventData)
-                            setShowEventModal(true)
+                        console.log('Resposta completa da API consulta:', response.data)
+                        
+                        // A estrutura é aninhada: response.data.data.data.consulta
+                        let consulta = null
+                        if (response.data?.data?.data?.consulta) {
+                          consulta = response.data.data.data.consulta
+                          console.log('Consulta encontrada em response.data.data.data.consulta')
+                        } else if (response.data?.data?.consulta) {
+                          consulta = response.data.data.consulta
+                          console.log('Consulta encontrada em response.data.data.consulta')
+                        } else if (response.data?.consulta) {
+                          consulta = response.data.consulta
+                          console.log('Consulta encontrada em response.data.consulta')
+                        }
+                        
+                        if (consulta) {
+                          const [year, month, day] = consulta.data_consulta.split('-').map(Number)
+                          const eventData = {
+                            id: consulta.id,
+                            title: consulta.titulo,
+                            date: new Date(year, month - 1, day),
+                            time: consulta.hora_consulta,
+                            typeId: consulta.tipo_consulta?.id || consulta.tipo_consulta_id,
+                            patient: consulta.paciente?.nome || consulta.paciente_nome,
+                            patientId: consulta.paciente?.id || consulta.paciente_id,
+                            // Incluir objeto completo do paciente para visualização (preservar todos os campos)
+                            patientData: consulta.paciente ? {
+                              ...consulta.paciente,
+                              id: consulta.paciente.id,
+                              nome: consulta.paciente.nome,
+                              email: consulta.paciente.email,
+                              telefone: consulta.paciente.telefone,
+                              cpf: consulta.paciente.cpf || consulta.paciente.CPF
+                            } : null,
+                            professional: consulta.profissional?.nome || null,
+                            professionalId: consulta.profissional?.id || null,
+                            professionalType: consulta.profissional_id ? 'professional' : 'self',
+                            notes: consulta.observacoes || '',
+                            status: consulta.status || 'agendada'
                           }
+                          console.log('EventData criado:', eventData)
+                          setEditingEvent(eventData)
+                          setShowEventModal(true)
+                          console.log('Modal deve estar aberto agora')
+                        } else {
+                          console.log('Consulta não encontrada na resposta, usando dados básicos')
+                          // Se não encontrar consulta, usar dados básicos do evento
+                          setEditingEvent(event)
+                          setShowEventModal(true)
                         }
                       } catch (error) {
                         console.error('Erro ao buscar detalhes da consulta:', error)
@@ -792,11 +1034,25 @@ const Calendario = () => {
                     }}
                     style={{ cursor: 'pointer' }}
                   >
-                    <div 
-                      className="event-type-badge" 
-                      style={{ backgroundColor: eventType.color }}
-                    >
-                      {eventType.name}
+                    <div className="event-header-badges">
+                      <div 
+                        className="event-type-badge" 
+                        style={{ backgroundColor: eventType.color }}
+                      >
+                        {eventType.name}
+                      </div>
+                      {event.status && (
+                        <div 
+                          className={`event-status-badge status-${event.status}`}
+                        >
+                          {event.status === 'confirmada' && <FontAwesomeIcon icon={faCheckCircle} />}
+                          {event.status === 'agendada' && <FontAwesomeIcon icon={faCalendarAlt} />}
+                          {event.status === 'cancelada' && <FontAwesomeIcon icon={faTimes} />}
+                          {event.status === 'concluida' && <FontAwesomeIcon icon={faCheckCircle} />}
+                          {event.status === 'link' && <FontAwesomeIcon icon={faLink} />}
+                          <span>{event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span>
+                        </div>
+                      )}
                     </div>
                     <h4 className="event-title">{event.title}</h4>
                     <div className="event-details">
@@ -873,6 +1129,11 @@ const Calendario = () => {
           }}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
+          onReload={fetchConsultas}
+          onSendSMS={handleSendSMS}
+          onSolicitarConfirmacao={handleSolicitarConfirmacao}
+          isTodayOrTomorrow={isTodayOrTomorrow}
+          selectedClinicData={selectedClinicData}
         />
       )}
 
@@ -908,7 +1169,7 @@ const Calendario = () => {
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(linkGerado)
-                    showSuccess('Link copiado para a área de transferência!')
+                    showSuccess('Link copiado')
                   }}
                   className="btn-copy-link"
                 >
@@ -916,9 +1177,88 @@ const Calendario = () => {
                   Copiar
                 </button>
               </div>
+              
+              {/* Campo para nome, telefone e botão de enviar SMS */}
+              <div style={{ marginTop: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)' }}>
+                  <FontAwesomeIcon icon={faPhone} style={{ marginRight: '0.5rem' }} />
+                  Enviar SMS (opcional)
+                </label>
+                
+                {/* Campo de Nome */}
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Nome do paciente"
+                    className="link-input"
+                    value={smsNomeModal}
+                    onChange={(e) => setSmsNomeModal(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                
+                {/* Campo de Telefone com máscara */}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <input
+                    type="tel"
+                    placeholder="+55 (11) 99999-9999"
+                    className="link-input"
+                    value={smsTelefoneModal}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      // Formatar telefone com máscara +55 (XX) XXXXX-XXXX
+                      const numbers = value.replace(/\D/g, '')
+                      
+                      // Se começar com 55, remove para não duplicar
+                      let cleaned = numbers.startsWith('55') ? numbers.slice(2) : numbers
+                      
+                      // Limita a 11 dígitos (DDD + número)
+                      cleaned = cleaned.slice(0, 11)
+                      
+                      // Aplica máscara
+                      let formatted = ''
+                      if (cleaned.length === 0) {
+                        formatted = ''
+                      } else if (cleaned.length <= 2) {
+                        formatted = `+55 (${cleaned}`
+                      } else if (cleaned.length <= 7) {
+                        formatted = `+55 (${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`
+                      } else {
+                        formatted = `+55 (${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+                      }
+                      
+                      setSmsTelefoneModal(formatted)
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && smsTelefoneModal.trim() && smsNomeModal.trim() && consultaGeradaData) {
+                        handleSendSMSFromModal()
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    onClick={handleSendSMSFromModal}
+                    className="btn-send-sms"
+                    style={{ whiteSpace: 'nowrap' }}
+                    disabled={!smsTelefoneModal.trim() || !smsNomeModal.trim()}
+                  >
+                    <FontAwesomeIcon icon={faComment} />
+                    Enviar SMS
+                  </button>
+                </div>
+                <small style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  Digite o nome e telefone do paciente para enviar o link por SMS
+                </small>
+              </div>
             </div>
             <div className="modal-link-footer">
-              <button onClick={() => setShowLinkModal(false)} className="btn-close-link">
+              <button onClick={() => {
+                setShowLinkModal(false)
+                setLinkGerado('')
+                setConsultaGeradaData(null)
+                setSmsNomeModal('')
+                setSmsTelefoneModal('')
+              }} className="btn-close-link">
                 Fechar
               </button>
             </div>
@@ -1068,7 +1408,15 @@ const EventTypesModal = ({ eventTypes, onClose, onAdd, onEdit, onDelete, editing
 }
 
 // Componente Modal de Nova Consulta
-const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete }) => {
+const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete, onReload, onSendSMS, onSolicitarConfirmacao, isTodayOrTomorrow, selectedClinicData }) => {
+  
+  // Estado para controlar se está em modo edição ou visualização
+  const [isEditing, setIsEditing] = useState(!editingEvent)
+  
+  // Estado para telefone e nome quando for enviar SMS de link
+  const [smsTelefoneLink, setSmsTelefoneLink] = useState('')
+  const [smsNomeLink, setSmsNomeLink] = useState('')
+  const [sendingSMSLink, setSendingSMSLink] = useState(false)
   
   const [formData, setFormData] = useState({
     title: '',
@@ -1080,8 +1428,53 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
     patientId: editingEvent ? editingEvent.patientId || null : null,
     professionalId: editingEvent ? editingEvent.professionalId || null : null,
     professionalType: editingEvent ? editingEvent.professionalType || 'self' : 'self',
-    notes: editingEvent ? editingEvent.notes || '' : ''
+    notes: editingEvent ? editingEvent.notes || '' : '',
+    status: editingEvent ? editingEvent.status || 'agendada' : 'agendada'
   })
+  
+  // Função para formatar data em português
+  const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    })
+  }
+  
+  // Função para formatar hora
+  const formatTime = (timeString) => {
+    if (!timeString) return '-'
+    // Se vier no formato HH:MM:SS, pegar apenas HH:MM
+    const time = timeString.split(':').slice(0, 2).join(':')
+    return time
+  }
+  
+  // Função para obter label do status
+  const getStatusLabel = (status) => {
+    const statusMap = {
+      'agendada': 'Agendada',
+      'confirmada': 'Confirmada',
+      'concluida': 'Concluída',
+      'cancelada': 'Cancelada',
+      'link': 'Link'
+    }
+    return statusMap[status] || status
+  }
+  
+  // Função para obter cor do status
+  const getStatusColor = (status) => {
+    const colorMap = {
+      'agendada': '#3b82f6',
+      'confirmada': '#10b981',
+      'concluida': '#8b5cf6',
+      'cancelada': '#ef4444',
+      'link': '#f59e0b'
+    }
+    return colorMap[status] || '#6b7280'
+  }
   
   // Estados para busca dinâmica de pacientes
   const [searchTerm, setSearchTerm] = useState('')
@@ -1089,6 +1482,50 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [searching, setSearching] = useState(false)
   const isModalJustOpened = useRef(false)
+  
+  // Atualizar formData quando editingEvent mudar
+  useEffect(() => {
+    if (editingEvent) {
+      // Normalizar hora para formato HH:MM (remover segundos se existirem)
+      let normalizedTime = editingEvent.time || '09:00'
+      if (normalizedTime.includes(':') && normalizedTime.split(':').length === 3) {
+        // Se tem segundos (HH:MM:SS), remover
+        const [hours, minutes] = normalizedTime.split(':')
+        normalizedTime = `${hours}:${minutes}`
+      }
+      
+      setFormData({
+        title: editingEvent.title || '',
+        date: editingEvent.date 
+          ? new Date(editingEvent.date).toISOString().split('T')[0]
+          : selectedDate.toISOString().split('T')[0],
+        time: normalizedTime,
+        typeId: editingEvent.typeId || (eventTypes[0]?.id || ''),
+        patientId: editingEvent.patientId || null,
+        professionalId: editingEvent.professionalId || null,
+        professionalType: editingEvent.professionalType || 'self',
+        notes: editingEvent.notes || '',
+        status: editingEvent.status || 'agendada'
+      })
+      // Quando carregar evento existente, começar em modo visualização
+      setIsEditing(false)
+    } else {
+      // Resetar quando não há editingEvent
+      setFormData({
+        title: '',
+        date: selectedDate.toISOString().split('T')[0],
+        time: '09:00',
+        typeId: eventTypes[0]?.id || '',
+        patientId: null,
+        professionalId: null,
+        professionalType: 'self',
+        notes: '',
+        status: 'agendada'
+      })
+      // Quando não há editingEvent, resetar para modo edição (criar novo)
+      setIsEditing(true)
+    }
+  }, [editingEvent, selectedDate, eventTypes])
   
   // Debounce para busca
   useEffect(() => {
@@ -1183,22 +1620,45 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
 
   useEffect(() => {
     if (editingEvent) {
+      // Normalizar hora para formato HH:MM (remover segundos se existirem)
+      let normalizedTime = editingEvent.time || '09:00'
+      if (normalizedTime.includes(':') && normalizedTime.split(':').length === 3) {
+        // Se tem segundos (HH:MM:SS), remover
+        const [hours, minutes] = normalizedTime.split(':')
+        normalizedTime = `${hours}:${minutes}`
+      }
+      
       setFormData({
         title: editingEvent.title || '',
         date: new Date(editingEvent.date).toISOString().split('T')[0],
-        time: editingEvent.time || '09:00',
+        time: normalizedTime,
         typeId: editingEvent.typeId || (eventTypes[0]?.id || ''),
         patientId: editingEvent.patientId || null,
         professionalId: editingEvent.professionalId || null,
         professionalType: editingEvent.professionalType || 'self',
-        notes: editingEvent.notes || ''
+        notes: editingEvent.notes || '',
+        status: editingEvent.status || 'agendada'
       })
       
       // Preencher searchTerm com o nome do paciente se estiver editando
       if (editingEvent.patientId) {
-        const paciente = clientes.find(c => c.id === editingEvent.patientId)
+        // Primeiro tentar encontrar na lista de clientes
+        let paciente = clientes.find(c => c.id === editingEvent.patientId || String(c.id) === String(editingEvent.patientId))
+        
+        // Se não encontrou e tem patientData no editingEvent, usar ele e adicionar à lista
+        if (!paciente && editingEvent.patientData) {
+          paciente = editingEvent.patientData
+          // Adicionar à lista de clientes se não estiver lá
+          if (!clientes.find(c => c.id === paciente.id || String(c.id) === String(paciente.id))) {
+            setClientes(prev => [...prev, paciente])
+          }
+        }
+        
         if (paciente) {
           setSearchTerm(paciente.nome + (paciente.cpf ? ` (${paciente.cpf})` : ''))
+        } else {
+          // Se não encontrou, usar apenas o ID ou nome genérico
+          setSearchTerm('Paciente selecionado')
         }
       } else {
         setSearchTerm('')
@@ -1310,17 +1770,26 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
       professionalId = formData.professionalId
     }
 
+    // Normalizar hora para formato HH:MM (remover segundos se existirem)
+    let normalizedTime = formData.time || '09:00'
+    if (normalizedTime.includes(':') && normalizedTime.split(':').length === 3) {
+      // Se tem segundos (HH:MM:SS), remover
+      const [hours, minutes] = normalizedTime.split(':')
+      normalizedTime = `${hours}:${minutes}`
+    }
+    
     const eventData = {
       title: formData.title || `${eventTypes.find(t => t.id === formData.typeId || t.id === String(formData.typeId))?.name || 'Consulta'}${!isGerarLink ? ` - ${patientName}` : ''}`,
       date: eventDate,
-      time: formData.time,
+      time: normalizedTime,
       typeId: formData.typeId, // UUID, não precisa de parseInt
       patient: !isGerarLink ? patientName : null,
       patientId: !isGerarLink ? formData.patientId : null, // UUID, não precisa de parseInt - null quando gerar link
       professional: professionalName,
       professionalId: professionalId,
       professionalType: formData.professionalType,
-      notes: formData.notes
+      notes: formData.notes,
+      status: isGerarLink ? 'link' : (formData.status || 'agendada')
     }
 
     
@@ -1332,9 +1801,155 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
     }
   }
 
+  // Estado para status em edição rápida
+  const [quickStatusEdit, setQuickStatusEdit] = useState(null)
+  const [savingStatus, setSavingStatus] = useState(false)
+
+  // Obter dados do evento para visualização
+  const getEventType = () => {
+    if (!editingEvent) return null
+    return eventTypes.find(t => t.id === editingEvent.typeId || t.id === String(editingEvent.typeId))
+  }
+  
+  const getPatient = () => {
+    if (!editingEvent || !editingEvent.patientId) return null
+    // Priorizar dados do paciente que vêm diretamente da API (mais completos)
+    if (editingEvent.patientData) {
+      return editingEvent.patientData
+    }
+    // Fallback: buscar na lista de clientes
+    return clientes.find(c => c.id === editingEvent.patientId || c.id === String(editingEvent.patientId))
+  }
+  
+  const getProfessional = () => {
+    if (!editingEvent) return null
+    if (editingEvent.professionalId) {
+      return profissionais.find(p => p.id === editingEvent.professionalId || p.id === String(editingEvent.professionalId))
+    }
+    return { nome: currentUser?.name || currentUser?.email || 'Você' }
+  }
+
+  // Função para formatar telefone para envio (apenas números com 55, sem +)
+  const formatPhoneForAPI = (phone) => {
+    // Remove tudo que não é número
+    let numbers = phone.replace(/\D/g, '')
+    
+    // Se não começar com 55, adicionar
+    if (!numbers.startsWith('55')) {
+      // Remover zeros à esquerda se houver
+      numbers = numbers.replace(/^0+/, '')
+      numbers = '55' + numbers
+    }
+    
+    // Retornar apenas números (sem o +) - formato esperado pela API: "5511965899998"
+    return numbers
+  }
+
+  // Função para enviar SMS quando status for "link"
+  const handleSendSMSLink = async () => {
+    if (!smsTelefoneLink.trim()) {
+      showError('Por favor, informe o telefone para enviar SMS')
+      return
+    }
+
+    if (!smsNomeLink.trim()) {
+      showError('Por favor, informe o nome do paciente para enviar SMS')
+      return
+    }
+
+    if (!editingEvent) {
+      showError('Erro: dados da consulta não encontrados')
+      return
+    }
+
+    try {
+      setSendingSMSLink(true)
+      
+      // Preparar dados para a API
+      const dateStr = editingEvent.date instanceof Date
+        ? `${editingEvent.date.getFullYear()}-${String(editingEvent.date.getMonth() + 1).padStart(2, '0')}-${String(editingEvent.date.getDate()).padStart(2, '0')}`
+        : editingEvent.date.split('T')[0]
+
+      // Normalizar hora para HH:MM
+      let horaConsulta = editingEvent.time
+      if (horaConsulta && horaConsulta.includes(':') && horaConsulta.split(':').length === 3) {
+        const [hours, minutes] = horaConsulta.split(':')
+        horaConsulta = `${hours}:${minutes}`
+      }
+
+      // Formatar telefone para envio (com +55)
+      const telefoneFormatado = formatPhoneForAPI(smsTelefoneLink)
+      const link = `${window.location.origin}/agendamento/${editingEvent.id}`
+      
+      const consultaData = {
+        telefone: telefoneFormatado,
+        nome: smsNomeLink.trim(),
+        typeId: editingEvent.typeId,
+        date: dateStr,
+        time: horaConsulta,
+        consultaId: editingEvent.id,
+        link: link
+      }
+
+      await onSendSMS(consultaData)
+      
+      // Limpar os campos após envio bem-sucedido
+      setSmsTelefoneLink('')
+      setSmsNomeLink('')
+    } catch (error) {
+      console.error('Erro ao enviar SMS:', error)
+      // O erro já é tratado na função onSendSMS
+    } finally {
+      setSendingSMSLink(false)
+    }
+  }
+
+  // Função para atualizar apenas o status
+  const handleQuickStatusUpdate = async (newStatus) => {
+    if (!editingEvent || savingStatus) return
+    
+    try {
+      setSavingStatus(true)
+      
+      // Preparar dados para atualizar apenas o status
+      const dateStr = editingEvent.date instanceof Date
+        ? `${editingEvent.date.getFullYear()}-${String(editingEvent.date.getMonth() + 1).padStart(2, '0')}-${String(editingEvent.date.getDate()).padStart(2, '0')}`
+        : editingEvent.date.split('T')[0]
+      
+      const payload = {
+        tipoConsultaId: editingEvent.typeId,
+        ...(editingEvent.patientId !== null && { pacienteId: editingEvent.patientId }),
+        profissionalId: editingEvent.professionalId || null,
+        titulo: editingEvent.title || null,
+        dataConsulta: dateStr,
+        horaConsulta: editingEvent.time,
+        observacoes: editingEvent.notes || null,
+        status: newStatus
+      }
+
+      await api.put(`/calendario/consultas/alterar/${editingEvent.id}`, payload)
+      
+      // Atualizar o status localmente
+      const updatedEvent = { ...editingEvent, status: newStatus }
+      setEditingEvent(updatedEvent)
+      setQuickStatusEdit(null)
+      showSuccess('Status atualizado com sucesso!')
+      
+      // Recarregar eventos se a função estiver disponível
+      if (onReload) {
+        await onReload()
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error)
+      showError(error.response?.data?.message || 'Erro ao atualizar status. Tente novamente.')
+    } finally {
+      setSavingStatus(false)
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className={`modal-content-event ${isGerarLink ? 'modal-gerar-link' : ''}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-content-event ${isGerarLink ? 'modal-gerar-link' : ''} ${editingEvent && !isEditing ? 'modal-view-mode' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-event">
           <div className="modal-header-content">
             <div className="modal-header-icon">
@@ -1342,7 +1957,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             </div>
             <div className="modal-header-text">
               <h2>
-                {editingEvent ? 'Editar Consulta' : (isGerarLink ? 'Gerar Link de Agendamento' : 'Nova Consulta')}
+                {editingEvent && !isEditing ? 'Detalhes da Consulta' : (editingEvent ? 'Editar Consulta' : (isGerarLink ? 'Gerar Link de Agendamento' : 'Nova Consulta'))}
               </h2>
               {isGerarLink && (
                 <p className="modal-subtitle">Crie um link para que pacientes possam agendar esta consulta</p>
@@ -1354,7 +1969,343 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
           </button>
         </div>
 
-        <form className="event-form" onSubmit={handleSubmit}>
+        {/* Modo Visualização - quando editingEvent existe e não está editando */}
+        {editingEvent && !isEditing ? (
+          <div className="event-view-mode">
+            <div className="event-view-header">
+              <div className="event-view-type-badge" style={{ backgroundColor: getEventType()?.color || '#6b7280' }}>
+                <FontAwesomeIcon icon={faCalendarAlt} />
+                <span>{getEventType()?.name || 'Consulta'}</span>
+              </div>
+              <div className="event-view-status-selector">
+                {quickStatusEdit === editingEvent.id ? (
+                  <select
+                    value={editingEvent.status || 'agendada'}
+                    onChange={(e) => handleQuickStatusUpdate(e.target.value)}
+                    onBlur={() => setQuickStatusEdit(null)}
+                    disabled={savingStatus}
+                    className="event-view-status-select"
+                    style={{ backgroundColor: getStatusColor(editingEvent.status || 'agendada') }}
+                    autoFocus
+                  >
+                    <option value="agendada">Agendada</option>
+                    <option value="confirmada">Confirmada</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="cancelada">Cancelada</option>
+                    <option value="link">Link</option>
+                  </select>
+                ) : (
+                  <div 
+                    className="event-view-status-badge" 
+                    style={{ backgroundColor: getStatusColor(editingEvent.status || 'agendada') }}
+                    onClick={() => setQuickStatusEdit(editingEvent.id)}
+                    title="Clique para alterar o status"
+                  >
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    <span>{getStatusLabel(editingEvent.status || 'agendada')}</span>
+                    <FontAwesomeIcon icon={faEdit} style={{ marginLeft: '0.5rem', fontSize: '0.75rem', opacity: 0.8 }} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="event-view-content">
+              <div className="event-view-section">
+                {/* Data e Hora agrupadas */}
+                <div className="event-view-item event-view-item-grouped">
+                  <div className="event-view-label">
+                    <FontAwesomeIcon icon={faCalendarAlt} />
+                    <span>Data e Hora</span>
+                  </div>
+                  <div className="event-view-value-grouped">
+                    <div className="event-view-value-item">
+                      <span className="event-view-value-label">Data:</span>
+                      <span className="event-view-value-text">{formatDate(editingEvent.date)}</span>
+                    </div>
+                    <div className="event-view-value-item">
+                      <span className="event-view-value-label">Hora:</span>
+                      <span className="event-view-value-text">{formatTime(editingEvent.time)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informações do Paciente agrupadas */}
+                {editingEvent.patientId && getPatient() && (
+                  <div className="event-view-item event-view-item-grouped">
+                    <div className="event-view-label">
+                      <FontAwesomeIcon icon={faUser} />
+                      <span>Paciente</span>
+                    </div>
+                    <div className="event-view-value-grouped">
+                      <div className="event-view-value-item">
+                        <span className="event-view-value-label">Nome:</span>
+                        <span className="event-view-value-text">
+                          {getPatient()?.nome || 'Não informado'}
+                          {getPatient()?.cpf && (
+                            <span className="event-view-subvalue"> ({getPatient().cpf})</span>
+                          )}
+                        </span>
+                      </div>
+                      {getPatient()?.email && (
+                        <div className="event-view-value-item">
+                          <span className="event-view-value-label">Email:</span>
+                          <span className="event-view-value-text">{getPatient().email}</span>
+                        </div>
+                      )}
+                      {getPatient()?.telefone && (
+                        <div className="event-view-value-item">
+                          <span className="event-view-value-label">Telefone:</span>
+                          <span className="event-view-value-text">{getPatient().telefone}</span>
+                        </div>
+                      )}
+                      {/* Botão Enviar SMS - aparece quando status é "link" */}
+                      {editingEvent.status === 'link' && getPatient()?.telefone && onSendSMS && (
+                        <div className="event-view-value-item" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const consultaData = {
+                                telefone: getPatient().telefone,
+                                nome: getPatient().nome,
+                                typeId: editingEvent.typeId,
+                                date: editingEvent.date,
+                                time: editingEvent.time,
+                                consultaId: editingEvent.id,
+                                link: `${window.location.origin}/agendamento/${editingEvent.id}`
+                              }
+                              await onSendSMS(consultaData)
+                            }}
+                            className="btn-send-sms"
+                          >
+                            <FontAwesomeIcon icon={faComment} />
+                            Enviar SMS
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Botão Pedir Confirmação - aparece quando status é "agendada" e data é hoje ou amanhã */}
+                      {editingEvent.patientId && 
+                       editingEvent.status === 'agendada' &&
+                       onSolicitarConfirmacao && 
+                       isTodayOrTomorrow(editingEvent.date) && (
+                        <div className="event-view-value-item" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                          <button
+                            type="button"
+                            onClick={() => onSolicitarConfirmacao(editingEvent.id)}
+                            className="btn-solicitar-confirmacao"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              padding: '0.625rem 1rem',
+                              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faBell} />
+                            Pedir Confirmação
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {getProfessional() && (
+                  <div className="event-view-item">
+                    <div className="event-view-label">
+                      <FontAwesomeIcon icon={faUserMd} />
+                      <span>Profissional</span>
+                    </div>
+                    <div className="event-view-value">
+                      {getProfessional()?.nome || getProfessional()?.name || getProfessional()?.user?.nome || currentUser?.name || currentUser?.email || 'Não informado'}
+                    </div>
+                  </div>
+                )}
+
+                {editingEvent.title && (
+                  <div className="event-view-item">
+                    <div className="event-view-label">
+                      <FontAwesomeIcon icon={faStickyNote} />
+                      <span>Título</span>
+                    </div>
+                    <div className="event-view-value">
+                      {editingEvent.title}
+                    </div>
+                  </div>
+                )}
+
+                {editingEvent.notes && (
+                  <div className="event-view-item event-view-item-full">
+                    <div className="event-view-label">
+                      <FontAwesomeIcon icon={faStickyNote} />
+                      <span>Observações</span>
+                    </div>
+                    <div className="event-view-value">
+                      {editingEvent.notes}
+                    </div>
+                  </div>
+                )}
+
+                {!editingEvent.patientId && (
+                  <div className="event-view-item event-view-item-full">
+                    <div className="event-view-label">
+                      <FontAwesomeIcon icon={faLink} />
+                      <span>Link do Agendamento</span>
+                    </div>
+                    <div className="event-view-link-wrapper">
+                      <input 
+                        type="text" 
+                        value={`${window.location.origin}/agendamento/${editingEvent.id}`} 
+                        readOnly 
+                        className="event-view-link-input"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const link = `${window.location.origin}/agendamento/${editingEvent.id}`
+                          navigator.clipboard.writeText(link)
+                          showSuccess('Link copiado')
+                        }}
+                        className="event-view-link-btn"
+                      >
+                        <FontAwesomeIcon icon={faIdCard} />
+                        Copiar
+                      </button>
+                    </div>
+                    
+                    {/* Opção de enviar SMS quando status for "link" */}
+                    {editingEvent.status === 'link' && (
+                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                        <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)' }}>
+                          <FontAwesomeIcon icon={faPhone} style={{ marginRight: '0.5rem' }} />
+                          Enviar Link por SMS
+                        </label>
+                        
+                        {/* Campo de Nome */}
+                        <div style={{ marginBottom: '0.75rem' }}>
+                          <input
+                            type="text"
+                            placeholder="Nome do paciente"
+                            className="event-view-link-input"
+                            value={smsNomeLink}
+                            onChange={(e) => setSmsNomeLink(e.target.value)}
+                            style={{ width: '100%' }}
+                            disabled={sendingSMSLink}
+                          />
+                        </div>
+                        
+                        {/* Campo de Telefone com máscara */}
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                          <input
+                            type="tel"
+                            placeholder="+55 (11) 99999-9999"
+                            className="event-view-link-input"
+                            value={smsTelefoneLink}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              // Formatar telefone com máscara +55 (XX) XXXXX-XXXX
+                              const numbers = value.replace(/\D/g, '')
+                              
+                              // Se começar com 55, remove para não duplicar
+                              let cleaned = numbers.startsWith('55') ? numbers.slice(2) : numbers
+                              
+                              // Limita a 11 dígitos (DDD + número)
+                              cleaned = cleaned.slice(0, 11)
+                              
+                              // Aplica máscara
+                              let formatted = ''
+                              if (cleaned.length === 0) {
+                                formatted = ''
+                              } else if (cleaned.length <= 2) {
+                                formatted = `+55 (${cleaned}`
+                              } else if (cleaned.length <= 7) {
+                                formatted = `+55 (${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`
+                              } else {
+                                formatted = `+55 (${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+                              }
+                              
+                              setSmsTelefoneLink(formatted)
+                            }}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && smsTelefoneLink.trim() && smsNomeLink.trim()) {
+                                handleSendSMSLink()
+                              }
+                            }}
+                            style={{ flex: 1 }}
+                            disabled={sendingSMSLink}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSendSMSLink}
+                            className="btn-send-sms"
+                            disabled={sendingSMSLink || !smsTelefoneLink.trim() || !smsNomeLink.trim()}
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            {sendingSMSLink ? (
+                              <>
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                                Enviando...
+                              </>
+                            ) : (
+                              <>
+                                <FontAwesomeIcon icon={faComment} />
+                                Enviar SMS
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <small style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                          Digite o nome e telefone do paciente para enviar o link por SMS
+                        </small>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="event-view-actions">
+              <button 
+                type="button" 
+                className="btn-cancel-view" 
+                onClick={onClose}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                className="btn-edit-event" 
+                onClick={() => setIsEditing(true)}
+              >
+                <FontAwesomeIcon icon={faEdit} />
+                Editar
+              </button>
+              <button 
+                type="button" 
+                className="btn-delete-event" 
+                onClick={() => {
+                  if (window.confirm('Tem certeza que deseja excluir esta consulta?')) {
+                    onDelete(editingEvent.id)
+                  }
+                }}
+              >
+                <FontAwesomeIcon icon={faTrash} />
+                Excluir
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Modo Edição/Criação - formulário */
+          <form className="event-form" onSubmit={handleSubmit}>
           {isGerarLink && (
             <div className="form-info-banner">
               <FontAwesomeIcon icon={faInfoCircle} />
@@ -1539,26 +2490,82 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             
             {/* Indicador de paciente selecionado */}
             {formData.patientId && (() => {
-              const selectedPatient = clientes.find(c => 
+              // Primeiro tentar encontrar na lista de clientes
+              let selectedPatient = clientes.find(c => 
                 c.id === formData.patientId || 
                 String(c.id) === String(formData.patientId)
               )
-              // Usar o nome do paciente encontrado, ou extrair do searchTerm
-              let patientName = selectedPatient?.nome
               
-              // Se não encontrou na lista, tentar extrair do searchTerm (formato: "Nome (CPF)")
-              if (!patientName && searchTerm) {
+              // Se não encontrou na lista, tentar buscar no editingEvent.patientData
+              if (!selectedPatient && editingEvent?.patientData) {
+                // Verificar se o ID do patientData corresponde ao patientId
+                if (editingEvent.patientData.id === formData.patientId || 
+                    String(editingEvent.patientData.id) === String(formData.patientId)) {
+                  selectedPatient = editingEvent.patientData
+                }
+              }
+              
+              // Se ainda não encontrou, tentar buscar nos resultados da busca
+              if (!selectedPatient && searchResults.length > 0) {
+                selectedPatient = searchResults.find(p => 
+                  p.id === formData.patientId || 
+                  String(p.id) === String(formData.patientId)
+                )
+              }
+              
+              // Se ainda não encontrou, tentar extrair do searchTerm
+              if (!selectedPatient && searchTerm) {
                 const match = searchTerm.match(/^([^(]+)/)
-                patientName = match ? match[1].trim() : searchTerm
+                const patientName = match ? match[1].trim() : searchTerm
+                
+                return (
+                  <div className="selected-patient-info">
+                    <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#10b981', marginRight: '0.5rem' }} />
+                    <span>Paciente selecionado: {patientName || 'Paciente'}</span>
+                  </div>
+                )
+              }
+              
+              // Se encontrou o paciente, mostrar dados completos
+              if (selectedPatient) {
+                return (
+                  <div className="selected-patient-info">
+                    <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#10b981', marginRight: '0.5rem' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                      <span style={{ fontWeight: 600 }}>
+                        {selectedPatient.nome || 'Paciente'}
+                        {selectedPatient.cpf && (
+                          <span style={{ marginLeft: '0.5rem', opacity: 0.8, fontSize: '0.875rem' }}>
+                            ({selectedPatient.cpf})
+                          </span>
+                        )}
+                      </span>
+                      {(selectedPatient.email || selectedPatient.telefone) && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', fontSize: '0.8125rem', opacity: 0.9 }}>
+                          {selectedPatient.email && (
+                            <span>
+                              <FontAwesomeIcon icon={faEnvelope} style={{ marginRight: '0.375rem', fontSize: '0.75rem' }} />
+                              {selectedPatient.email}
+                            </span>
+                          )}
+                          {selectedPatient.telefone && (
+                            <span>
+                              <FontAwesomeIcon icon={faPhone} style={{ marginRight: '0.375rem', fontSize: '0.75rem' }} />
+                              {selectedPatient.telefone}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
               }
               
               // Fallback final
-              patientName = patientName || 'Paciente selecionado'
-              
               return (
                 <div className="selected-patient-info">
                   <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#10b981', marginRight: '0.5rem' }} />
-                  <span>Paciente selecionado: {patientName}</span>
+                  <span>Paciente selecionado</span>
                 </div>
               )
             })()}
@@ -1663,6 +2670,26 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             />
           </div>
 
+          {editingEvent && (
+            <div className="form-group">
+              <label>
+                <FontAwesomeIcon icon={faCheckCircle} />
+                Status *
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                required
+                className="form-select"
+              >
+                <option value="agendada">Agendada</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="concluida">Concluída</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+          )}
+
           <div className="form-group">
             <label>
               <FontAwesomeIcon icon={faStickyNote} />
@@ -1696,7 +2723,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
                     onClick={() => {
                       const link = `${window.location.origin}/agendamento/${editingEvent.id}`
                       navigator.clipboard.writeText(link)
-                      showSuccess('Link copiado para a área de transferência!')
+                      showSuccess('Link copiado')
                     }}
                     className="btn-copy-link"
                   >
@@ -1708,25 +2735,36 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
             </div>
           )}
 
-          <div className="form-actions">
-            {editingEvent && (
-              <button 
-                type="button" 
-                className="btn-delete-event" 
-                onClick={() => onDelete(editingEvent.id)}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-                Excluir
+            <div className="form-actions">
+              {editingEvent && (
+                <button 
+                  type="button" 
+                  className="btn-delete-event" 
+                  onClick={() => {
+                    if (window.confirm('Tem certeza que deseja excluir esta consulta?')) {
+                      onDelete(editingEvent.id)
+                    }
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                  Excluir
+                </button>
+              )}
+              <button type="button" className="btn-cancel" onClick={() => {
+                if (editingEvent) {
+                  setIsEditing(false)
+                } else {
+                  onClose()
+                }
+              }}>
+                {editingEvent ? 'Cancelar Edição' : 'Cancelar'}
               </button>
-            )}
-            <button type="button" className="btn-cancel" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn-save">
-              {editingEvent ? 'Salvar Alterações' : (isGerarLink ? 'Gerar Link' : 'Criar Consulta')}
-            </button>
-          </div>
-        </form>
+              <button type="submit" className="btn-save">
+                {editingEvent ? 'Salvar Alterações' : (isGerarLink ? 'Gerar Link' : 'Criar Consulta')}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )
