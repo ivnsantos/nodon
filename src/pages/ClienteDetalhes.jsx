@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -9,7 +9,7 @@ import {
   faXRay, faEye, faCheck, faTrash, faSave, faTimes,
   faClipboardQuestion, faPowerOff, faToggleOn, faToggleOff,
   faCopy, faShareAlt, faSpinner, faComment, faChevronDown, faChevronUp,
-  faFileInvoiceDollar
+  faFileInvoiceDollar, faBirthdayCake
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -511,6 +511,77 @@ const ClienteDetalhes = () => {
       return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2')
     }
     return cep
+  }
+
+  // Função para verificar se o aniversário está próximo (15 dias antes ou depois)
+  const verificarAniversarioProximo = (dataNascimento) => {
+    if (!dataNascimento) return null
+
+    try {
+      let diaNasc, mesNasc
+      
+      // Extrair dia e mês de diferentes formatos
+      if (dataNascimento.includes('/')) {
+        // Formato DD/MM/YYYY
+        const partes = dataNascimento.split('/')
+        diaNasc = parseInt(partes[0], 10)
+        mesNasc = parseInt(partes[1], 10) - 1 // Mês começa em 0
+      } else if (dataNascimento.includes('-')) {
+        // Formato YYYY-MM-DD
+        const partes = dataNascimento.split('-')
+        diaNasc = parseInt(partes[2], 10)
+        mesNasc = parseInt(partes[1], 10) - 1 // Mês começa em 0
+      } else {
+        return null
+      }
+
+      if (isNaN(diaNasc) || isNaN(mesNasc) || mesNasc < 0 || mesNasc > 11 || diaNasc < 1 || diaNasc > 31) {
+        return null
+      }
+
+      const hoje = new Date()
+      hoje.setHours(0, 0, 0, 0)
+      const anoAtual = hoje.getFullYear()
+      const diaHoje = hoje.getDate()
+      const mesHoje = hoje.getMonth()
+      
+      // Verificar se é o mesmo dia (mês e dia iguais)
+      if (mesHoje === mesNasc && diaHoje === diaNasc) {
+        return {
+          proximo: true,
+          dias: 0,
+          data: new Date(anoAtual, mesNasc, diaNasc)
+        }
+      }
+      
+      // Criar data do aniversário no ano atual
+      const aniversarioAnoAtual = new Date(anoAtual, mesNasc, diaNasc)
+      aniversarioAnoAtual.setHours(0, 0, 0, 0)
+      
+      // Calcular diferença em dias (positivo = futuro, negativo = passado)
+      let diffDias = Math.round((aniversarioAnoAtual - hoje) / (1000 * 60 * 60 * 24))
+      
+      // Se o aniversário do ano atual já passou há mais de 15 dias, verificar o próximo ano
+      if (diffDias < -15) {
+        const aniversarioProximoAno = new Date(anoAtual + 1, mesNasc, diaNasc)
+        aniversarioProximoAno.setHours(0, 0, 0, 0)
+        diffDias = Math.round((aniversarioProximoAno - hoje) / (1000 * 60 * 60 * 24))
+      }
+      
+      // Verificar se está no range de -15 a +15 dias
+      if (diffDias >= -15 && diffDias <= 15) {
+        return {
+          proximo: true,
+          dias: diffDias,
+          data: diffDias >= 0 ? aniversarioAnoAtual : new Date(anoAtual + (diffDias < -15 ? 1 : 0), mesNasc, diaNasc)
+        }
+      }
+      
+      return null
+    } catch (error) {
+      console.error('Erro ao verificar aniversário:', error)
+      return null
+    }
   }
 
   const getStatusLabel = (status) => {
@@ -1377,14 +1448,28 @@ const ClienteDetalhes = () => {
                     <p>{formatCPF(cliente.cpf)}</p>
                   </div>
                 )}
-                {cliente.dataNascimento && (
-                  <div className="ficha-item">
-                    <label>
-                      <FontAwesomeIcon icon={faCalendarAlt} /> Data de Nascimento
-                    </label>
-                    <p>{formatarDataNascimento(cliente.dataNascimento)}</p>
-                  </div>
-                )}
+                {cliente.dataNascimento && (() => {
+                  const infoAniversario = verificarAniversarioProximo(cliente.dataNascimento)
+                  return (
+                    <div className="ficha-item">
+                      <label>
+                        <FontAwesomeIcon icon={faCalendarAlt} /> Data de Nascimento
+                        {infoAniversario && (
+                          <span className="aniversario-badge" title={`Aniversário em ${Math.abs(infoAniversario.dias)} ${Math.abs(infoAniversario.dias) === 1 ? 'dia' : 'dias'}`}>
+                            <FontAwesomeIcon icon={faBirthdayCake} />
+                            {infoAniversario.dias === 0 
+                              ? 'Aniversário hoje!' 
+                              : infoAniversario.dias < 0
+                              ? `Aniversário há ${Math.abs(infoAniversario.dias)} ${Math.abs(infoAniversario.dias) === 1 ? 'dia' : 'dias'}`
+                              : `Aniversário em ${infoAniversario.dias} ${infoAniversario.dias === 1 ? 'dia' : 'dias'}`
+                            }
+                          </span>
+                        )}
+                      </label>
+                      <p>{formatarDataNascimento(cliente.dataNascimento)}</p>
+                    </div>
+                  )
+                })()}
                 <div className="ficha-item">
                   <label>
                     <FontAwesomeIcon icon={faEnvelope} /> E-mail

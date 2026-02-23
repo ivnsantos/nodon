@@ -339,6 +339,39 @@
   margin: 0;
 }
 
+/* Badge de Aniversário */
+.aniversario-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+  color: #ffffff;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  box-shadow: 0 2px 8px rgba(255, 107, 157, 0.3);
+  animation: pulse-aniversario 2s ease-in-out infinite;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.aniversario-badge svg {
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+@keyframes pulse-aniversario {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 107, 157, 0.5);
+  }
+}
 
 /* Seção de Necessidades - Estilo igual à tela de radiografia */
 .necessidades-section {

@@ -68,8 +68,9 @@ const Dashboard = () => {
           tokenPercentage: dashboardData.usoTokens?.porcentagem || 0
         },
         consultas: {
-          hoje: dashboardData.resumo.consultas?.hoje || 0,
-          estaSemana: dashboardData.resumo.consultas?.estaSemana || 0
+          hoje: dashboardData.consultasHoje?.length || dashboardData.resumo.consultas?.hoje || 0,
+          estaSemana: dashboardData.resumo.consultas?.estaSemana || 0,
+          total: dashboardData.resumo.consultas?.total || 0
         },
         clientes: {
           total: dashboardData.resumo.clientes?.total || 0,
@@ -146,43 +147,18 @@ const Dashboard = () => {
     }
   }
 
-  // Obter próximas consultas (ordenadas por data e hora)
-  const getProximasConsultas = () => {
+  // Obter consultas de hoje
+  const getConsultasHoje = () => {
     if (!dashboardData) return []
-    
-    // Se a API retornar proximasConsultas diretamente, usar esses dados
-    if (dashboardData.proximasConsultas && Array.isArray(dashboardData.proximasConsultas)) {
-      return dashboardData.proximasConsultas.slice(0, 5)
-    }
-    
-    // Fallback: calcular a partir do array consultas (estrutura antiga)
-    if (!dashboardData.consultas) return []
-    
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-    
-    return dashboardData.consultas
-      .filter(cons => {
-        const dataCons = cons.data || cons.data_consulta || cons.dataConsulta
-        if (!dataCons) return false
-        const data = new Date(dataCons)
-        data.setHours(0, 0, 0, 0)
-        return data >= hoje
-      })
-      .sort((a, b) => {
-        const dataA = new Date(a.data || a.data_consulta || a.dataConsulta)
-        const dataB = new Date(b.data || b.data_consulta || b.dataConsulta)
-        if (dataA.getTime() !== dataB.getTime()) {
-          return dataA - dataB
-        }
-        const horaA = (a.hora || a.hora_consulta || a.horaConsulta || '00:00').split(':')
-        const horaB = (b.hora || b.hora_consulta || b.horaConsulta || '00:00').split(':')
-        const minutosA = parseInt(horaA[0]) * 60 + parseInt(horaA[1])
-        const minutosB = parseInt(horaB[0]) * 60 + parseInt(horaB[1])
-        return minutosA - minutosB
-      })
-      .slice(0, 5) // Limitar a 5 próximas consultas
+    return dashboardData.consultasHoje || []
   }
+
+  // Obter consultas de amanhã
+  const getConsultasAmanha = () => {
+    if (!dashboardData) return []
+    return dashboardData.consultasAmanha || []
+  }
+
 
   // Obter diagnósticos recentes (ordenados por data)
   const getDiagnosticosRecentes = () => {
@@ -203,6 +179,29 @@ const Dashboard = () => {
         return dataB - dataA
       })
       .slice(0, 5) // Limitar a 5 diagnósticos recentes
+  }
+
+  // Formatar nome para exibir apenas primeiro e último nome
+  const formatNome = (nomeCompleto) => {
+    if (!nomeCompleto || nomeCompleto === 'N/A') return 'N/A'
+    
+    const nomes = nomeCompleto.trim().split(/\s+/)
+    if (nomes.length === 0) return 'N/A'
+    if (nomes.length === 1) return nomes[0]
+    
+    // Retornar primeiro e último nome
+    return `${nomes[0]} ${nomes[nomes.length - 1]}`
+  }
+
+  // Obter nome do paciente formatado, considerando status link
+  const getNomePaciente = (paciente, status) => {
+    // Se paciente for null e status for link, mostrar "Paciente não registrado"
+    if ((!paciente || paciente === null || (typeof paciente === 'object' && !paciente.nome)) && status === 'link') {
+      return 'Paciente não registrado'
+    }
+    
+    const nome = paciente?.nome || paciente || 'N/A'
+    return formatNome(nome)
   }
 
   // Formatar data relativa (Hoje, Amanhã, ou data formatada)
@@ -286,7 +285,8 @@ const Dashboard = () => {
   }
 
   const stats = calculateStats()
-  const proximasConsultas = getProximasConsultas()
+  const consultasHoje = getConsultasHoje()
+  const consultasAmanha = getConsultasAmanha()
   const diagnosticosRecentes = getDiagnosticosRecentes()
 
   if (!stats) {
@@ -347,7 +347,7 @@ const Dashboard = () => {
           <div className="stat-info">
             <div className="stat-number">{stats.consultas.hoje}</div>
             <div className="stat-label">Consultas Hoje</div>
-            <div className="stat-extra">{stats.consultas.estaSemana} esta semana</div>
+            <div className="stat-extra">{stats.consultas.total || 0} total agendadas</div>
           </div>
         </div>
 
@@ -367,42 +367,103 @@ const Dashboard = () => {
       <div className="dashboard-content">
         {/* Coluna Esquerda */}
         <div className="content-column">
-          {/* Próximas Consultas */}
-          <div className="content-section">
-            <div className="section-header">
-              <h2 className="section-title">Próximas Consultas</h2>
-              <button className="section-link" onClick={() => navigate('/app/calendario')}>
-                Ver agenda <FontAwesomeIcon icon={faArrowRight} />
-              </button>
-            </div>
-            <div className="appointments-list">
-              {proximasConsultas.length > 0 ? (
-                proximasConsultas.map((consulta) => {
-                  const dataCons = consulta.data || consulta.data_consulta || consulta.dataConsulta
-                  const horaCons = consulta.hora || consulta.hora_consulta || consulta.horaConsulta || '--:--'
-                  const pacienteNome = consulta.paciente || consulta.paciente_nome || consulta.pacienteNome || 'N/A'
-                  const tipoCons = consulta.tipo || consulta.tipo_consulta || consulta.tipoConsulta || 'Consulta'
+          {/* Consultas de Hoje */}
+          {consultasHoje.length > 0 && (
+            <div className="content-section">
+              <div className="section-header">
+                <h2 className="section-title">
+                  <FontAwesomeIcon icon={faClock} style={{ marginRight: '0.5rem' }} />
+                  Consultas de Hoje
+                </h2>
+                <button className="section-link" onClick={() => navigate('/app/calendario')}>
+                  Ver agenda <FontAwesomeIcon icon={faArrowRight} />
+                </button>
+              </div>
+              <div className="appointments-list">
+                {consultasHoje.map((consulta) => {
+                  const paciente = consulta.paciente
+                  const tipoConsulta = consulta.tipoConsulta || {}
+                  const profissional = consulta.profissional || {}
                   
                   return (
-                    <div key={consulta.id} className="appointment-item">
+                    <div key={consulta.id} className="appointment-item" onClick={() => navigate(`/app/calendario?consulta=${consulta.id}`)}>
                       <div className="appointment-time">
-                        <div className="appointment-hour">{horaCons}</div>
-                        <div className="appointment-date">{formatDate(dataCons)}</div>
+                        <div className="appointment-hour">{consulta.hora || '--:--'}</div>
+                        <div className="appointment-date">Hoje</div>
                       </div>
                       <div className="appointment-details">
-                        <div className="appointment-patient">{pacienteNome}</div>
-                        <div className="appointment-type">{tipoCons}</div>
+                        <div className="appointment-patient">{getNomePaciente(paciente, consulta.status)}</div>
+                        <div className="appointment-type" style={{ color: tipoConsulta.cor || '#0ea5e9' }}>
+                          {tipoConsulta.nome || consulta.titulo || 'Consulta'}
+                        </div>
+                        {profissional.nome && (
+                          <div className="appointment-professional">{formatNome(profissional.nome)}</div>
+                        )}
+                      </div>
+                      <div className="appointment-status">
+                        <span className={`status-badge status-${consulta.status}`}>
+                          {consulta.status === 'agendada' && 'Agendada'}
+                          {consulta.status === 'confirmada' && 'Confirmada'}
+                          {consulta.status === 'concluida' && 'Concluída'}
+                          {consulta.status === 'cancelada' && 'Cancelada'}
+                          {consulta.status === 'link' && 'Link'}
+                        </span>
                       </div>
                     </div>
                   )
-                })
-              ) : (
-                <div className="empty-state">
-                  <p>Nenhuma consulta agendada</p>
-                </div>
-              )}
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Consultas de Amanhã */}
+          {consultasAmanha.length > 0 && (
+            <div className="content-section">
+              <div className="section-header">
+                <h2 className="section-title">
+                  <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '0.5rem' }} />
+                  Consultas de Amanhã
+                </h2>
+                <button className="section-link" onClick={() => navigate('/app/calendario')}>
+                  Ver agenda <FontAwesomeIcon icon={faArrowRight} />
+                </button>
+              </div>
+              <div className="appointments-list">
+                {consultasAmanha.map((consulta) => {
+                  const paciente = consulta.paciente
+                  const tipoConsulta = consulta.tipoConsulta || {}
+                  const profissional = consulta.profissional || {}
+                  
+                  return (
+                    <div key={consulta.id} className="appointment-item" onClick={() => navigate(`/app/calendario?consulta=${consulta.id}`)}>
+                      <div className="appointment-time">
+                        <div className="appointment-hour">{consulta.hora || '--:--'}</div>
+                        <div className="appointment-date">Amanhã</div>
+                      </div>
+                      <div className="appointment-details">
+                        <div className="appointment-patient">{getNomePaciente(paciente, consulta.status)}</div>
+                        <div className="appointment-type" style={{ color: tipoConsulta.cor || '#0ea5e9' }}>
+                          {tipoConsulta.nome || consulta.titulo || 'Consulta'}
+                        </div>
+                        {profissional.nome && (
+                          <div className="appointment-professional">{formatNome(profissional.nome)}</div>
+                        )}
+                      </div>
+                      <div className="appointment-status">
+                        <span className={`status-badge status-${consulta.status}`}>
+                          {consulta.status === 'agendada' && 'Agendada'}
+                          {consulta.status === 'confirmada' && 'Confirmada'}
+                          {consulta.status === 'concluida' && 'Concluída'}
+                          {consulta.status === 'cancelada' && 'Cancelada'}
+                          {consulta.status === 'link' && 'Link'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Diagnósticos Recentes */}
           <div className="content-section">
@@ -416,7 +477,8 @@ const Dashboard = () => {
               {diagnosticosRecentes.length > 0 ? (
                 diagnosticosRecentes.map((diag) => {
                   const status = mapStatus(diag.status || diag.statusAnalise)
-                  const pacienteNome = diag.paciente || diag.paciente_nome || diag.pacienteNome || diag.nome || 'N/A'
+                  const pacienteNomeCompleto = diag.paciente || diag.paciente_nome || diag.pacienteNome || diag.nome || 'N/A'
+                  const pacienteNome = formatNome(pacienteNomeCompleto)
                   const tipoExame = diag.tipoExame || diag.tipo_exame || diag.tipo || diag.descricao || 'N/A'
                   const dataDiag = diag.data || diag.createdAt || diag.created_at
                   const achados = diag.achados || diag.numeroAchados || diag.numero_achados
@@ -459,7 +521,7 @@ const Dashboard = () => {
           {/* Uso de Tokens */}
           <div className="content-section">
             <div className="section-header">
-              <h2 className="section-title">Uso de Tokens</h2>
+              <h2 className="section-title">Uso de tokens no Chat</h2>
             </div>
             <div className="tokens-section">
               <div className="tokens-display">
