@@ -35,6 +35,7 @@ const Calendario = () => {
   }
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [viewMode, setViewMode] = useState('month') // 'month' ou 'week'
   const [showTypesModal, setShowTypesModal] = useState(false)
   const [showEventModal, setShowEventModal] = useState(false)
   const [isGerarLink, setIsGerarLink] = useState(false)
@@ -809,7 +810,40 @@ const Calendario = () => {
     }
   }
 
-  const days = getDaysInMonth(currentDate)
+  // Função para obter os dias da semana
+  const getWeekDays = (date) => {
+    const startOfWeek = new Date(date)
+    const day = startOfWeek.getDay()
+    const diff = startOfWeek.getDate() - day // Domingo como primeiro dia
+    startOfWeek.setDate(diff)
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const weekDays = []
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(startOfWeek)
+      dayDate.setDate(startOfWeek.getDate() + i)
+      weekDays.push({
+        date: dayDate,
+        isCurrentMonth: true
+      })
+    }
+    return weekDays
+  }
+
+  // Navegação semanal
+  const previousWeek = () => {
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() - 7)
+    setCurrentDate(newDate)
+  }
+
+  const nextWeek = () => {
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() + 7)
+    setCurrentDate(newDate)
+  }
+
+  const days = viewMode === 'month' ? getDaysInMonth(currentDate) : getWeekDays(currentDate)
   const selectedDateEvents = getEventsForDate(selectedDate)
 
   return (
@@ -857,15 +891,43 @@ const Calendario = () => {
       </div>
 
       <div className="calendario-controls">
+        <div className="view-mode-selector">
+          <button 
+            className={`view-mode-btn ${viewMode === 'month' ? 'active' : ''}`}
+            onClick={() => setViewMode('month')}
+          >
+            Mês
+          </button>
+          <button 
+            className={`view-mode-btn ${viewMode === 'week' ? 'active' : ''}`}
+            onClick={() => setViewMode('week')}
+          >
+            Semana
+          </button>
+        </div>
         <div className="month-navigation">
-          <button className="nav-btn" onClick={previousMonth}>
+          <button className="nav-btn" onClick={viewMode === 'month' ? previousMonth : previousWeek}>
             <FontAwesomeIcon icon={faChevronLeft} />
           </button>
           <h3 className="current-month">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            {viewMode === 'month' 
+              ? `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+              : (() => {
+                  const weekStart = getWeekDays(currentDate)[0].date
+                  const weekEnd = getWeekDays(currentDate)[6].date
+                  if (weekStart.getMonth() === weekEnd.getMonth()) {
+                    return `${weekStart.getDate()} - ${weekEnd.getDate()} de ${monthNames[weekStart.getMonth()]} ${weekStart.getFullYear()}`
+                  } else {
+                    return `${weekStart.getDate()} de ${monthNames[weekStart.getMonth()]} - ${weekEnd.getDate()} de ${monthNames[weekEnd.getMonth()]} ${weekStart.getFullYear()}`
+                  }
+                })()
+            }
           </h3>
-          <button className="nav-btn" onClick={nextMonth}>
+          <button className="nav-btn" onClick={viewMode === 'month' ? nextMonth : nextWeek}>
             <FontAwesomeIcon icon={faChevronRight} />
+          </button>
+          <button className="nav-btn today-btn" onClick={goToToday}>
+            Hoje
           </button>
         </div>
         <select
@@ -911,7 +973,7 @@ const Calendario = () => {
               </div>
             ))}
           </div>
-          <div className="days-grid">
+          <div className={`days-grid ${viewMode === 'week' ? 'week-view' : ''}`}>
             {days.map((dayObj, index) => {
               const dayEvents = getEventsForDate(dayObj.date)
               const isCurrentDay = isToday(dayObj.date)
