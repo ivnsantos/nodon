@@ -18,17 +18,23 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [socialLoading, setSocialLoading] = useState(null) // 'google' | 'facebook' | null
   const { login } = useAuth()
   const navigate = useNavigate()
 
   // Handler do login com Google - redireciona para o backend
   const handleGoogleClick = () => {
+    // Evita múltiplos cliques e mostra loading
+    if (loading || socialLoading) return
+    setSocialLoading('google')
     // Redirecionar para o endpoint do backend que inicia o fluxo OAuth
     window.location.href = `${API_BASE_URL}/auth/google`
   }
 
   // Handler do login com Facebook - redireciona para o backend
   const handleFacebookClick = () => {
+    if (loading || socialLoading) return
+    setSocialLoading('facebook')
     window.location.href = `${API_BASE_URL}/auth/facebook`
   }
 
@@ -148,17 +154,37 @@ const Login = () => {
                 type="button" 
                 className="social-btn google-btn"
                 onClick={handleGoogleClick}
+                disabled={loading || socialLoading === 'google'}
               >
-                <FontAwesomeIcon icon={faGoogle} />
-                Entrar com Google
+                {socialLoading === 'google' ? (
+                  <>
+                    <span className="spinner-small" />
+                    Entrando com Google...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faGoogle} />
+                    Entrar com Google
+                  </>
+                )}
               </button>
               <button 
                 type="button" 
                 className="social-btn facebook-btn"
                 onClick={handleFacebookClick}
+                disabled={loading || socialLoading === 'facebook'}
               >
-                <FontAwesomeIcon icon={faFacebook} />
-                Entrar com Facebook
+                {socialLoading === 'facebook' ? (
+                  <>
+                    <span className="spinner-small" />
+                    Entrando com Facebook...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faFacebook} />
+                    Entrar com Facebook
+                  </>
+                )}
               </button>
             </div>
 
@@ -166,7 +192,11 @@ const Login = () => {
               <span>ou</span>
             </div>
 
-            <button type="submit" className="auth-button-modern" disabled={loading}>
+            <button 
+              type="submit" 
+              className="auth-button-modern" 
+              disabled={loading || !!socialLoading}
+            >
               {loading ? 'Entrando...' : (
                 <>
                   Entrar
