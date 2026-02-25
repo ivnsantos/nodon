@@ -153,23 +153,16 @@ const AnamneseNovo = () => {
         return
       }
 
-      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
-      
-      if (!clienteMasterId) {
-        showError('Erro: Dados do cliente master não encontrados.')
-        setLoading(false)
-        return
-      }
-
       // Validar perguntas antes de enviar
       for (let i = 0; i < perguntas.length; i++) {
         const pergunta = perguntas[i]
+
         if (!pergunta.texto || !pergunta.texto.trim()) {
           showWarning(`A pergunta ${i + 1} está sem texto. Por favor, preencha ou remova-a.`)
           setLoading(false)
           return
         }
-        
+
         if (pergunta.tipoResposta === 'multipla_escolha') {
           const opcoesValidas = pergunta.opcoes?.filter(op => op && op.trim()) || []
           if (opcoesValidas.length === 0) {
@@ -202,8 +195,9 @@ const AnamneseNovo = () => {
           return perguntaEnvio
         })
 
+      // O backend espera o clienteMasterId apenas no header X-Cliente-Master-Id (interceptor em api.js),
+      // então o body deve conter apenas os campos de criação/atualização da anamnese.
       const payload = {
-        clienteMasterId,
         titulo: formData.titulo.trim(),
         descricao: formData.descricao?.trim() || undefined,
         ativa: formData.ativa,
