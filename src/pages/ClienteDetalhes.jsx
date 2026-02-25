@@ -9,7 +9,8 @@ import {
   faXRay, faEye, faCheck, faTrash, faSave, faTimes,
   faClipboardQuestion, faPowerOff, faToggleOn, faToggleOff,
   faCopy, faShareAlt, faSpinner, faComment, faChevronDown, faChevronUp,
-  faFileInvoiceDollar, faBirthdayCake
+  faFileInvoiceDollar, faBirthdayCake, faFolder, faFolderPlus, faFile, faUpload, faFilePdf,
+  faFileWord, faFileExcel, faDownload
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -18,6 +19,28 @@ import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
 import './ClienteDetalhes.css'
+
+// Preview de imagem com loading até a imagem carregar
+const ImagemPreviewComLoading = ({ src, className }) => {
+  const [carregado, setCarregado] = useState(false)
+  return (
+    <div className="arquivo-card-preview-wrap">
+      {!carregado && (
+        <div className="arquivo-card-preview-loading">
+          <FontAwesomeIcon icon={faSpinner} spin />
+        </div>
+      )}
+      <img
+        src={src}
+        alt=""
+        className={className}
+        onLoad={() => setCarregado(true)}
+        onError={() => setCarregado(true)}
+        style={{ opacity: carregado ? 1 : 0 }}
+      />
+    </div>
+  )
+}
 
 const ClienteDetalhes = () => {
   const { id } = useParams()
@@ -76,11 +99,29 @@ const ClienteDetalhes = () => {
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false)
   
   // Modal WhatsApp - Anamneses
-  // Modal WhatsApp - Anamneses
   const [showWhatsAppAnamneseModal, setShowWhatsAppAnamneseModal] = useState(false)
   const [whatsAppAnamneseId, setWhatsAppAnamneseId] = useState(null)
   const [whatsAppAnamnesePhoneNumber, setWhatsAppAnamnesePhoneNumber] = useState('')
   const [sendingWhatsAppAnamnese, setSendingWhatsAppAnamnese] = useState(false)
+
+  // Pastas e arquivos do cliente (integração com API)
+  const [pastas, setPastas] = useState([]) // { id, nome } (nome = titulo da API)
+  const [pastaSelecionada, setPastaSelecionada] = useState(null)
+  const [telaPastaAberta, setTelaPastaAberta] = useState(false)
+  const [arquivosPorPasta, setArquivosPorPasta] = useState({}) // { [pastaId]: [{ id, nome, tamanho?, tipo?, url? }] }
+  const [isCriandoPasta, setIsCriandoPasta] = useState(false)
+  const [nomeNovaPasta, setNomeNovaPasta] = useState('')
+  const [loadingPastas, setLoadingPastas] = useState(false)
+  const [loadingArquivos, setLoadingArquivos] = useState(false)
+  const [importandoArquivos, setImportandoArquivos] = useState(false)
+  const [editandoPastaId, setEditandoPastaId] = useState(null)
+  const [editandoPastaNome, setEditandoPastaNome] = useState('')
+  const [showConfirmExcluirModal, setShowConfirmExcluirModal] = useState(false)
+  const [confirmExcluirPayload, setConfirmExcluirPayload] = useState(null) // { tipo: 'pasta'|'arquivo', id, nome }
+  const [arquivoVisualizador, setArquivoVisualizador] = useState(null) // { arq } ao abrir visualização
+  const [visualizadorUrl, setVisualizadorUrl] = useState(null) // blob ou url para exibir (quando vem da API sem url)
+  const fileInputRef = useRef(null)
+  const novaPastaInputRef = useRef(null)
 
   useEffect(() => {
     loadCliente()
@@ -88,6 +129,7 @@ const ClienteDetalhes = () => {
     loadAnamnesesVinculadas()
     loadAnamnesesDisponiveis()
     loadOrcamentos()
+    loadPastasPaciente()
   }, [id])
 
   // Carregar radiografias quando o cliente for carregado
@@ -837,6 +879,46 @@ const ClienteDetalhes = () => {
     }
   }
 
+  const loadPastasPaciente = async () => {
+    if (!id) return
+    try {
+      setLoadingPastas(true)
+      const response = await api.get(`/pastas-paciente?pacienteId=${id}`)
+      const data = response.data?.data ?? response.data
+      const lista = Array.isArray(data) ? data : []
+      setPastas(lista.map((p) => ({ id: p.id, nome: p.titulo || p.nome || '' })))
+    } catch (error) {
+      console.error('Erro ao carregar pastas do paciente:', error)
+      setPastas([])
+    } finally {
+      setLoadingPastas(false)
+    }
+  }
+
+  const loadArquivosPasta = async (pastaId) => {
+    if (!pastaId) return
+    try {
+      setLoadingArquivos(true)
+      const response = await api.get(`/pastas-paciente/${pastaId}/arquivos`)
+      const data = response.data?.data ?? response.data
+      const lista = Array.isArray(data) ? data : []
+      setArquivosPorPasta((prev) => ({
+        ...prev,
+        [pastaId]: lista.map((a) => ({
+          id: a.id,
+          nome: a.nomeOriginal || a.nome || a.titulo || a.filename || '',
+          tamanho: a.tamanho ?? a.size,
+          tipo: a.tipo || a.mimetype || a.contentType,
+          url: a.url || null
+        }))
+      }))
+    } catch (error) {
+      console.error('Erro ao carregar arquivos da pasta:', error)
+      setArquivosPorPasta((prev) => ({ ...prev, [pastaId]: [] }))
+    } finally {
+      setLoadingArquivos(false)
+    }
+  }
 
   const handleVincularAnamnese = async () => {
     if (!anamneseParaVincular) {
@@ -1369,6 +1451,274 @@ const ClienteDetalhes = () => {
     }
   }
 
+  // Criar nova pasta (API POST)
+  const handleCriarPasta = async () => {
+    const titulo = nomeNovaPasta.trim()
+    if (!titulo || !id) return
+    try {
+      const response = await api.post('/pastas-paciente', { titulo, pacienteId: id })
+      const created = response.data?.data ?? response.data
+      const novaPasta = { id: created.id, nome: created.titulo || titulo }
+      setPastas((prev) => [...prev, novaPasta])
+      setNomeNovaPasta('')
+      setIsCriandoPasta(false)
+      setPastaSelecionada(novaPasta.id)
+      setTelaPastaAberta(true)
+      await loadArquivosPasta(novaPasta.id)
+      showSuccess('Pasta criada.')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Erro ao criar pasta.')
+    }
+  }
+
+  // Ao mostrar inline da nova pasta: Enter ou blur com texto = salvar; vazio = cancelar
+  const confirmarOuCancelarNovaPasta = () => {
+    if (nomeNovaPasta.trim()) {
+      handleCriarPasta()
+    } else {
+      setIsCriandoPasta(false)
+      setNomeNovaPasta('')
+    }
+  }
+
+  // Abrir tela dedicada da pasta (GET arquivos)
+  const abrirTelaPasta = (pastaId) => {
+    setPastaSelecionada(pastaId)
+    setTelaPastaAberta(true)
+    loadArquivosPasta(pastaId)
+  }
+
+  // Voltar da tela da pasta para os detalhes do cliente
+  const voltarParaDetalhes = () => {
+    setTelaPastaAberta(false)
+  }
+
+  const handleSalvarNomePasta = async (pastaId) => {
+    const titulo = editandoPastaNome.trim()
+    if (!titulo) {
+      setEditandoPastaId(null)
+      setEditandoPastaNome('')
+      return
+    }
+    const nomeAtual = pastas.find((p) => p.id === pastaId)?.nome || ''
+    if (titulo === nomeAtual.trim()) {
+      setEditandoPastaId(null)
+      setEditandoPastaNome('')
+      return
+    }
+    try {
+      await api.put(`/pastas-paciente/${pastaId}`, { titulo })
+      setPastas((prev) => prev.map((p) => (p.id === pastaId ? { ...p, nome: titulo } : p)))
+      setEditandoPastaId(null)
+      setEditandoPastaNome('')
+      showSuccess('Pasta atualizada.')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Erro ao atualizar pasta.')
+    }
+  }
+
+  const handleExcluirPasta = async (pastaId) => {
+    try {
+      await api.delete(`/pastas-paciente/${pastaId}`)
+      setPastas((prev) => prev.filter((p) => p.id !== pastaId))
+      setArquivosPorPasta((prev) => {
+        const next = { ...prev }
+        delete next[pastaId]
+        return next
+      })
+      if (pastaSelecionada === pastaId) {
+        setPastaSelecionada(null)
+        setTelaPastaAberta(false)
+      }
+      showSuccess('Pasta excluída.')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Erro ao excluir pasta.')
+    }
+  }
+
+  const abrirModalExcluirPasta = (pastaId) => {
+    const pasta = pastas.find((p) => p.id === pastaId)
+    setConfirmExcluirPayload({ tipo: 'pasta', id: pastaId, nome: pasta?.nome || 'esta pasta' })
+    setShowConfirmExcluirModal(true)
+  }
+
+  const abrirModalExcluirArquivo = (arquivoId, nomeArquivo) => {
+    setConfirmExcluirPayload({ tipo: 'arquivo', id: arquivoId, nome: nomeArquivo || 'este arquivo' })
+    setShowConfirmExcluirModal(true)
+  }
+
+  const confirmarExclusao = async () => {
+    if (!confirmExcluirPayload) return
+    const { tipo, id } = confirmExcluirPayload
+    setShowConfirmExcluirModal(false)
+    setConfirmExcluirPayload(null)
+    if (tipo === 'pasta') await handleExcluirPasta(id)
+    if (tipo === 'arquivo') await handleExcluirArquivo(id)
+  }
+
+  const fecharModalConfirmarExcluir = () => {
+    setShowConfirmExcluirModal(false)
+    setConfirmExcluirPayload(null)
+  }
+
+  useEffect(() => {
+    if (isCriandoPasta) novaPastaInputRef.current?.focus()
+  }, [isCriandoPasta])
+
+  // Importar arquivos na pasta (API POST multipart)
+  const handleImportarArquivos = async (e) => {
+    const files = e.target.files
+    if (!files?.length || !pastaSelecionada) return
+    setImportandoArquivos(true)
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData()
+        formData.append('file', file)
+        await api.post(`/pastas-paciente/${pastaSelecionada}/arquivos`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      }
+      await loadArquivosPasta(pastaSelecionada)
+      showSuccess('Arquivo(s) importado(s).')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Erro ao importar arquivo(s).')
+    } finally {
+      setImportandoArquivos(false)
+    }
+    e.target.value = ''
+  }
+
+  // Abrir visualização do arquivo na mesma tela (modal)
+  const abrirVisualizadorArquivo = (arq) => {
+    setArquivoVisualizador({ arq })
+    setVisualizadorUrl(null)
+    if (!arq.url) {
+      api.get(`/pastas-paciente/arquivos/${arq.id}`, { responseType: 'blob' })
+        .then((response) => {
+          const url = URL.createObjectURL(response.data)
+          setVisualizadorUrl(url)
+        })
+        .catch(() => showError('Erro ao carregar o arquivo para visualização.'))
+    }
+  }
+
+  const fecharVisualizadorArquivo = () => {
+    if (visualizadorUrl && visualizadorUrl.startsWith('blob:')) URL.revokeObjectURL(visualizadorUrl)
+    setArquivoVisualizador(null)
+    setVisualizadorUrl(null)
+  }
+
+  const handleDownloadArquivo = async (arq) => {
+    const nomeOriginal = arq.nome || 'arquivo'
+    try {
+      const response = await api.get(`/pastas-paciente/arquivos/${arq.id}`, { responseType: 'blob' })
+      const blob = response.data
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nomeOriginal
+      a.click()
+      URL.revokeObjectURL(url)
+      showSuccess('Download iniciado.')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Erro ao fazer download.')
+    }
+  }
+
+  const handleExcluirArquivo = async (arquivoId) => {
+    try {
+      await api.delete(`/pastas-paciente/arquivos/${arquivoId}`)
+      setArquivosPorPasta((prev) => ({
+        ...prev,
+        [pastaSelecionada]: (prev[pastaSelecionada] || []).filter((a) => a.id !== arquivoId)
+      }))
+      showSuccess('Arquivo excluído.')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Erro ao excluir arquivo.')
+    }
+  }
+
+  const arquivosPorPastaRef = useRef(arquivosPorPasta)
+  arquivosPorPastaRef.current = arquivosPorPasta
+  useEffect(() => {
+    return () => {
+      Object.values(arquivosPorPastaRef.current).flat().forEach((arq) => {
+        if (arq.url && arq.url.startsWith('blob:')) URL.revokeObjectURL(arq.url)
+      })
+    }
+  }, [])
+
+  // Helper: formata tamanho do arquivo
+  const formatarTamanhoArquivo = (tamanho) => {
+    if (tamanho == null) return ''
+    if (tamanho < 1024) return `${tamanho} B`
+    if (tamanho < 1024 * 1024) return `${(tamanho / 1024).toFixed(1)} KB`
+    return `${(tamanho / 1024 / 1024).toFixed(1)} MB`
+  }
+
+  // Renderizar um card de arquivo (quadrado com preview ou ícone por tipo)
+  // Tipo do arquivo: extensão após o último . em nomeOriginal (arq.nome)
+  const renderArquivoCard = (arq) => {
+    const nomeOriginal = arq.nome || ''
+    const ext = nomeOriginal.includes('.') ? nomeOriginal.toLowerCase().split('.').pop() : ''
+    const isPdf = (arq.tipo && arq.tipo.includes('pdf')) || ext === 'pdf'
+    const isWord = ['doc', 'docx'].includes(ext) || (arq.tipo && arq.tipo.includes('word'))
+    const isExcel = ['xls', 'xlsx'].includes(ext) || (arq.tipo && arq.tipo.includes('sheet'))
+    const isImage = (arq.tipo && arq.tipo.startsWith('image/')) || /^(jpg|jpeg|png|gif|webp|bmp)$/i.test(ext)
+    let iconBlock = (
+      <div className="arquivo-card-icon arquivo-card-icon-file">
+        <FontAwesomeIcon icon={faFile} />
+      </div>
+    )
+    if (arq.url && isImage) {
+      iconBlock = <ImagemPreviewComLoading src={arq.url} className="arquivo-card-preview" />
+    } else if (isPdf) {
+      iconBlock = (
+        <div className="arquivo-card-icon arquivo-card-icon-pdf">
+          <FontAwesomeIcon icon={faFilePdf} />
+        </div>
+      )
+    } else if (isWord) {
+      iconBlock = (
+        <div className="arquivo-card-icon arquivo-card-icon-word">
+          <FontAwesomeIcon icon={faFileWord} />
+        </div>
+      )
+    } else if (isExcel) {
+      iconBlock = (
+        <div className="arquivo-card-icon arquivo-card-icon-excel">
+          <FontAwesomeIcon icon={faFileExcel} />
+        </div>
+      )
+    }
+    return (
+      <div
+        key={arq.id}
+        className="arquivo-card arquivo-card-clicavel"
+        role="button"
+        tabIndex={0}
+        onClick={() => abrirVisualizadorArquivo(arq)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirVisualizadorArquivo(arq) } }}
+        title={`Visualizar ${nomeOriginal}`}
+      >
+        <div className="arquivo-card-quadrado">
+          {iconBlock}
+        </div>
+        <span className="arquivo-card-nome" title={nomeOriginal}>{nomeOriginal}</span>
+        <span className="arquivo-card-tamanho">{formatarTamanhoArquivo(arq.tamanho)}</span>
+        <button
+          type="button"
+          className="arquivo-card-excluir"
+          onClick={(e) => { e.stopPropagation(); abrirModalExcluirArquivo(arq.id, nomeOriginal) }}
+          title="Excluir arquivo"
+          aria-label="Excluir arquivo"
+        >
+          <FontAwesomeIcon icon={faTrash} />
+        </button>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="cliente-detalhes-loading">
@@ -1391,34 +1741,150 @@ const ClienteDetalhes = () => {
 
   return (
     <div className="cliente-detalhes-page">
-      <div className="cliente-detalhes-header">
-        <div className="header-actions">
-          <button className="btn-back" onClick={() => navigate('/app/clientes')}>
-            <FontAwesomeIcon icon={faArrowLeft} />
-            Voltar
-          </button>
-          {isMaster && (
-            <>
-              <button
-                className="btn-orcamento-header"
-                onClick={() => navigate(`/app/orcamentos/novo?pacienteId=${id}`)}
-              >
-                <FontAwesomeIcon icon={faFileInvoiceDollar} />
-                Novo Orçamento
-              </button>
-              <button
-                className="btn-edit-header"
-                onClick={() => navigate(`/app/clientes/${id}/editar`)}
-              >
-                <FontAwesomeIcon icon={faEdit} />
-                Editar Cliente
-              </button>
-            </>
-          )}
+      {!(telaPastaAberta && pastaSelecionada) && (
+        <div className="cliente-detalhes-header">
+          <div className="header-actions">
+            <button className="btn-back" onClick={() => navigate('/app/clientes')}>
+              <FontAwesomeIcon icon={faArrowLeft} />
+              Voltar
+            </button>
+            {isMaster && (
+              <>
+                <button
+                  className="btn-orcamento-header"
+                  onClick={() => navigate(`/app/orcamentos/novo?pacienteId=${id}`)}
+                >
+                  <FontAwesomeIcon icon={faFileInvoiceDollar} />
+                  Novo Orçamento
+                </button>
+                <button
+                  className="btn-edit-header"
+                  onClick={() => navigate(`/app/clientes/${id}/editar`)}
+                >
+                  <FontAwesomeIcon icon={faEdit} />
+                  Editar Cliente
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="cliente-detalhes-content">
+        {/* Tela dedicada da pasta (ao clicar numa pasta) */}
+        {telaPastaAberta && pastaSelecionada ? (
+          <div className="tela-pasta">
+            <div className="tela-pasta-header">
+              <button type="button" className="btn-voltar-pasta" onClick={voltarParaDetalhes}>
+                <FontAwesomeIcon icon={faArrowLeft} />
+                <span className="btn-voltar-pasta-text">Voltar</span>
+              </button>
+              {editandoPastaId === pastaSelecionada ? (
+                <div className="tela-pasta-titulo-edit">
+                  <input
+                    type="text"
+                    value={editandoPastaNome}
+                    onChange={(e) => setEditandoPastaNome(e.target.value)}
+                    onBlur={() => handleSalvarNomePasta(pastaSelecionada)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSalvarNomePasta(pastaSelecionada)
+                      if (e.key === 'Escape') { setEditandoPastaId(null); setEditandoPastaNome('') }
+                    }}
+                    className="input-edit-pasta-titulo"
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <div className="tela-pasta-titulo-wrap">
+                  <h1 className="tela-pasta-titulo">
+                    <FontAwesomeIcon icon={faFolder} />
+                    <span className="tela-pasta-titulo-nome">{pastas.find((p) => p.id === pastaSelecionada)?.nome}</span>
+                  </h1>
+                  <button type="button" className="btn-edit-pasta" onClick={() => { setEditandoPastaId(pastaSelecionada); setEditandoPastaNome(pastas.find((p) => p.id === pastaSelecionada)?.nome || '') }} title="Editar nome">
+                    <FontAwesomeIcon icon={faEdit} />
+                  </button>
+                  <button type="button" className="btn-delete-pasta" onClick={() => abrirModalExcluirPasta(pastaSelecionada)} title="Excluir pasta">
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="tela-pasta-body">
+              {loadingArquivos ? (
+                <div className="pasta-loading-arquivos">
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                  <p>Carregando arquivos...</p>
+                </div>
+              ) : (
+              <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="*/*"
+                className="input-file-hidden"
+                onChange={handleImportarArquivos}
+                aria-label="Importar arquivos"
+              />
+              {(arquivosPorPasta[pastaSelecionada] || []).length === 0 ? (
+                <div className="pasta-vazia-layout">
+                  <div className="pasta-vazia-icon">
+                    <FontAwesomeIcon icon={faFolder} />
+                  </div>
+                  <p className="pasta-vazia-titulo">Esta pasta está vazia</p>
+                  <p className="pasta-vazia-desc">Importe documentos, imagens ou qualquer arquivo para organizar as informações do cliente.</p>
+                  <button
+                    type="button"
+                    className="btn-importar-arquivos-grande"
+                    onClick={() => !importandoArquivos && fileInputRef.current?.click()}
+                    disabled={importandoArquivos}
+                  >
+                    {importandoArquivos ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin />
+                        Importando...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faUpload} />
+                        Importar arquivos
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="pasta-com-arquivos">
+                  <div className="pasta-com-arquivos-header">
+                    <button
+                      type="button"
+                      className="btn-adicionar-mais"
+                      onClick={() => !importandoArquivos && fileInputRef.current?.click()}
+                      disabled={importandoArquivos}
+                    >
+                      {importandoArquivos ? (
+                        <>
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                          Importando...
+                        </>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faPlus} />
+                          Adicionar mais arquivos
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="arquivos-grid tela-pasta-lista">
+                    {(arquivosPorPasta[pastaSelecionada] || []).map((arq) => renderArquivoCard(arq))}
+                  </div>
+                </div>
+              )}
+            </>
+              )}
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="cliente-ficha">
           <div className="ficha-header">
             <div className="cliente-avatar-large">
@@ -1584,6 +2050,67 @@ const ClienteDetalhes = () => {
                 )}
               </div>
             )}
+
+            {/* Pastas e Arquivos - abaixo de Endereço; botão à direita, verde */}
+            <div className="ficha-section ficha-section-pastas">
+              <div className="section-header-actions">
+                <h2>
+                  <FontAwesomeIcon icon={faFolder} />
+                  Documentos
+                </h2>
+                <button
+                  type="button"
+                  className="btn-nova-pasta"
+                  onClick={() => setIsCriandoPasta(true)}
+                  disabled={isCriandoPasta}
+                >
+                  <FontAwesomeIcon icon={faFolderPlus} />
+                  Nova pasta
+                </button>
+              </div>
+              <div className="pastas-arquivos-wrap">
+                <div className="pastas-lista">
+                  {loadingPastas ? (
+                    <p className="pastas-loading"><FontAwesomeIcon icon={faSpinner} spin /> Carregando pastas...</p>
+                  ) : (
+                  <>
+                  {pastas.map((pasta) => (
+                    <button
+                      key={pasta.id}
+                      type="button"
+                      className="pasta-item"
+                      onClick={() => abrirTelaPasta(pasta.id)}
+                    >
+                      <FontAwesomeIcon icon={faFolder} />
+                      <span>{pasta.nome}</span>
+                    </button>
+                  ))}
+                  {isCriandoPasta && (
+                    <div className="pasta-item pasta-item-input-wrap">
+                      <FontAwesomeIcon icon={faFolder} className="pasta-item-input-icon" />
+                      <input
+                        ref={novaPastaInputRef}
+                        type="text"
+                        value={nomeNovaPasta}
+                        onChange={(e) => setNomeNovaPasta(e.target.value)}
+                        onBlur={confirmarOuCancelarNovaPasta}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') confirmarOuCancelarNovaPasta()
+                          if (e.key === 'Escape') { setIsCriandoPasta(false); setNomeNovaPasta(''); e.target.blur() }
+                        }}
+                        placeholder="Nome da pasta"
+                        className="input-nova-pasta-inline"
+                      />
+                    </div>
+                  )}
+                  {pastas.length === 0 && !isCriandoPasta && (
+                    <p className="pastas-empty">Nenhuma pasta ainda. Clique em &quot;Nova pasta&quot; para criar.</p>
+                  )}
+                  </>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="ficha-section necessidades-section">
               <div className="necessidades-section-header">
@@ -2180,7 +2707,97 @@ const ClienteDetalhes = () => {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
+
+      {/* Modal de confirmação de exclusão (pasta ou arquivo) */}
+      {showConfirmExcluirModal && confirmExcluirPayload && (
+        <div className="modal-overlay" onClick={fecharModalConfirmarExcluir}>
+          <div className="modal-confirm-delete" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-confirm-icon">
+              <FontAwesomeIcon icon={faTrash} />
+            </div>
+            <h3>
+              {confirmExcluirPayload.tipo === 'pasta' ? 'Excluir pasta' : 'Excluir arquivo'}
+            </h3>
+            <p>
+              {confirmExcluirPayload.tipo === 'pasta'
+                ? <>Tem certeza que deseja excluir a pasta <strong>{confirmExcluirPayload.nome}</strong> e todos os arquivos?</>
+                : <>Tem certeza que deseja excluir o arquivo <strong>{confirmExcluirPayload.nome}</strong>?</>
+              }
+            </p>
+            <p className="modal-warning">
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="btn-modal-cancel" onClick={fecharModalConfirmarExcluir}>
+                Cancelar
+              </button>
+              <button type="button" className="btn-modal-delete" onClick={confirmarExclusao}>
+                <FontAwesomeIcon icon={faTrash} />
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de visualização do arquivo */}
+      {arquivoVisualizador && (
+        <div className="modal-overlay" onClick={fecharVisualizadorArquivo}>
+          <div className="modal-visualizador-arquivo" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-visualizador-header">
+              <span className="modal-visualizador-titulo" title={arquivoVisualizador.arq.nome}>
+                {arquivoVisualizador.arq.nome}
+              </span>
+              <button type="button" className="modal-visualizador-fechar" onClick={fecharVisualizadorArquivo} title="Fechar">
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-visualizador-body">
+              {(() => {
+                const arq = arquivoVisualizador.arq
+                const urlParaExibir = arq.url || visualizadorUrl
+                const nomeOriginal = arq.nome || ''
+                const ext = nomeOriginal.includes('.') ? nomeOriginal.toLowerCase().split('.').pop() : ''
+                const isImage = /^(jpg|jpeg|png|gif|webp|bmp)$/i.test(ext) || (arq.tipo && arq.tipo.startsWith('image/'))
+                const isPdf = ext === 'pdf' || (arq.tipo && arq.tipo.includes('pdf'))
+                if (!urlParaExibir && !arq.url) {
+                  return (
+                    <div className="modal-visualizador-loading">
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                      <p>Carregando visualização...</p>
+                    </div>
+                  )
+                }
+                if (isImage && urlParaExibir) {
+                  return <img src={urlParaExibir} alt="" className="modal-visualizador-img" />
+                }
+                if (isPdf && urlParaExibir) {
+                  return <iframe src={urlParaExibir} title={nomeOriginal} className="modal-visualizador-iframe" />
+                }
+                return (
+                  <div className="modal-visualizador-outro">
+                    <FontAwesomeIcon icon={faFile} />
+                    <p>Pré-visualização não disponível para este tipo de arquivo.</p>
+                    <p className="modal-visualizador-download-hint">Use o botão &quot;Fazer download&quot; para abrir o arquivo.</p>
+                  </div>
+                )
+              })()}
+            </div>
+            <div className="modal-visualizador-footer">
+              <button type="button" className="btn-download-arquivo" onClick={() => handleDownloadArquivo(arquivoVisualizador.arq)}>
+                <FontAwesomeIcon icon={faDownload} />
+                Fazer download
+              </button>
+              <button type="button" className="btn-fechar-visualizador" onClick={fecharVisualizadorArquivo}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Adicionar Necessidade */}
       {showNecessidadesModal && (
