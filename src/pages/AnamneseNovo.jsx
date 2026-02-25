@@ -46,8 +46,10 @@ const AnamneseNovo = () => {
     setLoadingData(true)
     try {
       const response = await api.get(`/anamneses/${id}`)
-      // A API retorna os dados diretamente em response.data
-      const anamnese = response.data || {}
+      // A API pode retornar { statusCode, message, data: {...} } ou diretamente os dados
+      const anamnese = response.data?.data || response.data || {}
+      
+      console.log('Dados recebidos da API:', anamnese)
       
       setFormData({
         titulo: anamnese.titulo || '',
@@ -55,8 +57,18 @@ const AnamneseNovo = () => {
         ativa: anamnese.ativa !== undefined ? anamnese.ativa : true
       })
       
-      // Garantir que perguntas seja um array
-      const perguntasData = Array.isArray(anamnese.perguntas) ? anamnese.perguntas : []
+      // Garantir que perguntas seja um array e processar opcoes
+      let perguntasData = Array.isArray(anamnese.perguntas) ? anamnese.perguntas : []
+      
+      // Processar perguntas: garantir que opcoes seja array (não null) e ordenar por ordem
+      perguntasData = perguntasData
+        .map(pergunta => ({
+          ...pergunta,
+          opcoes: pergunta.opcoes === null ? [] : (Array.isArray(pergunta.opcoes) ? pergunta.opcoes : [])
+        }))
+        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+      
+      console.log('Perguntas processadas:', perguntasData)
       setPerguntas(perguntasData)
     } catch (error) {
       console.error('Erro ao carregar anamnese:', error)
@@ -205,10 +217,33 @@ const AnamneseNovo = () => {
         response = await api.post('/anamneses', payload)
       }
 
-      // A API retorna os dados diretamente em response.data
-      const anamneseCriada = response.data
+      // A API pode retornar { statusCode, message, data: {...} } ou diretamente os dados
+      const anamneseCriada = response.data?.data || response.data
+      
+      console.log('Anamnese salva:', anamneseCriada)
+      
+      // Se estiver editando, atualizar os dados locais com a resposta do servidor
+      if (isEditMode && anamneseCriada) {
+        setFormData({
+          titulo: anamneseCriada.titulo || formData.titulo,
+          descricao: anamneseCriada.descricao || formData.descricao,
+          ativa: anamneseCriada.ativa !== undefined ? anamneseCriada.ativa : formData.ativa
+        })
+        
+        // Atualizar perguntas com os dados retornados do servidor
+        if (Array.isArray(anamneseCriada.perguntas)) {
+          const perguntasAtualizadas = anamneseCriada.perguntas
+            .map(pergunta => ({
+              ...pergunta,
+              opcoes: pergunta.opcoes === null ? [] : (Array.isArray(pergunta.opcoes) ? pergunta.opcoes : [])
+            }))
+            .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+          setPerguntas(perguntasAtualizadas)
+        }
+      }
       
       showSuccess(isEditMode ? 'Anamnese atualizada com sucesso!' : 'Anamnese criada com sucesso!')
+      setLoading(false)
       setTimeout(() => {
         navigate('/app/anamneses')
       }, 1000)
