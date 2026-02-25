@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft, faSave, faClipboardQuestion, faPlus, faTimes,
-  faGripVertical, faTrash, faEdit
+  faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -18,6 +18,113 @@ const TIPOS_RESPOSTA = [
   { value: 'multipla_escolha', label: 'Múltipla Escolha' },
   { value: 'data', label: 'Data' }
 ]
+
+const PerguntaCard = memo(function PerguntaCard ({
+  pergunta,
+  index,
+  onPerguntaChange,
+  onRemovePergunta,
+  onOpcaoChange,
+  onAddOpcao,
+  onRemoveOpcao
+}) {
+  return (
+    <article className="pergunta-card">
+      <header className="pergunta-header">
+        <span className="pergunta-badge" aria-hidden="true">{index + 1}</span>
+        <span className="pergunta-header-label">Pergunta</span>
+        <button
+          type="button"
+          className="btn-remove-pergunta"
+          onClick={() => onRemovePergunta(index)}
+          aria-label="Remover pergunta"
+          title="Remover pergunta"
+        >
+          <FontAwesomeIcon icon={faTrash} />
+        </button>
+      </header>
+
+      <div className="pergunta-body">
+        <div className="pergunta-row pergunta-row-texto">
+          <label className="form-label">Texto da pergunta *</label>
+          <input
+            type="text"
+            value={pergunta.texto}
+            onChange={(e) => onPerguntaChange(index, 'texto', e.target.value)}
+            placeholder="Ex: Você possui alguma alergia?"
+            required
+            className="pergunta-input-texto"
+          />
+        </div>
+
+        <div className="pergunta-row pergunta-row-opcoes">
+          <div className="form-group form-group-tipo">
+            <label className="form-label">Tipo de resposta *</label>
+            <select
+              value={pergunta.tipoResposta}
+              onChange={(e) => onPerguntaChange(index, 'tipoResposta', e.target.value)}
+              aria-label="Tipo de resposta"
+            >
+              {TIPOS_RESPOSTA.map(tipo => (
+                <option key={tipo.value} value={tipo.value}>
+                  {tipo.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="checkbox-wrap">
+            <input
+              type="checkbox"
+              checked={pergunta.obrigatoria || false}
+              onChange={(e) => onPerguntaChange(index, 'obrigatoria', e.target.checked)}
+              aria-label="Pergunta obrigatória"
+            />
+            <span>Obrigatória</span>
+          </label>
+        </div>
+
+        {pergunta.tipoResposta === 'multipla_escolha' && (
+          <div className="pergunta-row pergunta-row-multipla">
+            <label className="form-label">Opções de resposta *</label>
+            <div className="opcoes-list">
+              {(pergunta.opcoes || []).map((opcao, opcaoIndex) => (
+                <div key={opcaoIndex} className="opcao-item">
+                  <span className="opcao-numero">{opcaoIndex + 1}.</span>
+                  <input
+                    type="text"
+                    value={opcao}
+                    onChange={(e) => onOpcaoChange(index, opcaoIndex, e.target.value)}
+                    placeholder={`Opção ${opcaoIndex + 1}`}
+                    aria-label={`Opção ${opcaoIndex + 1}`}
+                  />
+                  {(pergunta.opcoes?.length || 0) > 1 && (
+                    <button
+                      type="button"
+                      className="btn-remove-opcao"
+                      onClick={() => onRemoveOpcao(index, opcaoIndex)}
+                      aria-label="Remover opção"
+                      title="Remover opção"
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add-opcao"
+                onClick={() => onAddOpcao(index)}
+              >
+                <FontAwesomeIcon icon={faPlus} />
+                Adicionar opção
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </article>
+  )
+})
 
 const AnamneseNovo = () => {
   const { id } = useParams()
@@ -87,59 +194,64 @@ const AnamneseNovo = () => {
     }))
   }
 
-  const handleAddPergunta = () => {
-    const novaPergunta = {
-      id: `temp-${Date.now()}`,
-      texto: '',
-      tipoResposta: 'texto',
-      opcoes: [],
-      obrigatoria: false,
-      ordem: perguntas.length
-    }
-    setPerguntas([...perguntas, novaPergunta])
-  }
+  const handleAddPergunta = useCallback(() => {
+    setPerguntas(prev => {
+      const novaPergunta = {
+        id: `temp-${Date.now()}`,
+        texto: '',
+        tipoResposta: 'texto',
+        opcoes: [],
+        obrigatoria: false,
+        ordem: prev.length
+      }
+      return [...prev, novaPergunta]
+    })
+  }, [])
 
-  const handleRemovePergunta = (index) => {
-    setPerguntas(perguntas.filter((_, i) => i !== index))
-  }
+  const handleRemovePergunta = useCallback((index) => {
+    setPerguntas(prev => prev.filter((_, i) => i !== index))
+  }, [])
 
-  const handlePerguntaChange = (index, field, value) => {
-    const updatedPerguntas = [...perguntas]
-    updatedPerguntas[index] = {
-      ...updatedPerguntas[index],
-      [field]: value
-    }
-    
-    // Se mudou o tipo para múltipla escolha, garantir que tenha opções
-    if (field === 'tipoResposta' && value === 'multipla_escolha' && !updatedPerguntas[index].opcoes?.length) {
-      updatedPerguntas[index].opcoes = ['']
-    }
-    
-    // Se mudou para outro tipo que não seja múltipla escolha, limpar opções
-    if (field === 'tipoResposta' && value !== 'multipla_escolha') {
-      updatedPerguntas[index].opcoes = []
-    }
-    
-    setPerguntas(updatedPerguntas)
-  }
+  const handlePerguntaChange = useCallback((index, field, value) => {
+    setPerguntas(prev => {
+      const next = prev.map((p, i) => i !== index ? p : { ...p, [field]: value })
+      const item = next[index]
+      if (field === 'tipoResposta' && value === 'multipla_escolha' && !item.opcoes?.length) {
+        next[index] = { ...item, opcoes: [''] }
+      } else if (field === 'tipoResposta' && value !== 'multipla_escolha') {
+        next[index] = { ...item, opcoes: [] }
+      }
+      return next
+    })
+  }, [])
 
-  const handleOpcaoChange = (perguntaIndex, opcaoIndex, value) => {
-    const updatedPerguntas = [...perguntas]
-    updatedPerguntas[perguntaIndex].opcoes[opcaoIndex] = value
-    setPerguntas(updatedPerguntas)
-  }
+  const handleOpcaoChange = useCallback((perguntaIndex, opcaoIndex, value) => {
+    setPerguntas(prev => {
+      const next = [...prev]
+      const opcoes = [...(next[perguntaIndex].opcoes || [])]
+      opcoes[opcaoIndex] = value
+      next[perguntaIndex] = { ...next[perguntaIndex], opcoes }
+      return next
+    })
+  }, [])
 
-  const handleAddOpcao = (perguntaIndex) => {
-    const updatedPerguntas = [...perguntas]
-    updatedPerguntas[perguntaIndex].opcoes.push('')
-    setPerguntas(updatedPerguntas)
-  }
+  const handleAddOpcao = useCallback((perguntaIndex) => {
+    setPerguntas(prev => {
+      const next = [...prev]
+      const opcoes = [...(next[perguntaIndex].opcoes || []), '']
+      next[perguntaIndex] = { ...next[perguntaIndex], opcoes }
+      return next
+    })
+  }, [])
 
-  const handleRemoveOpcao = (perguntaIndex, opcaoIndex) => {
-    const updatedPerguntas = [...perguntas]
-    updatedPerguntas[perguntaIndex].opcoes = updatedPerguntas[perguntaIndex].opcoes.filter((_, i) => i !== opcaoIndex)
-    setPerguntas(updatedPerguntas)
-  }
+  const handleRemoveOpcao = useCallback((perguntaIndex, opcaoIndex) => {
+    setPerguntas(prev => {
+      const next = [...prev]
+      const opcoes = (next[perguntaIndex].opcoes || []).filter((_, i) => i !== opcaoIndex)
+      next[perguntaIndex] = { ...next[perguntaIndex], opcoes }
+      return next
+    })
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -327,11 +439,34 @@ const AnamneseNovo = () => {
           </div>
         </div>
 
-        <div className="form-section">
-          <div className="section-header">
-            <h2>
-              <FontAwesomeIcon icon={faClipboardQuestion} /> Perguntas
-            </h2>
+        <div className="form-section form-section-perguntas">
+          <h2 className="section-title-perguntas">
+            <FontAwesomeIcon icon={faClipboardQuestion} /> Perguntas
+          </h2>
+
+          {perguntas.length === 0 ? (
+            <div className="empty-perguntas">
+              <p>Nenhuma pergunta adicionada ainda.</p>
+              <p className="hint">Use o botão abaixo para adicionar a primeira pergunta.</p>
+            </div>
+          ) : (
+            <div className="perguntas-list">
+              {perguntas.map((pergunta, index) => (
+                <PerguntaCard
+                  key={pergunta.id}
+                  pergunta={pergunta}
+                  index={index}
+                  onPerguntaChange={handlePerguntaChange}
+                  onRemovePergunta={handleRemovePergunta}
+                  onOpcaoChange={handleOpcaoChange}
+                  onAddOpcao={handleAddOpcao}
+                  onRemoveOpcao={handleRemoveOpcao}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="perguntas-add-footer">
             <button
               type="button"
               className="btn-add-pergunta"
@@ -341,106 +476,6 @@ const AnamneseNovo = () => {
               Adicionar Pergunta
             </button>
           </div>
-
-          {perguntas.length === 0 ? (
-            <div className="empty-perguntas">
-              <p>Nenhuma pergunta adicionada ainda.</p>
-              <p className="hint">Clique em "Adicionar Pergunta" para começar.</p>
-            </div>
-          ) : (
-            <div className="perguntas-list">
-              {perguntas.map((pergunta, index) => (
-                <div key={pergunta.id || index} className="pergunta-card">
-                  <div className="pergunta-header">
-                    <div className="pergunta-number">
-                      <FontAwesomeIcon icon={faGripVertical} />
-                      <span>Pergunta {index + 1}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn-remove-pergunta"
-                      onClick={() => handleRemovePergunta(index)}
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </div>
-
-                  <div className="pergunta-body">
-                    <div className="form-group full-width">
-                      <label>Texto da Pergunta *</label>
-                      <input
-                        type="text"
-                        value={pergunta.texto}
-                        onChange={(e) => handlePerguntaChange(index, 'texto', e.target.value)}
-                        placeholder="Ex: Você possui alguma alergia?"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Tipo de Resposta *</label>
-                      <select
-                        value={pergunta.tipoResposta}
-                        onChange={(e) => handlePerguntaChange(index, 'tipoResposta', e.target.value)}
-                      >
-                        {TIPOS_RESPOSTA.map(tipo => (
-                          <option key={tipo.value} value={tipo.value}>
-                            {tipo.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={pergunta.obrigatoria || false}
-                          onChange={(e) => handlePerguntaChange(index, 'obrigatoria', e.target.checked)}
-                        />
-                        <span>Pergunta obrigatória</span>
-                      </label>
-                    </div>
-
-                    {pergunta.tipoResposta === 'multipla_escolha' && (
-                      <div className="form-group full-width">
-                        <label>Opções de Resposta *</label>
-                        <div className="opcoes-list">
-                          {pergunta.opcoes?.map((opcao, opcaoIndex) => (
-                            <div key={opcaoIndex} className="opcao-item">
-                              <input
-                                type="text"
-                                value={opcao}
-                                onChange={(e) => handleOpcaoChange(index, opcaoIndex, e.target.value)}
-                                placeholder={`Opção ${opcaoIndex + 1}`}
-                              />
-                              {pergunta.opcoes.length > 1 && (
-                                <button
-                                  type="button"
-                                  className="btn-remove-opcao"
-                                  onClick={() => handleRemoveOpcao(index, opcaoIndex)}
-                                >
-                                  <FontAwesomeIcon icon={faTimes} />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                          <button
-                            type="button"
-                            className="btn-add-opcao"
-                            onClick={() => handleAddOpcao(index)}
-                          >
-                            <FontAwesomeIcon icon={faPlus} />
-                            Adicionar Opção
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="form-actions">
