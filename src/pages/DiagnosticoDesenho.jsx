@@ -2788,7 +2788,7 @@ const DiagnosticoDesenho = () => {
               </>
             ) : (
               <button 
-                className="btn-edit-necessidades"
+                className="btn-edit-necessidades-diagnostico"
                 onClick={() => {
                   setEditedNecessidades(necessidades.length > 0 ? [...necessidades] : [{ procedimento: '', anotacoes: '' }])
                   setIsEditingNecessidades(true)

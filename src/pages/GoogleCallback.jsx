@@ -26,9 +26,9 @@ const GoogleCallback = () => {
           return
         }
 
-        // Se é um novo usuário, redirecionar para registro (NÃO precisa de token)
+        // Se é um novo usuário, redirecionar para checkout (NÃO precisa de token)
         if (isNewUser) {
-          // Passar dados do Google/Facebook para a página de registro via URL params
+          // Passar dados do Google/Facebook para a página de checkout via URL params
           const socialEmail = searchParams.get('email') || ''
           const socialName = searchParams.get('nome') || ''
           const googleId = searchParams.get('googleId') || ''
@@ -54,7 +54,7 @@ const GoogleCallback = () => {
                 }
               }
 
-          navigate('/register', { state: socialData })
+          navigate('/checkout', { state: socialData })
           return
         }
 

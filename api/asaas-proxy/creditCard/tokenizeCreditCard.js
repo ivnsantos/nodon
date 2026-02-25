@@ -30,7 +30,7 @@ export default async function handler(request) {
 
   try {
     const asaasApiUrl = process.env.VITE_ASAAS_API_URL || 'https://api.asaas.com'
-    const asaasToken = process.env.VITE_ASAAS_TOKEN
+    const asaasToken = process.env.VITE_ASAAS_TOKEN || process.env.VITE_ASAAS_TOKEN_DEV
 
     if (!asaasToken) {
       return new Response(JSON.stringify({ error: 'Token Asaas não configurado' }), {

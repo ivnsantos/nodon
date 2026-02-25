@@ -1232,7 +1232,7 @@ ease;
 
 .btn-add-necessidade,
 .btn-save-necessidades,
-.btn-edit-necessidades {
+.btn-edit-necessidades-diagnostico {
   padding: 0.5rem 1rem;
   background: rgba(14, 165, 233, 0.2);
   border: 1px solid rgba(14, 165, 233, 0.3);
@@ -1249,7 +1249,7 @@ ease;
 
 .btn-add-necessidade:hover,
 .btn-save-necessidades:hover,
-.btn-edit-necessidades:hover {
+.btn-edit-necessidades-diagnostico:hover {
   background: rgba(14, 165, 233, 0.3);
   border-color: rgba(14, 165, 233, 0.5);
   transform: translateY(-1px);
@@ -2222,7 +2222,7 @@ ease;
 
   .necessidades-section .btn-add-necessidade,
   .necessidades-section .btn-save-necessidades,
-  .necessidades-section .btn-edit-necessidades,
+  .necessidades-section .btn-edit-necessidades-diagnostico,
   .necessidades-section .btn-cancel-necessidades {
     font-size: 0.8rem !important;
     padding: 0.625rem 1rem !important;
@@ -2234,7 +2234,7 @@ ease;
     gap: 0.5rem !important;
   }
 
-  .necessidades-section .btn-edit-necessidades {
+  .necessidades-section .btn-edit-necessidades-diagnostico {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     border: none !important;
   }

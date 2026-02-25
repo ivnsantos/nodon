@@ -418,7 +418,7 @@ const ForgotPasswordPhone = () => {
                   required
                   placeholder="+55 (11) 99999-9999"
                   disabled={loading}
-                  maxLength={18}
+                  maxLength={19}
                 />
                 <small className="form-hint">O código +55 será adicionado automaticamente</small>
               </div>
