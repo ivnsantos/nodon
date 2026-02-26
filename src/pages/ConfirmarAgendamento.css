@@ -91,6 +91,79 @@
   line-height: 1.4;
 }
 
+/* Conteúdo em etapa única */
+.confirmar-agendamento-single {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.confirmar-agendamento-single .confirmar-agendamento-header {
+  margin-bottom: 1.25rem;
+}
+
+.confirmar-agendamento-single .confirmar-agendamento-clinica {
+  text-align: center;
+  margin-bottom: 1.25rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.confirmar-agendamento-single .confirmar-agendamento-consulta {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+}
+
+.confirmar-agendamento-action {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.confirmar-agendamento-action .confirmar-agendamento-error-message {
+  margin-bottom: 0;
+}
+
+.confirmar-agendamento-btn-confirm {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+}
+
+.confirmar-agendamento-btn-confirm:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+}
+
+.confirmar-agendamento-btn-confirm:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.confirmar-agendamento-btn-confirm svg {
+  font-size: 1.125rem;
+}
+
+.confirmar-agendamento-single .confirmar-agendamento-success {
+  margin-top: 0.5rem;
+}
+
 /* Error Banner */
 .confirmar-agendamento-error-banner {
   display: flex;

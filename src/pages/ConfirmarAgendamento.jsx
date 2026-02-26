@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faCalendarAlt, faClock, faSpinner, faCheckCircle, faTimes, faMapMarkerAlt, faPhone, faGlobe, faClipboardCheck, faInfoCircle
+  faCalendarAlt, faClock, faSpinner, faCheckCircle, faTimes, faInfoCircle
 } from '@fortawesome/free-solid-svg-icons'
+import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
-import './ConfirmarAgendamento.css'
+import './AgendamentoPublico.css'
 
 const ConfirmarAgendamento = () => {
   const { consultaId } = useParams()
@@ -16,7 +17,6 @@ const ConfirmarAgendamento = () => {
   const [confirmando, setConfirmando] = useState(false)
   const [confirmado, setConfirmado] = useState(false)
   const [jaConfirmada, setJaConfirmada] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1) // 1 = informações da empresa, 2 = campos de confirmação
 
   useEffect(() => {
     if (consultaId) {
@@ -29,49 +29,33 @@ const ConfirmarAgendamento = () => {
       setLoading(true)
       setError(null)
       const response = await api.get(`/calendario/consultas/publica/${consultaId}/dados-basicos`)
-      
-      // Verificar se é erro (statusCode diferente de 200)
       if (response.data.statusCode !== 200) {
-        const errorMsg = response.data?.message || 'Erro ao buscar dados da consulta'
-        setError(errorMsg)
+        setError(response.data?.message || 'Erro ao buscar dados da consulta')
         setLoading(false)
         return
       }
-      
-      // A resposta tem estrutura aninhada: data.data.data.consulta e data.data.data.cliente_master
       const innerData = response.data?.data?.data || response.data?.data || {}
-      
       if (innerData.consulta) {
         setConsulta(innerData.consulta)
-        // Se o status já for confirmada ou se ja_confirmada for true
         if (innerData.consulta.status === 'confirmada' || innerData.ja_confirmada) {
           setConfirmado(true)
           setJaConfirmada(true)
-          setCurrentStep(2) // Ir direto para step 2 se já confirmado
         }
       }
-      
-      if (innerData.cliente_master) {
-        setClienteMaster(innerData.cliente_master)
-      }
-      
-      // Verificar se já foi confirmada
+      if (innerData.cliente_master) setClienteMaster(innerData.cliente_master)
       if (innerData.ja_confirmada) {
         setJaConfirmada(true)
         setConfirmado(true)
       }
-      
-      if (!innerData.consulta) {
-        setError('Consulta não encontrada')
-      }
-    } catch (error) {
-      console.error('Erro ao buscar dados da consulta:', error)
-      const errorMsg = 
-        error.response?.data?.message || 
-        error.response?.data?.data?.message ||
-        error.message ||
+      if (!innerData.consulta) setError('Consulta não encontrada')
+    } catch (err) {
+      console.error('Erro ao buscar dados da consulta:', err)
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.data?.message ||
+        err.message ||
         'Erro ao buscar dados da consulta'
-      setError(errorMsg)
+      )
     } finally {
       setLoading(false)
     }
@@ -87,7 +71,7 @@ const ConfirmarAgendamento = () => {
 
   const formatTime = (timeString) => {
     if (!timeString) return ''
-    return timeString.substring(0, 5) // HH:MM
+    return timeString.substring(0, 5)
   }
 
   const handleConfirmar = async (e) => {
@@ -100,10 +84,8 @@ const ConfirmarAgendamento = () => {
         consultaId,
         confirmar: true
       })
-      const ok = response.data?.statusCode === 200
-      if (ok) {
+      if (response.data?.statusCode === 200) {
         setConfirmado(true)
-        setCurrentStep(2)
         const updated = response.data?.data?.consulta || response.data?.data
         if (updated?.status) {
           setConsulta(prev => (prev ? { ...prev, status: updated.status } : null))
@@ -124,225 +106,166 @@ const ConfirmarAgendamento = () => {
     }
   }
 
+  const Header = () => (
+    <header className="nodon-header">
+      <div className="nodon-header-content">
+        <img src={nodoLogo} alt="Nodon" className="nodon-icon" />
+        <h1 className="nodon-logo">Nodon</h1>
+      </div>
+    </header>
+  )
+
+  const Footer = () => (
+    <footer className="nodon-footer">
+      <div className="nodon-footer-content">
+        <p>&copy; {new Date().getFullYear()} Nodon. Todos os direitos reservados.</p>
+      </div>
+    </footer>
+  )
+
   if (loading) {
     return (
-      <div className="confirmar-agendamento-container">
-        <div className="confirmar-agendamento-loading">
-          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
-          <p>Carregando dados da consulta...</p>
+      <div className="agendamento-page">
+        <Header />
+        <div className="loading">
+          <FontAwesomeIcon icon={faSpinner} spin />
+          <p>Carregando...</p>
         </div>
+        <Footer />
       </div>
     )
   }
 
-  // Determinar step visual (para o indicador)
-  const visualStep = confirmado ? 2 : currentStep
-
-  return (
-    <div className="confirmar-agendamento-container">
-      <div className="confirmar-agendamento-content">
-        {/* Header de Confirmação */}
-        <div className="confirmar-agendamento-header">
-          <div className="confirmar-agendamento-header-icon">
-            <FontAwesomeIcon icon={faClipboardCheck} />
+  if (error && !consulta) {
+    return (
+      <div className="agendamento-page">
+        <Header />
+        <div className="error">
+          <div className="error-icon">
+            <FontAwesomeIcon icon={faTimes} />
           </div>
-          <h1 className="confirmar-agendamento-title">Confirmar Agendamento</h1>
-          <p className="confirmar-agendamento-subtitle-header">
-            Confirme seus dados para validar seu agendamento
+          <h2>Erro</h2>
+          <p>{error}</p>
+          <button type="button" onClick={() => { setError(null); fetchDadosBasicos() }} className="btn-main" style={{ marginTop: '1rem', maxWidth: 280 }}>
+            Tentar novamente
+          </button>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!consulta) {
+    return (
+      <div className="agendamento-page">
+        <Header />
+        <div className="error">
+          <div className="error-icon">
+            <FontAwesomeIcon icon={faTimes} />
+          </div>
+          <h2>Consulta não encontrada</h2>
+          <p>O link pode estar incorreto ou a consulta não está mais disponível.</p>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (confirmado) {
+    return (
+      <div className="agendamento-page">
+        <Header />
+        <div className="success-box">
+          <div className="success-icon">
+            <FontAwesomeIcon icon={faCheckCircle} />
+          </div>
+          <h2>{jaConfirmada ? 'Já confirmado' : 'Confirmado!'}</h2>
+          <p>
+            {jaConfirmada
+              ? 'Este agendamento já estava confirmado. Aguardamos você na data e hora agendadas.'
+              : 'Seu agendamento foi confirmado. Aguardamos você na data e hora agendadas.'
+            }
           </p>
         </div>
+        <Footer />
+      </div>
+    )
+  }
 
-        {/* Mensagem de Erro Global (não bloqueia a página) */}
-        {error && !consulta && (
-          <div className="confirmar-agendamento-error-banner">
-            <FontAwesomeIcon icon={faTimes} />
-            <div>
-              <strong>Erro ao carregar dados</strong>
-              <p>{error}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                fetchDadosBasicos()
-              }}
-              className="confirmar-agendamento-btn-retry"
-            >
-              Tentar Novamente
-            </button>
-          </div>
-        )}
+  return (
+    <div className="agendamento-page">
+      <Header />
+      <div className="container">
+        <div className="header">
+          <h1>Confirmar Agendamento</h1>
+          <p className="clinic-name">{clienteMaster?.nome_empresa || clienteMaster?.nomeEmpresa || 'Clínica'}</p>
+        </div>
 
-        {/* Se não houver consulta e não estiver carregando, mostrar mensagem amigável */}
-        {!loading && !consulta && !error && (
-          <div className="confirmar-agendamento-info-message">
-            <FontAwesomeIcon icon={faInfoCircle} />
-            <p>Não foi possível carregar os dados da consulta. Por favor, verifique o link ou tente novamente mais tarde.</p>
+        <div className="info-box">
+          <div className="info-row">
+            <span className="info-label">Tipo</span>
+            <span className="info-value">{consulta.tipo_consulta?.nome || 'Consulta'}</span>
           </div>
-        )}
-
-        {/* Steps Indicator */}
-        <div className="confirmar-agendamento-steps">
-          <div className={`confirmar-agendamento-step ${visualStep >= 1 ? 'active' : ''} ${visualStep > 1 ? 'completed' : ''}`}>
-            <div className="confirmar-agendamento-step-number">
-              {visualStep > 1 ? <FontAwesomeIcon icon={faCheckCircle} /> : '1'}
-            </div>
-            <div className="confirmar-agendamento-step-label">Informações</div>
+          <div className="info-row">
+            <span className="info-label">Data</span>
+            <span className="info-value">{formatDate(consulta.data_consulta)}</span>
           </div>
-          <div className="confirmar-agendamento-step-line"></div>
-          <div className={`confirmar-agendamento-step ${visualStep >= 2 ? 'active' : ''} ${visualStep > 2 ? 'completed' : ''}`}>
-            <div className="confirmar-agendamento-step-number">
-              {visualStep > 2 ? <FontAwesomeIcon icon={faCheckCircle} /> : '2'}
+          <div className="info-row">
+            <span className="info-label">Horário</span>
+            <span className="info-value">{formatTime(consulta.hora_consulta)}</span>
+          </div>
+          {consulta.titulo && (
+            <div className="info-row full">
+              <span className="info-label">Título</span>
+              <span className="info-value">{consulta.titulo}</span>
             </div>
-            <div className="confirmar-agendamento-step-label">{confirmado ? 'Concluído' : 'Confirmar'}</div>
+          )}
+          <div className="info-row">
+            <span className="info-label">Status</span>
+            <span className="info-value">
+              {consulta.status === 'agendada' && 'Agendada'}
+              {consulta.status === 'confirmada' && 'Confirmada'}
+              {consulta.status === 'link' && 'Link'}
+              {consulta.status === 'concluida' && 'Concluída'}
+              {consulta.status === 'cancelada' && 'Cancelada'}
+            </span>
           </div>
         </div>
 
-        {/* Step 1: Informações da Empresa e Consulta */}
-        {currentStep === 1 && (
-          <>
-            {/* Header com Logo */}
-            {clienteMaster?.logo && (
-              <div className="confirmar-agendamento-logo">
-                <img src={clienteMaster.logo} alt={clienteMaster.nome_empresa || 'Logo'} />
-              </div>
+        <div className="action-box">
+          {error && (
+            <div className="info-banner" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+              <FontAwesomeIcon icon={faTimes} style={{ color: '#ef4444' }} />
+              <span>{error}</span>
+            </div>
+          )}
+          <div className="info-banner">
+            <FontAwesomeIcon icon={faInfoCircle} />
+            <span>Confira os dados acima e confirme seu agendamento</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleConfirmar}
+            disabled={confirmando}
+            className="btn-main"
+          >
+            {confirmando ? (
+              <>
+                <FontAwesomeIcon icon={faSpinner} spin />
+                Confirmando...
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faCheckCircle} />
+                Confirmar
+              </>
             )}
-
-            {/* Informações da Clínica */}
-            {clienteMaster && (
-              <div className="confirmar-agendamento-clinica">
-                <h2>{clienteMaster.nome_empresa || 'Clínica'}</h2>
-                {clienteMaster.endereco && (
-                  <div className="confirmar-agendamento-info-item">
-                    <FontAwesomeIcon icon={faMapMarkerAlt} />
-                    <span>{clienteMaster.endereco}</span>
-                  </div>
-                )}
-                {clienteMaster.telefone_empresa && (
-                  <div className="confirmar-agendamento-info-item">
-                    <FontAwesomeIcon icon={faPhone} />
-                    <span>{clienteMaster.telefone_empresa}</span>
-                  </div>
-                )}
-                {clienteMaster.site && (
-                  <div className="confirmar-agendamento-info-item">
-                    <FontAwesomeIcon icon={faGlobe} />
-                    <a href={clienteMaster.site} target="_blank" rel="noopener noreferrer">
-                      {clienteMaster.site}
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Informações da Consulta */}
-            {consulta && (
-              <div className="confirmar-agendamento-consulta">
-                <h3>Detalhes do Agendamento</h3>
-                
-                {/* Tipo de Consulta */}
-                {consulta.tipo_consulta && (
-                  <div className="confirmar-agendamento-badge" style={{ backgroundColor: consulta.tipo_consulta.cor || '#0ea5e9' }}>
-                    {consulta.tipo_consulta.nome || 'Consulta'}
-                  </div>
-                )}
-
-                {/* Título */}
-                {consulta.titulo && (
-                  <div className="confirmar-agendamento-item">
-                    <h4>{consulta.titulo}</h4>
-                  </div>
-                )}
-
-                {/* Data e Hora */}
-                <div className="confirmar-agendamento-datetime">
-                  <div className="confirmar-agendamento-datetime-item">
-                    <FontAwesomeIcon icon={faCalendarAlt} />
-                    <div>
-                      <span className="label">Data:</span>
-                      <span className="value">{formatDate(consulta.data_consulta)}</span>
-                    </div>
-                  </div>
-                  <div className="confirmar-agendamento-datetime-item">
-                    <FontAwesomeIcon icon={faClock} />
-                    <div>
-                      <span className="label">Hora:</span>
-                      <span className="value">{formatTime(consulta.hora_consulta)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status */}
-                {consulta.status && (
-                  <div className="confirmar-agendamento-status">
-                    <span className="status-label">Status:</span>
-                    <span className={`status-badge status-${consulta.status}`}>
-                      {consulta.status === 'agendada' && 'Agendada'}
-                      {consulta.status === 'confirmada' && 'Confirmada'}
-                      {consulta.status === 'concluida' && 'Concluída'}
-                      {consulta.status === 'cancelada' && 'Cancelada'}
-                      {consulta.status === 'link' && 'Link'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Botão para confirmar (chama o endpoint com consultaId + confirmar: true) */}
-            {consulta && (consulta.status === 'agendada' || consulta.status === 'link') && !confirmado && !jaConfirmada && (
-              <div className="confirmar-agendamento-step1-action">
-                {error && (
-                  <div className="confirmar-agendamento-error-message" style={{ marginBottom: '1rem' }}>
-                    <FontAwesomeIcon icon={faTimes} />
-                    <span>{error}</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={handleConfirmar}
-                  disabled={confirmando}
-                  className="confirmar-agendamento-btn-step1"
-                >
-                  {confirmando ? (
-                    <>
-                      <FontAwesomeIcon icon={faSpinner} spin />
-                      Confirmando...
-                    </>
-                  ) : (
-                    <>
-                      <FontAwesomeIcon icon={faCheckCircle} />
-                      Confirmar Agendamento
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Step 2: Mensagem de Sucesso ou Já Confirmada */}
-        {currentStep === 2 && consulta && (
-          <>
-            {confirmado && (
-              <div className="confirmar-agendamento-success">
-                <div className="confirmar-agendamento-success-icon">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                </div>
-                <h2>{jaConfirmada ? 'Agendamento Já Confirmado' : 'Agendamento Confirmado!'}</h2>
-                <p>
-                  {jaConfirmada 
-                    ? 'Este agendamento já foi confirmado anteriormente. Aguardamos você na data e hora agendadas.'
-                    : 'Seu agendamento foi confirmado com sucesso. Aguardamos você na data e hora agendadas.'
-                  }
-                </p>
-              </div>
-            )}
-          </>
-        )}
+          </button>
+        </div>
       </div>
+      <Footer />
     </div>
   )
 }
 
 export default ConfirmarAgendamento
-
