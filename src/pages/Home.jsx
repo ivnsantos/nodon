@@ -301,7 +301,7 @@ const Home = () => {
               <span>Sistema Completo de Gestão Odontológica</span>
             </div>
             <h1 className="home-hero-title">
-              Transforme sua carreira com <span className="home-highlight">Inteligência Artificial</span>
+              Transforme sua carreira odontológica com <span className="home-highlight">NODON</span>
             </h1>
             <p className="home-hero-subtitle">
               Plataforma completa para gestão odontológica com IA avançada para diagnósticos, 
