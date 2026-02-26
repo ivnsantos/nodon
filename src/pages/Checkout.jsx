@@ -1174,7 +1174,8 @@ const Checkout = () => {
               </div>
 
               {loadingPlans ? (
-                <div className="loading-plans">
+                <div className="checkout-plans-loading">
+                  <div className="loading-spinner" />
                   <p>Carregando planos...</p>
                 </div>
               ) : (
