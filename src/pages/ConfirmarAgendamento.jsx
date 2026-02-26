@@ -7,6 +7,7 @@ import {
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
 import './AgendamentoPublico.css'
+import './ConfirmarAgendamento.css'
 
 const ConfirmarAgendamento = () => {
   const { consultaId } = useParams()
@@ -193,62 +194,44 @@ const ConfirmarAgendamento = () => {
   }
 
   return (
-    <div className="agendamento-page">
+    <div className="agendamento-page confirmar-agendamento">
       <Header />
-      <div className="container">
-        <div className="header">
+      <div className="container confirmar-container">
+        <div className="header confirmar-header">
           <h1>Confirmar Agendamento</h1>
           <p className="clinic-name">{clienteMaster?.nome_empresa || clienteMaster?.nomeEmpresa || 'Clínica'}</p>
         </div>
 
-        <div className="info-box">
-          {(clienteMaster?.endereco || clienteMaster?.telefone_empresa) && (
-            <>
-              {clienteMaster?.endereco && (
-                <div className="info-row full">
-                  <span className="info-label">Endereço</span>
-                  <span className="info-value">{clienteMaster.endereco}</span>
-                </div>
-              )}
-              {clienteMaster?.telefone_empresa && (
-                <div className="info-row">
-                  <span className="info-label">Telefone</span>
-                  <span className="info-value">{clienteMaster.telefone_empresa}</span>
-                </div>
-              )}
-            </>
-          )}
-          <div className="info-row">
-            <span className="info-label">Tipo</span>
-            <span className="info-value">{consulta.tipo_consulta?.nome || 'Consulta'}</span>
-          </div>
-          <div className="info-row">
-            <span className="info-label">Data</span>
-            <span className="info-value">{formatDate(consulta.data_consulta)}</span>
-          </div>
-          <div className="info-row">
-            <span className="info-label">Horário</span>
-            <span className="info-value">{formatTime(consulta.hora_consulta)}</span>
-          </div>
-          {consulta.titulo && (
+        <div className="info-box confirmar-info-box">
+          <div className="confirmar-info-grid">
+            <div className="info-row full">
+              <span className="info-label">Endereço</span>
+              <span className="info-value">{clienteMaster?.endereco || 'a definir'}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Telefone</span>
+              <span className="info-value">{clienteMaster?.telefone_empresa || 'a definir'}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Tipo</span>
+              <span className="info-value">{consulta.tipo_consulta?.nome || 'a definir'}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Data</span>
+              <span className="info-value">{formatDate(consulta.data_consulta) || 'a definir'}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Horário</span>
+              <span className="info-value">{formatTime(consulta.hora_consulta) || 'a definir'}</span>
+            </div>
             <div className="info-row full">
               <span className="info-label">Título</span>
-              <span className="info-value">{consulta.titulo}</span>
+              <span className="info-value">{consulta.titulo || 'a definir'}</span>
             </div>
-          )}
-          <div className="info-row">
-            <span className="info-label">Status</span>
-            <span className="info-value">
-              {consulta.status === 'agendada' && 'Agendada'}
-              {consulta.status === 'confirmada' && 'Confirmada'}
-              {consulta.status === 'link' && 'Link'}
-              {consulta.status === 'concluida' && 'Concluída'}
-              {consulta.status === 'cancelada' && 'Cancelada'}
-            </span>
           </div>
         </div>
 
-        <div className="action-box">
+        <div className="action-box confirmar-action-box">
           {error && (
             <div className="info-banner" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
               <FontAwesomeIcon icon={faTimes} style={{ color: '#ef4444' }} />
