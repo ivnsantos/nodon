@@ -505,7 +505,7 @@ const Home = () => {
           <div className="home-section-header">
             <h2 className="home-section-title">Escolha o plano ideal para sua clínica</h2>
             <p className="home-section-description">
-              Planos flexíveis que se adaptam às necessidades da sua clínica
+              Planos flexíveis que se adaptam às necessidades do seu dia a dia
             </p>
           </div>
           {loadingPlanos ? (
