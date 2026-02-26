@@ -183,8 +183,8 @@ const ConfirmarAgendamento = () => {
           <h2>{jaConfirmada ? 'Já confirmado' : 'Confirmado!'}</h2>
           <p>
             {jaConfirmada
-              ? 'Este agendamento já estava confirmado. Aguardamos você na data e hora agendadas.'
-              : 'Seu agendamento foi confirmado. Aguardamos você na data e hora agendadas.'
+              ? 'Esta consulta já estava confirmada. Aguardamos você na data e hora agendadas.'
+              : 'Sua consulta foi confirmada. Aguardamos você na data e hora agendadas.'
             }
           </p>
         </div>
@@ -198,7 +198,7 @@ const ConfirmarAgendamento = () => {
       <Header />
       <div className="container confirmar-container">
         <div className="header confirmar-header">
-          <h1>Confirmar Agendamento</h1>
+          <h1>Confirmar Consulta</h1>
           <p className="clinic-name">{clienteMaster?.nome_empresa || clienteMaster?.nomeEmpresa || 'Clínica'}</p>
         </div>
 
@@ -240,7 +240,7 @@ const ConfirmarAgendamento = () => {
           )}
           <div className="info-banner">
             <FontAwesomeIcon icon={faInfoCircle} />
-            <span>Confira os dados acima e confirme seu agendamento</span>
+            <span>Confira os dados acima e confirme sua consulta</span>
           </div>
           <button
             type="button"
