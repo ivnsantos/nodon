@@ -13,6 +13,64 @@ import api from '../utils/api'
 import { trackCheckoutStep, trackPlanSelection, trackConversion, trackEvent } from '../utils/gtag'
 import './Checkout.css'
 
+const PAGARME_PUBLIC_KEY = import.meta.env.VITE_PAGARME_PUBLIC_KEY || ''
+
+/**
+ * Tokeniza o cartão na Pagar.me (core v5).
+ * Inclui billing_address quando informado.
+ * Retorna { token, lastFourDigits, brand }.
+ */
+async function tokenizeCardPagarMe ({
+  number,
+  holder_name,
+  holder_document,
+  exp_month,
+  exp_year,
+  cvv,
+  billing_address
+}) {
+  const appId = PAGARME_PUBLIC_KEY
+  if (!appId) {
+    throw new Error('Chave pública da Pagar.me não configurada (VITE_PAGARME_PUBLIC_KEY).')
+  }
+  const url = `https://api.pagar.me/core/v5/tokens?appId=${encodeURIComponent(appId)}`
+  const body = {
+    card: {
+      number: number.replace(/\D/g, ''),
+      holder_name,
+      holder_document: (holder_document || '').replace(/\D/g, ''),
+      exp_month: String(exp_month || '01').padStart(2, '0'),
+      exp_year: String(exp_year || '00').length === 2 ? String(exp_year) : String(exp_year || '').slice(-2),
+      cvv: String(cvv || '')
+    },
+    type: 'card'
+  }
+  if (billing_address && billing_address.zip_code && billing_address.line_1) {
+    body.billing_address = {
+      country: billing_address.country || 'BR',
+      state: billing_address.state || '',
+      city: billing_address.city || '',
+      zip_code: String(billing_address.zip_code).replace(/\D/g, ''),
+      line_1: billing_address.line_1,
+      ...(billing_address.line_2 && { line_2: billing_address.line_2 })
+    }
+  }
+  const response = await axios.post(url, body, {
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    }
+  })
+  const data = response.data
+  const token = data?.id
+  const lastFourDigits = data?.card?.last_four_digits != null ? String(data.card.last_four_digits) : null
+  const brand = data?.card?.brand || null
+  if (!token) {
+    throw new Error(data?.message || 'Token do cartão não retornado pela Pagar.me')
+  }
+  return { token, lastFourDigits, brand }
+}
+
 const Checkout = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -593,21 +651,19 @@ const Checkout = () => {
       
       const response = await api.post('/assinaturas/customer', customerPayload)
       
-      // Estrutura aninhada: response.data.data.data contém { asaasCustomerId, userId }
+      // Backend retorna { data: { pagarMeCustomerId, userId } } ou aninhado
       const outerData = response.data?.data
-      const innerData = outerData?.data
-      
-      // Tentar diferentes níveis de aninhamento
-      const customerId = innerData?.asaasCustomerId || outerData?.asaasCustomerId || response.data?.asaasCustomerId
-      const user = innerData?.userId || outerData?.userId || response.data?.userId
+      const innerData = outerData?.data ?? outerData
+      const pagarMeId = innerData?.pagarMeCustomerId ?? outerData?.pagarMeCustomerId ?? response.data?.pagarMeCustomerId
+      const user = innerData?.userId ?? outerData?.userId ?? response.data?.userId
       
       if (!user) {
         console.error('userId não encontrado na resposta')
         throw new Error('userId não retornado pela API')
       }
       
-      setAsaasCustomerId(customerId)
-      setUserId(user) // IMPORTANTE: Usar userId, não clienteMasterId
+      setPagarMeCustomerId(pagarMeId ?? null)
+      setUserId(user)
       
     } catch (error) {
       console.error('Erro ao criar cliente:', error)
@@ -689,7 +745,7 @@ const Checkout = () => {
   const [pollingStatus, setPollingStatus] = useState('Verificando pagamento...')
   const [loadingMessage, setLoadingMessage] = useState('Criando assinatura...')
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
-  const [asaasCustomerId, setAsaasCustomerId] = useState(null)
+  const [pagarMeCustomerId, setPagarMeCustomerId] = useState(null)
   const [userId, setUserId] = useState(null)
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
   const [periodoGratis, setPeriodoGratis] = useState(null)
@@ -755,88 +811,56 @@ const Checkout = () => {
       setShowLoadingModal(true)
       setLoadingMessage('Tokenizando cartão...')
 
-      // Preparar dados do cartão
-      const [expiryMonth, expiryYear] = formData.validade.split('/')
-      // Para a Asaas, o ano deve ser apenas os 2 últimos dígitos (ex: "26" para 2026)
-      const yearTwoDigits = expiryYear
+      // Preparar dados do cartão (validade MM/AA)
+      const [expiryMonth, expiryYear] = (formData.validade || '/').split('/').map(s => s.trim())
+      const expYearTwoDigits = expiryYear?.length === 2 ? expiryYear : (expiryYear || '').slice(-2)
 
-      // Validar se tem asaasCustomerId para tokenização
-      if (!asaasCustomerId) {
-        showAlert('Erro: Cliente Asaas não encontrado. Por favor, volte e tente novamente.', 'error')
+      // 1. Tokenizar cartão na Pagar.me (retorna token + últimos 4 dígitos + bandeira)
+      if (!formData.cep || !formData.rua || !formData.numero || !formData.cidade || !formData.estado) {
+        showAlert('Para gerar o token do cartão é necessário preencher o endereço (CEP, rua, número, cidade e estado). Volte ao passo anterior e complete os dados.')
         setIsSubmitting(false)
         setShowLoadingModal(false)
         return
       }
 
-      // Obter IP do cliente
-      let clientIp = '0.0.0.0'
+      const billing_address = {
+        country: 'BR',
+        state: (formData.estado || '').trim().toUpperCase().slice(0, 2),
+        city: (formData.cidade || '').trim(),
+        zip_code: formData.cep.replace(/\D/g, ''),
+        line_1: [formData.rua.trim(), formData.numero.trim()].filter(Boolean).join(', '),
+        ...(formData.complemento?.trim() && { line_2: formData.complemento.trim() })
+      }
+
+      let creditCardToken, creditCardNumber, creditCardBrand
       try {
-        const ipResponse = await axios.get('https://api.ipify.org?format=json')
-        clientIp = ipResponse.data?.ip || '0.0.0.0'
-      } catch (error) {
-        console.warn('Não foi possível obter o IP do cliente:', error)
-        // Se falhar, tentar obter de outra forma ou usar um valor padrão
+        const tokenResult = await tokenizeCardPagarMe({
+          number: formData.numeroCartao,
+          holder_name: formData.nomeCartao,
+          holder_document: formData.cpf,
+          exp_month: expiryMonth || '01',
+          exp_year: expYearTwoDigits || '00',
+          cvv: formData.cvv,
+          billing_address
+        })
+        creditCardToken = tokenResult.token
+        creditCardNumber = tokenResult.lastFourDigits || undefined
+        creditCardBrand = tokenResult.brand || undefined
+      } catch (tokenError) {
+        const msg = tokenError.response?.data?.message || tokenError.message || 'Falha ao tokenizar o cartão.'
+        throw new Error(msg)
       }
 
-      // 1. Tokenizar cartão primeiro na Asaas
-      const tokenizePayload = {
-        customer: asaasCustomerId,
-        creditCard: {
-          holderName: formData.nomeCartao,
-          number: formData.numeroCartao.replace(/\D/g, ''),
-          expiryMonth: expiryMonth,
-          expiryYear: yearTwoDigits, // Apenas 2 dígitos (ex: "26")
-          ccv: formData.cvv
-        },
-        creditCardHolderInfo: {
-          name: formData.nome,
-          email: formData.email,
-          cpfCnpj: formData.cpf.replace(/\D/g, ''),
-          postalCode: formData.cep.replace(/\D/g, ''),
-          addressNumber: formData.numero,
-          addressComplement: formData.complemento || '',
-          phone: phoneNumbers,
-          mobilePhone: phoneNumbers
-        },
-        remoteIp: clientIp
-      }
-
-      // Sempre usa o proxy: em dev usa proxy do Vite, em prod usa Vercel Edge Function
-      // Isso evita problemas de CORS e permite adicionar headers necessários (User-Agent, access_token)
-      const tokenizeURL = '/asaas-proxy/creditCard/tokenizeCreditCard'
-      
-      const tokenizeResponse = await axios.post(
-        tokenizeURL,
-        tokenizePayload,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-      
-      // Extrair dados da resposta (pode estar em diferentes níveis)
-      const tokenizeData = tokenizeResponse.data?.data || tokenizeResponse.data
-      const creditCardToken = tokenizeData?.creditCardToken || tokenizeResponse.data?.creditCardToken
-      const creditCardNumber = tokenizeData?.creditCardNumber || tokenizeResponse.data?.creditCardNumber
-      const creditCardBrand = tokenizeData?.creditCardBrand || tokenizeResponse.data?.creditCardBrand
-
-      if (!creditCardToken) {
-        console.error('Token não encontrado na resposta')
-        throw new Error('Token do cartão não retornado pela API')
-      }
-
-      // Atualizar mensagem de loading
       setLoadingMessage('Processando pagamento...')
 
-      // 2. Fazer checkout com os dados do cartão tokenizado
+      // 2. Fazer checkout no backend (Pagar.me: token + últimos 4 dígitos + bandeira)
       const checkoutPayload = {
-        userId: userId,
+        userId,
         planoId: selectedPlan.id,
         billingType: 'CREDIT_CARD',
-        creditCardToken: creditCardToken,
-        ...(creditCardNumber && { creditCardNumber: creditCardNumber }),
-        ...(creditCardBrand && { creditCardBrand: creditCardBrand }),
+        creditCardToken,
+        ...(creditCardNumber && { creditCardNumber }),
+        ...(creditCardBrand && { creditCardBrand }),
         ...(appliedCoupon ? { couponName: appliedCoupon.name } : {})
       }
 
@@ -892,9 +916,9 @@ const Checkout = () => {
         }
       }
       
-      // Para o novo formato (statusCode 201/200), a assinatura já está criada e ativa
-      // Para o formato antigo, ainda precisa verificar o status do pagamento
-      const paymentId = pagamento?.id || assinatura?.id
+      // ID do pedido/order para verificar status (Pagar.me: order id ex. or_28dN9w7CLU79kDjL)
+      const orderId = responseData.orderId ?? responseData.order?.id ?? innerData?.orderId ?? innerData?.order?.id
+      const paymentId = orderId || pagamento?.id || assinatura?.id
       const paymentStatus = pagamento?.status || (assinatura?.status === 'ACTIVE' ? 'CONFIRMED' : null)
       
       // Cenário 1: statusCode 200/201 e assinatura ACTIVE - Assinatura criada com sucesso (período grátis)
