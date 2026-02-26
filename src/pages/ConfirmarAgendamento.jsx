@@ -202,6 +202,22 @@ const ConfirmarAgendamento = () => {
         </div>
 
         <div className="info-box">
+          {(clienteMaster?.endereco || clienteMaster?.telefone_empresa) && (
+            <>
+              {clienteMaster?.endereco && (
+                <div className="info-row full">
+                  <span className="info-label">Endereço</span>
+                  <span className="info-value">{clienteMaster.endereco}</span>
+                </div>
+              )}
+              {clienteMaster?.telefone_empresa && (
+                <div className="info-row">
+                  <span className="info-label">Telefone</span>
+                  <span className="info-value">{clienteMaster.telefone_empresa}</span>
+                </div>
+              )}
+            </>
+          )}
           <div className="info-row">
             <span className="info-label">Tipo</span>
             <span className="info-value">{consulta.tipo_consulta?.nome || 'Consulta'}</span>
