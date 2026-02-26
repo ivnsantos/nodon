@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faCalendarAlt, faClock, faSpinner, faCheckCircle, faTimes, faMapMarkerAlt, faPhone, faGlobe, faIdCard, faBirthdayCake, faClipboardCheck, faChevronLeft, faInfoCircle
+  faCalendarAlt, faClock, faSpinner, faCheckCircle, faTimes, faMapMarkerAlt, faPhone, faGlobe, faClipboardCheck, faInfoCircle
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import './ConfirmarAgendamento.css'
@@ -13,8 +13,6 @@ const ConfirmarAgendamento = () => {
   const [error, setError] = useState(null)
   const [consulta, setConsulta] = useState(null)
   const [clienteMaster, setClienteMaster] = useState(null)
-  const [dataNascimento, setDataNascimento] = useState('')
-  const [cpfInicio, setCpfInicio] = useState('')
   const [confirmando, setConfirmando] = useState(false)
   const [confirmado, setConfirmado] = useState(false)
   const [jaConfirmada, setJaConfirmada] = useState(false)
@@ -92,79 +90,35 @@ const ConfirmarAgendamento = () => {
     return timeString.substring(0, 5) // HH:MM
   }
 
-  // Formatar data de nascimento para DD/MM/YYYY
-  const formatDataNascimento = (value) => {
-    const numbers = value.replace(/\D/g, '')
-    if (numbers.length <= 2) {
-      return numbers
-    } else if (numbers.length <= 4) {
-      return `${numbers.slice(0, 2)}/${numbers.slice(2)}`
-    } else {
-      return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`
-    }
-  }
-
-  // Formatar CPF (apenas primeiros dígitos)
-  const formatCpfInicio = (value) => {
-    const numbers = value.replace(/\D/g, '')
-    return numbers.slice(0, 11) // Limitar a 11 dígitos
-  }
-
-  const handleDataNascimentoChange = (e) => {
-    const formatted = formatDataNascimento(e.target.value)
-    setDataNascimento(formatted)
-  }
-
-  const handleCpfInicioChange = (e) => {
-    const formatted = formatCpfInicio(e.target.value)
-    setCpfInicio(formatted)
-  }
-
   const handleConfirmar = async (e) => {
-    e.preventDefault()
-    
-    // Validar campos
-    if (!dataNascimento || dataNascimento.length !== 10) {
-      setError('Por favor, informe a data de nascimento completa (DD/MM/AAAA)')
-      return
-    }
-
-    if (!cpfInicio || cpfInicio.length < 3) {
-      setError('Por favor, informe pelo menos os 3 primeiros dígitos do CPF')
-      return
-    }
-
+    if (e) e.preventDefault()
+    if (!consultaId) return
     try {
       setConfirmando(true)
       setError(null)
-
       const response = await api.post('/calendario/consultas/publica/confirmar-por-dados', {
-        consultaId: consultaId,
-        dataAniversario: dataNascimento,
-        cpfInicio: cpfInicio
+        consultaId,
+        confirmar: true
       })
-
-      if (response.data.statusCode === 200) {
+      const ok = response.data?.statusCode === 200
+      if (ok) {
         setConfirmado(true)
-        setCurrentStep(2) // Avançar para step 2 após confirmação
-        // Atualizar status da consulta
-        if (response.data?.data?.consulta) {
-          setConsulta(prev => ({
-            ...prev,
-            status: response.data.data.consulta.status
-          }))
+        setCurrentStep(2)
+        const updated = response.data?.data?.consulta || response.data?.data
+        if (updated?.status) {
+          setConsulta(prev => (prev ? { ...prev, status: updated.status } : null))
         }
       } else {
         setError(response.data?.message || 'Erro ao confirmar agendamento')
       }
-    } catch (error) {
-      console.error('Erro ao confirmar agendamento:', error)
-      const errorMsg = 
-        error.response?.data?.message || 
-        error.response?.data?.data?.message ||
-        error.message ||
-        'Erro ao confirmar agendamento. Verifique os dados informados.'
-      setError(errorMsg)
+    } catch (err) {
+      console.error('Erro ao confirmar agendamento:', err)
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.data?.message ||
+        err.message ||
+        'Erro ao confirmar agendamento. Tente novamente.'
+      )
     } finally {
       setConfirmando(false)
     }
@@ -334,107 +288,41 @@ const ConfirmarAgendamento = () => {
               </div>
             )}
 
-            {/* Botão para ir ao Step 2 */}
+            {/* Botão para confirmar (chama o endpoint com consultaId + confirmar: true) */}
             {consulta && (consulta.status === 'agendada' || consulta.status === 'link') && !confirmado && !jaConfirmada && (
               <div className="confirmar-agendamento-step1-action">
+                {error && (
+                  <div className="confirmar-agendamento-error-message" style={{ marginBottom: '1rem' }}>
+                    <FontAwesomeIcon icon={faTimes} />
+                    <span>{error}</span>
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(2)}
+                  onClick={handleConfirmar}
+                  disabled={confirmando}
                   className="confirmar-agendamento-btn-step1"
                 >
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  Confirmar Agendamento
+                  {confirmando ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                      Confirmando...
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      Confirmar Agendamento
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </>
         )}
 
-        {/* Step 2: Formulário de Confirmação ou Mensagem de Sucesso */}
+        {/* Step 2: Mensagem de Sucesso ou Já Confirmada */}
         {currentStep === 2 && consulta && (
           <>
-            {!confirmado && !jaConfirmada && (consulta.status === 'agendada' || consulta.status === 'link') && (
-              <div className="confirmar-agendamento-form">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(1)}
-                  className="confirmar-agendamento-btn-voltar"
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                  Voltar
-                </button>
-                
-                <div className="confirmar-agendamento-form-header">
-                  <FontAwesomeIcon icon={faClipboardCheck} />
-                  <h2>Confirme seus dados</h2>
-                </div>
-                <p className="confirmar-agendamento-subtitle">
-                  Para confirmar seu agendamento, informe sua data de nascimento e os primeiros dígitos do seu CPF:
-                </p>
-            
-                {error && (
-                  <div className="confirmar-agendamento-error-message">
-                    <FontAwesomeIcon icon={faTimes} />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-            <form onSubmit={handleConfirmar}>
-              <div className="confirmar-agendamento-form-group">
-                <label>
-                  <FontAwesomeIcon icon={faBirthdayCake} />
-                  Data de Nascimento *
-                </label>
-                <input
-                  type="text"
-                  placeholder="DD/MM/AAAA"
-                  value={dataNascimento}
-                  onChange={handleDataNascimentoChange}
-                  maxLength={10}
-                  required
-                  disabled={confirmando}
-                />
-              </div>
-
-              <div className="confirmar-agendamento-form-group">
-                <label>
-                  <FontAwesomeIcon icon={faIdCard} />
-                  CPF ( 3 primeiros dígitos ) *
-                </label>
-                <input
-                  type="text"
-                  placeholder="123"
-                  value={cpfInicio}
-                  onChange={handleCpfInicioChange}
-                  maxLength={11}
-                  required
-                  disabled={confirmando}
-                />
-                <small>Informe pelo menos os 3 primeiros dígitos do seu CPF</small>
-              </div>
-
-              <button 
-                type="submit" 
-                className="confirmar-agendamento-btn-confirmar"
-                disabled={confirmando || !dataNascimento || !cpfInicio}
-              >
-                {confirmando ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} spin />
-                    Confirmando...
-                  </>
-                ) : (
-                  <>
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                    Confirmar Agendamento
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-            )}
-
-            {/* Mensagem de Sucesso ou Já Confirmada - aparece no Step 2 */}
             {confirmado && (
               <div className="confirmar-agendamento-success">
                 <div className="confirmar-agendamento-success-icon">
