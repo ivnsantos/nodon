@@ -19,6 +19,7 @@ import estudanteImg from '../img/especializacao-em-odontologia-1.jpg'
 import xl20Img from '../img/xl20.jpeg'
 import julia20Img from '../img/JULIA20.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
+import milafazodontoEstudanteImg from '../img/MILAFAZODONTO_ESTU.jpeg'
 import './LPEstudante.css'
 
 const LPEstudante = () => {
@@ -97,11 +98,11 @@ const LPEstudante = () => {
         const valorPromocional = valorPromocionalRaw ? (typeof valorPromocionalRaw === 'string' ? parseFloat(valorPromocionalRaw) : valorPromocionalRaw) : null
 
         // Identifica o plano pelo ID ou nome
-        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('chat')
+        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
         const isPlanoInicial = plano.id === '3521d057-f3b3-4ae5-9966-a5bdeddc38f2' || plano.nome?.toLowerCase().includes('inicial')
 
         if (isPlanoChat) {
-          // Plano Chat - Ideal para Estudantes
+          // Plano Estudante - Ideal para Estudantes
           badge = 'Ideal para Estudantes'
           features = [
             'Chat especializado em odontologia 24/7',
@@ -235,6 +236,9 @@ const LPEstudante = () => {
     if (cupomCode === 'XL20' && cupomValido) {
       return xl20Img
     }
+    if (cupomCode === 'MILAFAZODONTO' && cupomValido) {
+      return milafazodontoEstudanteImg
+    }
     return estudanteImg
   }
 
@@ -247,6 +251,9 @@ const LPEstudante = () => {
     }
     if (cupomCode === 'XL20' && cupomValido) {
       return "Cupom XL20"
+    }
+    if (cupomCode === 'MILAFAZODONTO' && cupomValido) {
+      return "Cupom MILAFAZODONTO"
     }
     return "Estudantes de Odontologia"
   }
@@ -287,6 +294,17 @@ const LPEstudante = () => {
             <FontAwesomeIcon icon={faTag} />
             {validandoCupom ? (
               <span>Validando cupom <strong>{cupomCode}</strong>...</span>
+            ) : cupomValido && cupomData ? (
+              <span>
+                Cupom <strong>{cupomCode}</strong> ativo!{' '}
+                <strong>
+                  {Number(cupomData.discountValue || 0).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}% de desconto
+                </strong>{' '}
+                aplicado.
+              </span>
             ) : cupomValido ? (
               <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado</span>
             ) : (
@@ -400,9 +418,9 @@ const LPEstudante = () => {
               <span>FEITA ESPECIFICAMENTE PARA ESTUDANTES</span>
             </div>
             <h2 className="opener-title">
-              Pare de <span className="highlight-red">perder noites</span> fazendo trabalhos e artigos.
+              Pare de <span className="highlight-red">perder noites</span> fazendo trabalhos e artigos e não entendendo o conteúdo.
               <br />
-              Use IA e <span className="highlight-blue">seja mais produtivo.</span>
+              Use IA e <span className="highlight-blue">seja mais produtivo e consiga resumir o conteúdo.</span>
             </h2>
             <p className="opener-subtitle">
               A NODON não é apenas uma ferramenta. É seu <strong>assistente pessoal de estudos</strong> para transformar sua jornada acadêmica e alcançar o sucesso que você merece.
@@ -775,7 +793,7 @@ const LPEstudante = () => {
                       )}
                       <div className="plan-free-trial">
                         <FontAwesomeIcon icon={faGift} />
-                        <span>7 dias grátis para você</span>
+                        <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
                       </div>
                     </div>
                     <div className="plan-features-list">

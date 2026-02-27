@@ -169,10 +169,10 @@ const Checkout = () => {
 
           // Identifica o plano pelo ID ou nome
           const isPlanoInicial = plano.id === '3521d057-f3b3-4ae5-9966-a5bdeddc38f2' || plano.nome?.toLowerCase().includes('inicial')
-          const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('chat')
+          const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
 
           if (isPlanoChat) {
-            // Plano Chat - Apenas Chat
+            // Plano Estudante - Apenas Chat
             badge = 'Ideal para estudantes'
             features = [
               'Chat especializado em odontologia 24/7',
@@ -236,7 +236,7 @@ const Checkout = () => {
                 return { original: 399, promocional: null }
               case 'Plano Enterprise':
                 return { original: 499, promocional: null }
-              case 'Plano Chat':
+              case 'Plano Estudante':
                 return { original: 49, promocional: 39 }
               default:
                 return { original: 0, promocional: null }
@@ -1242,7 +1242,7 @@ const Checkout = () => {
                         <div className="plan-feature-count">{plan.patients}</div>
                         <div className="plan-free-trial-checkout">
                           <FontAwesomeIcon icon={faGift} />
-                          <span>7 dias grátis para você</span>
+                          <span>{plan.name?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
                         </div>
                       </div>
                       <button 
@@ -1565,7 +1565,7 @@ const Checkout = () => {
                         
                         <div className="summary-free-trial">
                           <FontAwesomeIcon icon={faGift} />
-                          <span>7 dias grátis para você</span>
+                          <span>7 dias de teste grátis para você</span>
                         </div>
                         
                         <div className="summary-plan-details">

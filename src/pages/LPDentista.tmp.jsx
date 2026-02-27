@@ -20,7 +20,7 @@ import dentistaImg from '../img/especializacao-em-odontologia-1.jpg'
 import xldentistaImg from '../img/xldentista.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import julia20Img from '../img/JULIA20.jpeg'
-import milafazodontoDentistaImg from '../img/MILAFAZODONTO_DENTISTA.jpeg'
+import milafazodontoDentistaImg from '../img/MILAFAZODONTO_DENTISTA.jpg'
 import './LPDentista.css'
 
 // Componente individual para cada card de plano - gerencia seu próprio estado
@@ -115,7 +115,7 @@ const PricingCard = ({
         )}
         <div className="plan-free-trial">
           <FontAwesomeIcon icon={faGift} />
-          <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
+          <span>7 dias de teste grátis para você</span>
         </div>
       </div>
       <div className="plan-features-wrapper">
@@ -205,16 +205,16 @@ const LPDentista = () => {
       const response = await api.get('/planos')
       const planosBackend = response.data?.data || response.data || []
       
-      // IDs dos planos que devem ser excluídos (planos de teste e Plano Estudante)
+      // IDs dos planos que devem ser excluídos (planos de teste e Plano Chat)
       const planosExcluidos = [
         'ca772fbf-d9c7-4ef7-9f6c-84e535c393f0',  // Plano Teste
-        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'   // Plano Estudante
+        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'   // Plano Chat
       ]
       
       // Filtra todos os planos ativos, exceto os planos excluídos
-      // Exclui o Plano Estudante da landing page de dentista
+      // Exclui o Plano Chat da landing page de dentista
       const planosIniciais = planosBackend.filter(plano => {
-        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
+        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('chat')
         return plano.ativo && !planosExcluidos.includes(plano.id) && !isPlanoChat
       })
 
@@ -244,10 +244,10 @@ const LPDentista = () => {
 
         // Identifica o plano pelo ID ou nome
         const isPlanoInicial = plano.id === '3521d057-f3b3-4ae5-9966-a5bdeddc38f2' || plano.nome?.toLowerCase().includes('inicial')
-        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
+        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('chat')
 
         if (isPlanoChat) {
-          // Plano Estudante - Apenas Chat
+          // Plano Chat - Apenas Chat
           badge = 'Ideal para Estudantes'
           features = [
             'Chat especializado em odontologia 24/7',
@@ -480,17 +480,6 @@ const LPDentista = () => {
             <FontAwesomeIcon icon={faTag} />
             {validandoCupom ? (
               <span>Validando cupom <strong>{cupomCode}</strong>...</span>
-            ) : cupomValido && cupomData ? (
-              <span>
-                Cupom <strong>{cupomCode}</strong> ativo!{' '}
-                <strong>
-                  {Number(cupomData.discountValue || 0).toLocaleString('pt-BR', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                  })}% de desconto
-                </strong>{' '}
-                aplicado.
-              </span>
             ) : cupomValido ? (
               <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado</span>
             ) : (

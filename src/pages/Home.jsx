@@ -45,7 +45,7 @@ const Home = () => {
         return { original: 399, promocional: null }
       case 'Plano Enterprise':
         return { original: 499, promocional: null }
-      case 'Plano Chat':
+      case 'Plano Estudante':
         return { original: 49, promocional: 39 }
       default:
         return { original: 0, promocional: null }
@@ -530,7 +530,7 @@ const Home = () => {
                 const badge = plano.badge || plano.label || null
                 const featured = plano.featured || plano.destaque || false
                 const acesso = plano.acesso || null
-                const isPlanoChat = acesso === 'chat' || nomePlano.toLowerCase().includes('chat')
+                const isPlanoChat = acesso === 'chat' || nomePlano.toLowerCase().includes('estudante') || nomePlano.toLowerCase().includes('chat')
                 const isPlanoInicial = nomePlano.toLowerCase().includes('inicial')
                 
                 const formatarValor = (valor) => {
@@ -636,7 +636,7 @@ const Home = () => {
                       </div>
                       <div className="home-plan-free-trial">
                         <FontAwesomeIcon icon={faGift} />
-                        <span>7 dias grátis para você</span>
+                        <span>{nomePlano.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
                       </div>
                     </div>
                     <button 
