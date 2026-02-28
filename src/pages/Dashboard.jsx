@@ -521,7 +521,7 @@ const Dashboard = () => {
           {/* Uso de Tokens */}
           <div className="content-section">
             <div className="section-header">
-              <h2 className="section-title">Uso de tokens no Chat</h2>
+              <h2 className="section-title">Uso da IA</h2>
             </div>
             <div className="tokens-section">
               <div className="tokens-display">

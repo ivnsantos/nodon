@@ -440,7 +440,7 @@ const Perfil = () => {
         <div className="perfil-card token-card">
           <div className="card-header">
             <h2>
-              <FontAwesomeIcon icon={faCoins} /> Uso de Tokens do Chat
+              <FontAwesomeIcon icon={faCoins} /> Uso da IA
             </h2>
           </div>
           <div className="card-body">
