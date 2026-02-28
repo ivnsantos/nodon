@@ -13,6 +13,7 @@ import {
   faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
+import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
 import nodoLogo from '../img/nodo.png'
@@ -1257,6 +1258,7 @@ const LPDentista = () => {
           </div>
         </div>
       </footer>
+      <FloatingWhatsApp />
     </div>
   )
 }

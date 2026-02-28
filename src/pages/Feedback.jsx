@@ -28,6 +28,7 @@ const Feedback = () => {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [publicLink, setPublicLink] = useState(null)
   const [showLinkModal, setShowLinkModal] = useState(false)
+  const [questionarioToDelete, setQuestionarioToDelete] = useState(null)
 
   useEffect(() => {
     loadQuestionarios()
@@ -87,17 +88,27 @@ const Feedback = () => {
     navigate(`/app/feedback/${questionario.id}/editar`)
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir este questionário?')) return
-    
+  const handleDeleteClick = (questionario) => {
+    setQuestionarioToDelete(questionario)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!questionarioToDelete) return
+    const id = questionarioToDelete.id
     try {
       await api.delete(`/questionarios/${id}`)
       showSuccess('Questionário excluído com sucesso!')
       loadQuestionarios()
+      setQuestionarioToDelete(null)
     } catch (error) {
       console.error('Erro ao excluir questionário:', error)
       showError('Erro ao excluir questionário')
+      setQuestionarioToDelete(null)
     }
+  }
+
+  const handleCancelDelete = () => {
+    setQuestionarioToDelete(null)
   }
 
   const handleEnviar = async () => {
@@ -344,8 +355,13 @@ const Feedback = () => {
                     <FontAwesomeIcon icon={faEdit} />
                   </button>
                   <button
+                    type="button"
                     className="btn-icon btn-danger"
-                    onClick={() => handleDelete(questionario.id)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleDeleteClick(questionario)
+                    }}
                     title="Excluir"
                   >
                     <FontAwesomeIcon icon={faTrash} />
@@ -588,6 +604,35 @@ const Feedback = () => {
             <div className="modal-actions">
               <button type="button" className="btn-primary" onClick={handleCloseLinkModal}>
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {questionarioToDelete && (
+        <div className="modal-overlay" onClick={handleCancelDelete}>
+          <div className="modal-content modal-confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirmar Exclusão</h2>
+              <button type="button" className="btn-close" onClick={handleCancelDelete}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p className="modal-confirm-message">
+                Tem certeza que deseja excluir o questionário <strong>"{questionarioToDelete.titulo}"</strong>?
+              </p>
+              <p className="modal-confirm-warning">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn-secondary" onClick={handleCancelDelete}>
+                Cancelar
+              </button>
+              <button type="button" className="btn-danger" onClick={handleConfirmDelete}>
+                <FontAwesomeIcon icon={faTrash} />
+                Excluir
               </button>
             </div>
           </div>

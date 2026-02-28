@@ -283,6 +283,46 @@
   max-width: 700px;
 }
 
+.modal-content.modal-confirm {
+  max-width: 440px;
+  min-height: auto;
+}
+
+.modal-confirm-message {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+
+.modal-confirm-warning {
+  color: rgba(239, 68, 68, 0.9);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Botão de ação perigosa (excluir) em modais */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #fff;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

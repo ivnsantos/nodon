@@ -7,6 +7,7 @@ import {
   faChevronRight, faChevronLeft, faTag, faLock, faChevronDown, faChevronUp,
   faExclamationTriangle, faTimes, faCheck, faPhone, faUsers, faShieldAlt, faGift
 } from '@fortawesome/free-solid-svg-icons'
+import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import axios from 'axios'
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
@@ -1947,6 +1948,7 @@ const Checkout = () => {
         </div>,
         document.body
       )}
+      <FloatingWhatsApp />
     </div>
   )
 }

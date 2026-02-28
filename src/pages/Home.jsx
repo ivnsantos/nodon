@@ -13,6 +13,7 @@ import {
   faArrowRight, faCheck, faXmark, faChartLine, faGift
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons'
+import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
@@ -998,6 +999,7 @@ const Home = () => {
         message={alertConfig.message}
         type={alertConfig.type}
       />
+      <FloatingWhatsApp />
     </div>
   )
 }
