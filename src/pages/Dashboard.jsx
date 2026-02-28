@@ -6,7 +6,7 @@ import {
   faCheckCircle, faArrowRight, faPlus, faEye,
   faSpinner, faClock
 } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
 import './Dashboard.css'
 

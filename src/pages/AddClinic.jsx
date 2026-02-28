@@ -9,7 +9,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import './Checkout.css'
 
 const AddClinic = () => {

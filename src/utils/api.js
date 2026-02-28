@@ -96,17 +96,18 @@ api.interceptors.request.use(
   }
 )
 
-// Interceptor para tratar erros de autenticação
+// Evitar múltiplos redirects ao mesmo tempo (várias requisições 401)
+let redirectingToLogin = false
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Não redirecionar se já estiver na página de login
       const currentPath = window.location.pathname
-      if (currentPath !== '/login' && currentPath !== '/register') {
+      if (currentPath !== '/login' && currentPath !== '/register' && !redirectingToLogin) {
+        redirectingToLogin = true
         sessionStorage.removeItem('token')
         sessionStorage.removeItem('user')
-        window.location.href = '/login'
+        window.location.replace('/login')
       }
     }
     return Promise.reject(error)

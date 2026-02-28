@@ -1,7 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import ErrorBoundary from './components/ErrorBoundary'
+import { initAnalytics } from './utils/analytics'
 import './index.css'
+
+// GTM e Meta Pixel só em produção
+initAnalytics()
 
 // Ignorar erros de scripts externos (extensões do navegador)
 window.addEventListener('error', (event) => {
@@ -68,7 +73,9 @@ window.addEventListener('error', (event) => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>,
 )
 

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUserPlus, faSearch, faUser, faCalendarAlt,
   faPhone, faEnvelope, faMapMarkerAlt, faEdit,
   faEye, faTrash, faFilter, faChevronDown, faCheck,
   faChartBar, faTrophy, faDollarSign, faFileInvoiceDollar,
-  faTimes, faMedkit
+  faTimes, faMedkit, faSpinner
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -34,6 +34,7 @@ const Clientes = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState({})
+  const [loadingStatusClienteId, setLoadingStatusClienteId] = useState(null)
   const statusDropdownRefs = useRef({})
   
   // Estados para abas e analytics
@@ -360,12 +361,13 @@ const Clientes = () => {
       return
     }
 
-    // Fechar dropdown imediatamente para melhor UX
+// Fechar dropdown imediatamente para melhor UX
     setStatusDropdownOpen(prev => {
       const newState = { ...prev }
       delete newState[clienteId]
       return newState
     })
+    setLoadingStatusClienteId(clienteId)
 
     try {
       const payload = {
@@ -375,31 +377,28 @@ const Clientes = () => {
       }
 
       await api.put(`/pacientes/${clienteId}`, payload)
-      
-      // Se chegou aqui, a requisição foi bem-sucedida (axios só lança erro para status >= 400)
-      // Atualizar estado local
-      setClientes(clientes.map(c => 
-        c.id === clienteId 
+
+      setClientes(clientes.map(c =>
+        c.id === clienteId
           ? { ...c, status: novoStatusValue }
           : c
       ))
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
-      
-      // Só mostrar erro se realmente for um erro da API (status >= 400)
+
       if (error.response && error.response.status >= 400) {
-        const errorMessage = error.response.data?.message || 
-                           error.response.data?.error || 
+        const errorMessage = error.response.data?.message ||
+                           error.response.data?.error ||
                            `Erro ${error.response.status}: ${error.response.statusText}`
         showError(errorMessage)
       } else if (error.request) {
-        // A requisição foi feita, mas não houve resposta
         showError('Erro de conexão. Verifique sua internet e tente novamente.')
       } else {
-        // Erro ao configurar a requisição
         const errorMessage = error.message || 'Erro ao atualizar status. Tente novamente.'
         showError(errorMessage)
       }
+    } finally {
+      setLoadingStatusClienteId(null)
     }
   }
 
@@ -536,37 +535,46 @@ const Clientes = () => {
                       className="status-dropdown-container" 
                       ref={el => statusDropdownRefs.current[cliente.id] = el}
                     >
-                      <span 
-                        className="status-badge status-badge-clickable"
-                        style={{ backgroundColor: getStatusColor(cliente.status) }}
-                        onClick={(e) => handleToggleStatusDropdown(cliente.id, e)}
-                        title="Clique para alterar status"
-                      >
-                        {getStatusLabel(cliente.status)}
-                        <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen[cliente.id] ? 'open' : ''}`} />
-                      </span>
-                      {statusDropdownOpen[cliente.id] && (
-                        <div 
-                          className="status-dropdown-menu"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
-                            <div
-                              key={statusOption}
-                              className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
-                              style={{ backgroundColor: getStatusColor(statusOption) }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleUpdateStatus(cliente.id, statusOption)
-                              }}
+                      {loadingStatusClienteId === cliente.id ? (
+                        <span className="status-dropdown-loading" title="Salvando...">
+                          <FontAwesomeIcon icon={faSpinner} spin className="status-dropdown-loading-spinner" />
+                          <span className="status-dropdown-loading-text">Salvando...</span>
+                        </span>
+                      ) : (
+                        <>
+                          <span 
+                            className="status-badge status-badge-clickable"
+                            style={{ backgroundColor: getStatusColor(cliente.status) }}
+                            onClick={(e) => handleToggleStatusDropdown(cliente.id, e)}
+                            title="Clique para alterar status"
+                          >
+                            {getStatusLabel(cliente.status)}
+                            <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen[cliente.id] ? 'open' : ''}`} />
+                          </span>
+                          {statusDropdownOpen[cliente.id] && (
+                            <div 
+                              className="status-dropdown-menu"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <span>{getStatusLabel(statusOption)}</span>
-                              {cliente.status === statusOption && (
-                                <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
-                              )}
+                              {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
+                                <div
+                                  key={statusOption}
+                                  className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
+                                  style={{ backgroundColor: getStatusColor(statusOption) }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleUpdateStatus(cliente.id, statusOption)
+                                  }}
+                                >
+                                  <span>{getStatusLabel(statusOption)}</span>
+                                  {cliente.status === statusOption && (
+                                    <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ) : (

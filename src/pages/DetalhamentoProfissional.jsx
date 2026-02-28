@@ -420,9 +420,9 @@ const DetalhamentoProfissional = () => {
         
         // Linhas da tabela
         necessidades.forEach((item, index) => {
-          // Texto das células
-          const procedimento = typeof item === 'object' ? (item.procedimento || '-') : (item || '-')
-          const anotacoes = typeof item === 'object' ? (item.anotacoes || '-') : '-'
+          // Texto das células (API pode retornar { descricao, observacao } ou { procedimento, anotacoes })
+          const procedimento = typeof item === 'object' ? (item.procedimento || item.descricao || '-') : (item || '-')
+          const anotacoes = typeof item === 'object' ? (item.anotacoes || item.observacao || '-') : '-'
           
           const procedimentoLines = pdf.splitTextToSize(procedimento, colWidth1 - 6)
           const anotacoesLines = pdf.splitTextToSize(anotacoes, colWidth2 - 6)
@@ -632,10 +632,11 @@ const DetalhamentoProfissional = () => {
               {detalhamento.necessidades.map((necessidade, index) => {
                 let necessidadeValue = ''
                 if (typeof necessidade === 'object' && necessidade !== null) {
-                  // Mostrar procedimento primeiro, depois anotação
                   const partes = []
                   if (necessidade.procedimento) partes.push(necessidade.procedimento)
                   if (necessidade.anotacoes) partes.push(necessidade.anotacoes)
+                  if (necessidade.descricao) partes.push(necessidade.descricao)
+                  if (necessidade.observacao) partes.push(necessidade.observacao)
                   necessidadeValue = partes.join(' - ') || 'Nenhuma informação'
                 } else if (typeof necessidade === 'string') {
                   necessidadeValue = necessidade || 'Nenhuma informação'

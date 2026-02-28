@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faLock, faArrowRight, faXRay, faFileMedical, faSearch, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { faGoogle, faFacebook } from '@fortawesome/free-brands-svg-icons'

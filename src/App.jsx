@@ -50,7 +50,7 @@ import PrecificacaoProduto from './pages/PrecificacaoProduto'
 import Anotacoes from './pages/Anotacoes'
 import AgendamentoPublico from './pages/AgendamentoPublico'
 import ConfirmarAgendamento from './pages/ConfirmarAgendamento'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext.jsx'
 import { ChatHeaderProvider } from './context/ChatHeaderContext'
 
 function AppRoutes() {
@@ -135,6 +135,11 @@ function AppRoutes() {
             <AnamneseEntrada />
           </PublicRoute>
         } />
+        <Route path="/anamneses/publica/:id" element={
+          <PublicRoute>
+            <AnamneseEntrada />
+          </PublicRoute>
+        } />
         <Route path="/responder-anamnese/:id/iniciar" element={
           <PublicRoute>
             <ResponderAnamnese />
@@ -146,6 +151,16 @@ function AppRoutes() {
           </PublicRoute>
         } />
         <Route path="/responder-questionario/:id/iniciar" element={
+          <PublicRoute>
+            <ResponderQuestionarioForm />
+          </PublicRoute>
+        } />
+        <Route path="/questionarios/resposta/:id" element={
+          <PublicRoute>
+            <ResponderQuestionario />
+          </PublicRoute>
+        } />
+        <Route path="/questionarios/resposta/:id/iniciar" element={
           <PublicRoute>
             <ResponderQuestionarioForm />
           </PublicRoute>

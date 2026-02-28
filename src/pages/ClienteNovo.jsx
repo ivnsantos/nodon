@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft, faSave, faUser, faCalendarAlt,
@@ -9,6 +9,7 @@ import {
   faClipboardQuestion
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import { necessidadesToDisplayStrings } from '../utils/necessidades'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import './ClienteNovo.css'
@@ -123,37 +124,9 @@ const ClienteNovo = () => {
           return cpf
         }
 
-        // Normalizar necessidades para array
-        const necessidadesNormalizadas = (() => {
-          const necessidadesRaw = paciente.informacoesClinicas?.necessidades || paciente.necessidades
-          
-          if (!necessidadesRaw) return []
-          
-          if (Array.isArray(necessidadesRaw)) {
-            return necessidadesRaw.map(nec => {
-              if (typeof nec === 'string') return nec
-              if (Array.isArray(nec)) return nec.join(', ')
-              if (typeof nec === 'object' && nec !== null) {
-                return JSON.stringify(nec)
-              }
-              return String(nec)
-            })
-          }
-          
-          if (typeof necessidadesRaw === 'string' && necessidadesRaw.trim()) {
-            try {
-              const parsed = JSON.parse(necessidadesRaw)
-              if (Array.isArray(parsed)) {
-                return parsed.map(nec => typeof nec === 'string' ? nec : String(nec))
-              }
-            } catch (e) {
-              return [necessidadesRaw]
-            }
-            return [necessidadesRaw]
-          }
-          
-          return []
-        })()
+        const necessidadesNormalizadas = necessidadesToDisplayStrings(
+          paciente.informacoesClinicas?.necessidades || paciente.necessidades
+        )
 
         setFormData({
           nome: paciente.nome || '',

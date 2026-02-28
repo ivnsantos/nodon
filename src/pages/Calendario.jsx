@@ -5,7 +5,7 @@ import {
   faClock, faUser, faMapMarkerAlt, faCog, faTrash, faEdit, faPalette, faTimes, faStickyNote, faUserCircle, faUserMd,
   faSpinner, faIdCard, faEnvelope, faCheckCircle, faLink, faInfoCircle, faPhone, faComment, faBell
 } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
@@ -52,6 +52,7 @@ const Calendario = () => {
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [linkGerado, setLinkGerado] = useState('')
   const [consultaGeradaData, setConsultaGeradaData] = useState(null)
+  const [solicitandoConfirmacaoId, setSolicitandoConfirmacaoId] = useState(null)
   const [smsNomeModal, setSmsNomeModal] = useState('')
   const [smsTelefoneModal, setSmsTelefoneModal] = useState('')
 
@@ -734,23 +735,22 @@ const Calendario = () => {
 
   // Função para solicitar confirmação do paciente
   const handleSolicitarConfirmacao = async (consultaId) => {
+    if (!consultaId) {
+      showError('ID da consulta não encontrado')
+      return
+    }
+    setSolicitandoConfirmacaoId(consultaId)
     try {
-      if (!consultaId) {
-        showError('ID da consulta não encontrado')
-        return
-      }
-
       await api.post('/calendario/consultas/solicitar-confirmacao', {
         consultaId: consultaId
       })
-      
       showSuccess('Solicitação de confirmação enviada com sucesso!')
-      
-      // Recarregar consultas para atualizar o status
       await fetchConsultas()
     } catch (error) {
       console.error('Erro ao solicitar confirmação:', error)
       showError(error.response?.data?.message || 'Erro ao solicitar confirmação. Tente novamente.')
+    } finally {
+      setSolicitandoConfirmacaoId(null)
     }
   }
 
@@ -1194,6 +1194,7 @@ const Calendario = () => {
           onReload={fetchConsultas}
           onSendSMS={handleSendSMS}
           onSolicitarConfirmacao={handleSolicitarConfirmacao}
+          solicitandoConfirmacaoId={solicitandoConfirmacaoId}
           isTodayOrTomorrow={isTodayOrTomorrow}
           selectedClinicData={selectedClinicData}
         />
@@ -1470,7 +1471,7 @@ const EventTypesModal = ({ eventTypes, onClose, onAdd, onEdit, onDelete, editing
 }
 
 // Componente Modal de Nova Consulta
-const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete, onReload, onSendSMS, onSolicitarConfirmacao, isTodayOrTomorrow, selectedClinicData }) => {
+const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete, onReload, onSendSMS, onSolicitarConfirmacao, solicitandoConfirmacaoId, isTodayOrTomorrow, selectedClinicData }) => {
   
   // Estado para controlar se está em modo edição ou visualização
   const [isEditing, setIsEditing] = useState(!editingEvent)
@@ -2155,6 +2156,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
                             type="button"
                             onClick={() => onSolicitarConfirmacao(editingEvent.id)}
                             className="btn-solicitar-confirmacao"
+                            disabled={solicitandoConfirmacaoId === editingEvent.id}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -2167,12 +2169,22 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
                               borderRadius: '0.5rem',
                               fontSize: '0.875rem',
                               fontWeight: 600,
-                              cursor: 'pointer',
+                              cursor: solicitandoConfirmacaoId === editingEvent.id ? 'wait' : 'pointer',
+                              opacity: solicitandoConfirmacaoId === editingEvent.id ? 0.85 : 1,
                               transition: 'all 0.3s ease'
                             }}
                           >
-                            <FontAwesomeIcon icon={faBell} />
-                            Pedir Confirmação
+                            {solicitandoConfirmacaoId === editingEvent.id ? (
+                              <>
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                                Enviando...
+                              </>
+                            ) : (
+                              <>
+                                <FontAwesomeIcon icon={faBell} />
+                                Pedir Confirmação
+                              </>
+                            )}
                           </button>
                         </div>
                       )}

@@ -1,14 +1,50 @@
-import { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import api from '../utils/api'
+import { AuthContext } from './AuthContextRef'
 
-export const AuthContext = createContext()
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider')
-  }
-  return context
+// Tela de loading com botão "Continuar" após 3s caso trave no F5
+function LoadingFallback({ onContinue }) {
+  const [showRetry, setShowRetry] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setShowRetry(true), 3000)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        width: '100%',
+        background: '#0a0e27',
+        color: '#e2e8f0'
+      }}
+      aria-busy="true"
+    >
+      <div style={{ marginBottom: 12 }}>Carregando...</div>
+      <div style={{ fontSize: 12, opacity: 0.7 }}>Restaurando sessão</div>
+      {showRetry && (
+        <button
+          type="button"
+          onClick={onContinue}
+          style={{
+            marginTop: 24,
+            padding: '10px 20px',
+            fontSize: 14,
+            background: '#0ea5e9',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer'
+          }}
+        >
+          Continuar
+        </button>
+      )}
+    </div>
+  )
 }
 
 export const AuthProvider = ({ children }) => {
@@ -20,96 +56,88 @@ export const AuthProvider = ({ children }) => {
   const [planoAcesso, setPlanoAcesso] = useState(null) // 'chat' ou 'all'
 
   useEffect(() => {
-    const token = sessionStorage.getItem('token')
-    const savedUser = sessionStorage.getItem('user')
-    const savedClinicId = sessionStorage.getItem('selectedClinicId')
-    
-    if (token && savedUser) {
-      // Restaurar usuário do sessionStorage
-      try {
-        setUser(JSON.parse(savedUser))
-      } catch (error) {
-        console.error('Erro ao restaurar usuário:', error)
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('user')
+    // Garantir que loading nunca fique travado: após 1,2s força setLoading(false)
+    const loadingTimeout = setTimeout(() => setLoading(false), 1200)
+
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        setLoading(false)
+        return
       }
-    }
-    
-    if (savedClinicId) {
-      setSelectedClinicIdState(savedClinicId)
-      // Tentar restaurar dados do cliente master também
-      const savedClinicData = sessionStorage.getItem('selectedClinicData')
-      if (savedClinicData) {
+      const token = sessionStorage.getItem('token')
+      const savedUser = sessionStorage.getItem('user')
+      const savedClinicId = sessionStorage.getItem('selectedClinicId')
+
+      if (token && savedUser) {
         try {
-          const clinicData = JSON.parse(savedClinicData)
-          setSelectedClinicData(clinicData)
-          
-          // Restaurar acesso do plano
-          const savedAcesso = sessionStorage.getItem('planoAcesso')
-          if (savedAcesso) {
-            setPlanoAcesso(savedAcesso)
-          } else {
-            // Tentar extrair do relacionamento ou plano
-            const acesso = clinicData.relacionamento?.acesso || clinicData.plano?.acesso || 'all'
-            setPlanoAcesso(acesso)
-            sessionStorage.setItem('planoAcesso', acesso)
-          }
-          
-          // Restaurar relacionamento se existir
-          if (clinicData.relacionamento) {
-            sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
-            // Extrair userComumId do relacionamento apenas se for tipo "usuario"
-            const relacionamento = clinicData.relacionamento
-            if (relacionamento.tipo === 'usuario' && relacionamento.id) {
-              setUserComumId(relacionamento.id)
-              sessionStorage.setItem('userComumId', relacionamento.id)
+          setUser(JSON.parse(savedUser))
+        } catch (error) {
+          console.error('Erro ao restaurar usuário:', error)
+          sessionStorage.removeItem('token')
+          sessionStorage.removeItem('user')
+        }
+      }
+
+      if (savedClinicId) {
+        setSelectedClinicIdState(savedClinicId)
+        const savedClinicData = sessionStorage.getItem('selectedClinicData')
+        if (savedClinicData) {
+          try {
+            const clinicData = JSON.parse(savedClinicData)
+            setSelectedClinicData(clinicData)
+            const savedAcesso = sessionStorage.getItem('planoAcesso')
+            if (savedAcesso) {
+              setPlanoAcesso(savedAcesso)
             } else {
-              // Se for clienteMaster ou outro tipo, limpar userComumId
+              const acesso = clinicData.relacionamento?.acesso || clinicData.plano?.acesso || 'all'
+              setPlanoAcesso(acesso)
+              sessionStorage.setItem('planoAcesso', acesso)
+            }
+            if (clinicData.relacionamento) {
+              sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+              const relacionamento = clinicData.relacionamento
+              if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+                setUserComumId(relacionamento.id)
+                sessionStorage.setItem('userComumId', relacionamento.id)
+              } else {
+                setUserComumId(null)
+                sessionStorage.removeItem('userComumId')
+              }
+            } else {
               setUserComumId(null)
               sessionStorage.removeItem('userComumId')
             }
-          } else {
-            // Se não houver relacionamento, limpar userComumId
-            setUserComumId(null)
-            sessionStorage.removeItem('userComumId')
+          } catch (error) {
+            console.error('Erro ao restaurar dados do cliente master:', error)
           }
-        } catch (error) {
-          console.error('Erro ao restaurar dados do cliente master:', error)
         }
-      }
-      
-      // Restaurar acesso do plano se não foi restaurado acima
-      const savedAcesso = sessionStorage.getItem('planoAcesso')
-      if (savedAcesso) {
-        setPlanoAcesso(savedAcesso)
-      }
-      
-      // Restaurar userComumId apenas se o relacionamento for tipo "usuario"
-      const relacionamentoStr = sessionStorage.getItem('relacionamento')
-      if (relacionamentoStr) {
-        try {
-          const relacionamento = JSON.parse(relacionamentoStr)
-          if (relacionamento.tipo === 'usuario' && relacionamento.id) {
-            const savedUserComumId = sessionStorage.getItem('userComumId')
-            if (savedUserComumId) {
-              setUserComumId(savedUserComumId)
+        const savedAcesso = sessionStorage.getItem('planoAcesso')
+        if (savedAcesso) setPlanoAcesso(savedAcesso)
+        const relacionamentoStr = sessionStorage.getItem('relacionamento')
+        if (relacionamentoStr) {
+          try {
+            const relacionamento = JSON.parse(relacionamentoStr)
+            if (relacionamento.tipo === 'usuario' && relacionamento.id) {
+              const savedUserComumId = sessionStorage.getItem('userComumId')
+              if (savedUserComumId) setUserComumId(savedUserComumId)
+            } else {
+              setUserComumId(null)
+              sessionStorage.removeItem('userComumId')
             }
-          } else {
-            // Se for clienteMaster, limpar userComumId
-            setUserComumId(null)
-            sessionStorage.removeItem('userComumId')
+          } catch (error) {
+            console.error('Erro ao parsear relacionamento:', error)
           }
-        } catch (error) {
-          console.error('Erro ao parsear relacionamento:', error)
+        } else {
+          setUserComumId(null)
+          sessionStorage.removeItem('userComumId')
         }
-      } else {
-        // Se não houver relacionamento, limpar userComumId
-        setUserComumId(null)
-        sessionStorage.removeItem('userComumId')
       }
+    } catch (err) {
+      console.error('Erro na inicialização do AuthContext:', err)
+    } finally {
+      setLoading(false)
     }
-    
-    setLoading(false)
+    return () => clearTimeout(loadingTimeout)
   }, [])
 
   const login = async (email, password) => {
@@ -558,6 +586,13 @@ export const AuthProvider = ({ children }) => {
     getRelacionamento,
     clearUserComumId
   ])
+
+  // Tela de carregamento no refresh; com botão de recuperação se travar
+  if (loading) {
+    return (
+      <LoadingFallback onContinue={() => setLoading(false)} />
+    )
+  }
 
   return (
     <AuthContext.Provider value={value}>

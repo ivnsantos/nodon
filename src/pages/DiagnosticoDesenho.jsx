@@ -4,7 +4,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
@@ -198,7 +198,13 @@ const DiagnosticoDesenho = () => {
               if (typeof item === 'string') {
                 return { procedimento: item, anotacoes: '' }
               }
-              // Garantir que tem a estrutura correta
+              // API retorna { id, descricao, status, observacao, ... }
+              if (typeof item === 'object' && item !== null && 'descricao' in item) {
+                return {
+                  procedimento: item.descricao || '',
+                  anotacoes: item.observacao || ''
+                }
+              }
               return {
                 procedimento: item.procedimento || '',
                 anotacoes: item.anotacoes || ''

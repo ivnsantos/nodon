@@ -393,6 +393,238 @@
   flex-shrink: 0;
 }
 
+/* Lista de necessidades: mesmo layout da seção (card, bordas, fundo) */
+.detalhes-list-necessidades .detalhes-list-item-necessidade {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.detalhes-list-necessidades .detalhes-list-item-necessidade:last-child {
+  margin-bottom: 0;
+}
+
+.detalhes-list-necessidades .detalhes-list-item-necessidade:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.detalhes-list-necessidades .necessidade-texto {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.necessidade-status-wrapper {
+  display: inline-flex;
+  align-items: center;
+  min-width: 150px;
+  flex-shrink: 0;
+}
+
+.detalhes-list-necessidades .necessidade-list-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Dropdown no mesmo layout da seção Necessidades (fundo, borda e cantos iguais) */
+.detalhes-section .necessidade-status-wrapper .necessidade-status-select,
+.detalhes-list-necessidades .necessidade-status-select {
+  padding: 0.5rem 2rem 0.5rem 0.875rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  min-width: 160px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.detalhes-list-necessidades .necessidade-status-select:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.detalhes-list-necessidades .necessidade-status-select:focus {
+  outline: none;
+  border-color: rgba(14, 165, 233, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+}
+
+.detalhes-list-necessidades .necessidade-status-select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.detalhes-list-necessidades .necessidade-status-select option {
+  background: #1e293b;
+  color: #ffffff;
+  padding: 0.5rem;
+}
+
+.detalhes-list-necessidades .necessidade-status-select option:hover,
+.detalhes-list-necessidades .necessidade-status-select option:focus {
+  background: #334155;
+}
+
+.necessidade-status-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.necessidade-status-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.necessidade-status-loading-text {
+  white-space: nowrap;
+}
+
+/* Dropdown colorido (layout das necessidades) */
+.necessidade-status-dropdown {
+  position: relative;
+}
+
+.necessidade-status-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  color: #ffffff !important;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  min-width: 150px;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Cores sólidas por status no trigger (igual ao layout da referência) */
+.necessidade-status-trigger.trigger-status-analisado_ia { background-color: #2563eb !important; }
+.necessidade-status-trigger.trigger-status-validado { background-color: #16a34a !important; }
+.necessidade-status-trigger.trigger-status-em_andamento { background-color: #ea580c !important; }
+.necessidade-status-trigger.trigger-status-concluido { background-color: #7c3aed !important; }
+
+.necessidade-status-trigger:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.necessidade-status-trigger-label {
+  white-space: nowrap;
+}
+
+.necessidade-status-chevron {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Modal do dropdown: layout colorido (cada opção = bloco sólido com cor) */
+.necessidade-status-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.35rem;
+  min-width: 100%;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.necessidade-status-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.875rem;
+  border: none;
+  border-radius: 0.5rem;
+  color: #ffffff !important;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Cores sólidas por status nas opções do dropdown */
+.necessidade-status-option.option-status-analisado_ia { background-color: #2563eb !important; }
+.necessidade-status-option.option-status-validado { background-color: #16a34a !important; }
+.necessidade-status-option.option-status-em_andamento { background-color: #ea580c !important; }
+.necessidade-status-option.option-status-concluido { background-color: #7c3aed !important; }
+
+.necessidade-status-option:hover {
+  filter: brightness(1.12);
+}
+
+.necessidade-status-option.active {
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+.necessidade-status-option-check {
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.achado-item-edit-com-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.achado-item-edit-com-status .achado-input {
+  flex: 1;
+  min-width: 200px;
+}
+
 .loading-spinner {
   width: 50px;
   height: 50px;
@@ -477,6 +709,71 @@
 
   .detalhes-info-card {
     padding: 1rem;
+  }
+
+  /* Necessidades: em mobile, texto em bloco e status em linha separada */
+  .detalhes-list-necessidades .detalhes-list-item-necessidade {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+    padding: 0.875rem 1rem;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .list-icon {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0.2em;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .necessidade-texto {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .necessidade-list-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .necessidade-status-wrapper {
+    min-width: 0;
+  }
+
+  .necessidade-status-trigger {
+    min-width: 140px;
+  }
+
+  .necessidade-status-menu {
+    right: 0;
+    left: auto;
+    min-width: 200px;
+    max-width: min(100vw - 2rem, 280px);
+  }
+
+  /* Edição de necessidades no mobile: input em cima, status + remover na mesma linha embaixo */
+  .detalhes-achados-edit .achado-item-edit-com-status {
+    gap: 0.5rem;
+  }
+
+  .detalhes-achados-edit .achado-item-edit-com-status .achado-input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .detalhes-achados-edit .achado-item-edit-com-status .necessidade-status-wrapper,
+  .detalhes-achados-edit .achado-item-edit-com-status .btn-remove-achado {
+    flex-shrink: 0;
   }
 }
 
@@ -650,10 +947,15 @@
   flex-shrink: 0;
 }
 
-.btn-remove-achado:hover {
+.btn-remove-achado:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.3);
   border-color: #ef4444;
   transform: scale(1.05);
+}
+
+.btn-remove-achado:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .detalhes-empty-message {

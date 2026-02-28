@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faUserSlash, faLock, faArrowLeft, faSpinner
 } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
 import './UsuarioInativo.css'
 

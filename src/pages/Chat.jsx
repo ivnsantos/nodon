@@ -8,7 +8,7 @@ import {
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { useChatHeader } from '../context/ChatHeaderContext'
 import nodoLogo from '../img/nodo.png'
 import './Chat.css'

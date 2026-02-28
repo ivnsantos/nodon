@@ -15,7 +15,7 @@ import {
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import './Precificacao.css'
 
 const Precificacao = () => {

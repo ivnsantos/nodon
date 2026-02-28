@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faXRay, faArrowLeft, faFileMedical, faCalendar, faUser,
   faCheck, faStethoscope, faFileAlt, faEnvelope, faPencil,
   faEdit, faSave, faTrash, faPlus, faTimes, faExclamationTriangle,
-  faEye
+  faEye, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import {
+  NECESSIDADES_STATUS_LABELS,
+  NECESSIDADES_STATUS_OPCOES_NOVA,
+  NECESSIDADES_STATUS_PADRAO_NOVA,
+  necessidadesApi
+} from '../utils/necessidades'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
@@ -181,10 +187,24 @@ const DiagnosticoDetalhes = () => {
   const [showImageSelector, setShowImageSelector] = useState(false)
   const [showDeleteDesenhoModal, setShowDeleteDesenhoModal] = useState(false)
   const [desenhoToDelete, setDesenhoToDelete] = useState(null)
+  const [loadingStatusNecessidadeId, setLoadingStatusNecessidadeId] = useState(null)
+  const [openStatusDropdownKey, setOpenStatusDropdownKey] = useState(null)
+  const [removingNecessidadeId, setRemovingNecessidadeId] = useState(null)
 
   useEffect(() => {
     loadDiagnostico()
   }, [id])
+
+  // Fechar dropdown de status ao clicar fora
+  useEffect(() => {
+    const closeDropdown = (e) => {
+      if (openStatusDropdownKey && !e.target.closest('.necessidade-status-dropdown')) {
+        setOpenStatusDropdownKey(null)
+      }
+    }
+    document.addEventListener('mousedown', closeDropdown)
+    return () => document.removeEventListener('mousedown', closeDropdown)
+  }, [openStatusDropdownKey])
 
   useEffect(() => {
     if (id && diagnostico) {
@@ -286,6 +306,8 @@ const DiagnosticoDetalhes = () => {
                 const partes = []
                 if (n.procedimento) partes.push(n.procedimento)
                 if (n.anotacoes) partes.push(n.anotacoes)
+                if (n.descricao) partes.push(n.descricao)
+                if (n.observacao) partes.push(n.observacao)
                 return partes.join(' - ') || ''
               }
               return typeof n === 'string' ? n : ''
@@ -316,11 +338,13 @@ const DiagnosticoDetalhes = () => {
           const partes = []
           if (nec.procedimento) partes.push(nec.procedimento)
           if (nec.anotacoes) partes.push(nec.anotacoes)
+          if (nec.descricao) partes.push(nec.descricao)
+          if (nec.observacao) partes.push(nec.observacao)
           return partes.join(' - ') || ''
         }
         return typeof nec === 'string' ? nec : ''
       }
-      
+
       todasNecessidades.forEach(nec => {
         const necValue = getNecValue(nec)
         
@@ -338,11 +362,13 @@ const DiagnosticoDetalhes = () => {
             const partes = []
             if (n.procedimento) partes.push(n.procedimento)
             if (n.anotacoes) partes.push(n.anotacoes)
+            if (n.descricao) partes.push(n.descricao)
+            if (n.observacao) partes.push(n.observacao)
             return partes.join(' - ') || ''
           }
           return typeof n === 'string' ? n : ''
         }
-        
+
         const prevValues = prev.map(n => getNecValue(n)).sort().join('|')
         const newValues = necessidadesUnicas.map(n => getNecValue(n)).sort().join('|')
         
@@ -434,14 +460,12 @@ const DiagnosticoDetalhes = () => {
               achadosNormalizados = radiografia.achados
             }
             
-            // Converter necessidades para array se necessário
-            let necessidadesNormalizadas = []
-            if (radiografia.necessidades) {
-              if (Array.isArray(radiografia.necessidades)) {
-                necessidadesNormalizadas = radiografia.necessidades
-              } else if (typeof radiografia.necessidades === 'string') {
-                necessidadesNormalizadas = radiografia.necessidades.split('\n').filter(line => line.trim())
-              }
+            // API retorna necessidades como array de objetos { id, descricao, status, ... }; manter objetos para exibir/alterar status
+            let necessidadesRaw = []
+            if (radiografia.necessidades && Array.isArray(radiografia.necessidades)) {
+              necessidadesRaw = radiografia.necessidades
+            } else if (radiografia.necessidades && typeof radiografia.necessidades === 'string') {
+              necessidadesRaw = radiografia.necessidades.split('\n').filter(line => line.trim()).map(texto => ({ descricao: texto, status: 'analisado_ia' }))
             }
             
             const diagnosticoCompleto = {
@@ -463,7 +487,7 @@ const DiagnosticoDetalhes = () => {
                 : [],
               achados: achadosNormalizados,
               recomendacoes: radiografia.recomendacoes || [],
-              necessidades: necessidadesNormalizadas,
+              necessidades: necessidadesRaw,
               created_at: radiografia.createdAt || new Date().toISOString(),
               responsavelId: responsavelId
             }
@@ -590,30 +614,26 @@ const DiagnosticoDetalhes = () => {
   }
 
   const handleSaveNecessidades = async () => {
-    // Preparar dados para a API - converter para array de strings
+    // Preparar dados para a API - extrair descrição (strings) para PUT radiografias
     const necessidadesArray = editedNecessidades
       .filter(nec => {
-        // Filtrar apenas necessidades válidas (não vazias)
-        if (typeof nec === 'string') {
-          return nec.trim() !== ''
-        }
+        if (typeof nec === 'string') return nec.trim() !== ''
         if (typeof nec === 'object' && nec !== null) {
-          const procedimento = nec.procedimento || ''
-          const anotacoes = nec.anotacoes || ''
-          return procedimento.trim() !== '' || anotacoes.trim() !== ''
+          const d = nec.descricao || nec.procedimento || ''
+          const a = nec.anotacoes || nec.observacao || ''
+          return d.trim() !== '' || a.trim() !== ''
         }
         return false
       })
       .map(nec => {
-        // Converter para string no formato "procedimento - anotacao"
-        if (typeof nec === 'string') {
-          return nec.trim()
-        }
+        if (typeof nec === 'string') return nec.trim()
         if (typeof nec === 'object' && nec !== null) {
           const partes = []
+          if (nec.descricao) partes.push(nec.descricao.trim())
           if (nec.procedimento) partes.push(nec.procedimento.trim())
           if (nec.anotacoes) partes.push(nec.anotacoes.trim())
-          return partes.join(' - ')
+          if (nec.observacao) partes.push(nec.observacao.trim())
+          return partes.filter(Boolean).join(' - ')
         }
         return ''
       })
@@ -638,16 +658,67 @@ const DiagnosticoDetalhes = () => {
   }
 
   const handleAddNecessidade = () => {
-    setEditedNecessidades([...editedNecessidades, ''])
+    setEditedNecessidades([...editedNecessidades, { descricao: '', status: NECESSIDADES_STATUS_PADRAO_NOVA }])
   }
 
-  const handleRemoveNecessidade = (index) => {
-    setEditedNecessidades(editedNecessidades.filter((_, i) => i !== index))
+  const handleRemoveNecessidade = async (necessidadeOrIndex, indexOrUndefined) => {
+    // Suporta handleRemoveNecessidade(index) ou handleRemoveNecessidade(necessidade, index)
+    const index = typeof necessidadeOrIndex === 'number' ? necessidadeOrIndex : indexOrUndefined
+    const necessidade = typeof necessidadeOrIndex === 'object' && necessidadeOrIndex !== null
+      ? necessidadeOrIndex
+      : editedNecessidades[index]
+    const id = necessidade?.id
+    if (id) {
+      setRemovingNecessidadeId(id)
+      try {
+        await necessidadesApi(api).remover(id)
+        setEditedNecessidades(prev => prev.filter((_, i) => i !== index))
+        setDiagnostico(prev => ({
+          ...prev,
+          necessidades: (prev.necessidades || []).filter(n => n?.id !== id)
+        }))
+      } catch (err) {
+        console.error('Erro ao remover necessidade:', err)
+        showError(err.response?.data?.message || 'Não foi possível remover a necessidade.')
+      } finally {
+        setRemovingNecessidadeId(null)
+      }
+    } else {
+      setEditedNecessidades(prev => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleNecessidadeStatusChange = async (nec, newStatus, index) => {
+    if (nec?.id) {
+      setOpenStatusDropdownKey(null)
+      setLoadingStatusNecessidadeId(nec.id)
+      try {
+        await necessidadesApi(api).atualizar(nec.id, { status: newStatus })
+        setDiagnostico(prev => ({
+          ...prev,
+          necessidades: (prev.necessidades || []).map(n => (n?.id === nec.id ? { ...n, status: newStatus } : n))
+        }))
+        setEditedNecessidades(prev => prev.map(n => (n?.id === nec.id ? { ...n, status: newStatus } : n)))
+      } catch (err) {
+        console.error('Erro ao atualizar status da necessidade:', err)
+        showError(err.response?.data?.message || 'Não foi possível atualizar o status.')
+      } finally {
+        setLoadingStatusNecessidadeId(null)
+      }
+    } else {
+      setEditedNecessidades(prev => prev.map((n, i) => (i === index && typeof n === 'object' ? { ...n, status: newStatus } : n)))
+    }
+    setOpenStatusDropdownKey(null)
   }
 
   const handleUpdateNecessidade = (index, value) => {
     const updated = [...editedNecessidades]
-    updated[index] = value
+    const current = updated[index]
+    if (typeof current === 'object' && current !== null) {
+      updated[index] = { ...current, descricao: value }
+    } else {
+      updated[index] = value
+    }
     setEditedNecessidades(updated)
   }
 
@@ -1198,31 +1269,78 @@ const DiagnosticoDetalhes = () => {
               {editedNecessidades.length > 0 ? (
                 editedNecessidades.map((necessidade, index) => {
                   let necessidadeValue = ''
-                  if (typeof necessidade === 'object' && necessidade !== null) {
-                    // Mostrar procedimento primeiro, depois anotação
+                  const isObj = typeof necessidade === 'object' && necessidade !== null
+                  const hasId = isObj && necessidade.id
+                  if (isObj) {
                     const partes = []
                     if (necessidade.procedimento) partes.push(necessidade.procedimento)
                     if (necessidade.anotacoes) partes.push(necessidade.anotacoes)
+                    if (necessidade.descricao) partes.push(necessidade.descricao)
+                    if (necessidade.observacao) partes.push(necessidade.observacao)
                     necessidadeValue = partes.join(' - ') || ''
                   } else if (typeof necessidade === 'string') {
                     necessidadeValue = necessidade
                   }
-                  
+                  const statusEdit = isObj ? (necessidade.status || (hasId ? 'analisado_ia' : NECESSIDADES_STATUS_PADRAO_NOVA)) : null
+                  const opcoesEdit = NECESSIDADES_STATUS_OPCOES_NOVA
+                  const keyEdit = hasId ? necessidade.id : `edit-new-${index}`
                   return (
-                  <div key={index} className="achado-item-edit">
+                  <div key={index} className="achado-item-edit achado-item-edit-com-status">
                     <input
                       type="text"
                       className="achado-input"
-                        value={necessidadeValue}
+                      value={necessidadeValue}
                       onChange={(e) => handleUpdateNecessidade(index, e.target.value)}
                       placeholder="Digite a necessidade..."
                     />
+                    {isObj && (
+                      <div className="necessidade-status-wrapper necessidade-status-dropdown">
+                        {hasId && loadingStatusNecessidadeId === necessidade.id ? (
+                          <span className="necessidade-status-loading" title="Salvando...">
+                            <span className="necessidade-status-spinner" aria-hidden />
+                            <span className="necessidade-status-loading-text">Salvando...</span>
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className={`necessidade-status-trigger trigger-status-${statusEdit || 'concluido'}`}
+                              onClick={(e) => { e.stopPropagation(); setOpenStatusDropdownKey(k => (k === keyEdit ? null : keyEdit)) }}
+                            >
+                              <span className="necessidade-status-trigger-label">{(NECESSIDADES_STATUS_LABELS[statusEdit] || statusEdit).toUpperCase()}</span>
+                              <FontAwesomeIcon icon={openStatusDropdownKey === keyEdit ? faChevronUp : faChevronDown} className="necessidade-status-chevron" />
+                            </button>
+                            {openStatusDropdownKey === keyEdit && (
+                              <div className="necessidade-status-menu" role="listbox">
+                                {opcoesEdit.map(s => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    role="option"
+                                    className={`necessidade-status-option option-status-${s} ${s === statusEdit ? 'active' : ''}`}
+                                    onClick={() => handleNecessidadeStatusChange(necessidade, s, index)}
+                                  >
+                                    <span>{NECESSIDADES_STATUS_LABELS[s] || s}</span>
+                                    {s === statusEdit && <FontAwesomeIcon icon={faCheck} className="necessidade-status-option-check" />}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                     <button
                       className="btn-remove-achado"
-                      onClick={() => handleRemoveNecessidade(index)}
+                      onClick={() => handleRemoveNecessidade(necessidade, index)}
                       title="Remover necessidade"
+                      disabled={hasId && removingNecessidadeId === necessidade.id}
                     >
-                      <FontAwesomeIcon icon={faTrash} />
+                      {hasId && removingNecessidadeId === necessidade.id ? (
+                        <span className="necessidade-status-spinner" aria-hidden />
+                      ) : (
+                        <FontAwesomeIcon icon={faTrash} />
+                      )}
                     </button>
                   </div>
                   )
@@ -1233,26 +1351,93 @@ const DiagnosticoDetalhes = () => {
             </div>
           ) : (
             editedNecessidades && editedNecessidades.length > 0 ? (
-              <ul className="detalhes-list">
+              <ul className="detalhes-list detalhes-list-necessidades">
                 {editedNecessidades.map((necessidade, index) => {
                   let necessidadeValue = ''
-                  if (typeof necessidade === 'object' && necessidade !== null) {
-                    // Mostrar procedimento primeiro, depois anotação
+                  const isObject = typeof necessidade === 'object' && necessidade !== null
+                  const hasId = isObject && necessidade.id
+                  if (isObject) {
                     const partes = []
                     if (necessidade.procedimento) partes.push(necessidade.procedimento)
                     if (necessidade.anotacoes) partes.push(necessidade.anotacoes)
+                    if (necessidade.descricao) partes.push(necessidade.descricao)
+                    if (necessidade.observacao) partes.push(necessidade.observacao)
                     necessidadeValue = partes.join(' - ') || 'Nenhuma informação'
                   } else if (typeof necessidade === 'string') {
                     necessidadeValue = necessidade || 'Nenhuma informação'
                   } else {
                     necessidadeValue = 'Nenhuma informação'
                   }
-                  
+                  const statusAtual = isObject
+                    ? (necessidade.status || (hasId ? 'analisado_ia' : NECESSIDADES_STATUS_PADRAO_NOVA))
+                    : null
+                  const opcoesStatus = NECESSIDADES_STATUS_OPCOES_NOVA
+                  const dropdownKey = hasId ? necessidade.id : `new-${index}`
+                  const canEditStatus = (isMaster || diagnostico?.responsavelId === user?.id) && isObject
                   return (
-                  <li key={index}>
-                    <FontAwesomeIcon icon={faCheck} className="list-icon" />
-                      {necessidadeValue}
-                  </li>
+                    <li key={hasId ? necessidade.id : index} className="detalhes-list-item-necessidade">
+                      <FontAwesomeIcon icon={faCheck} className="list-icon" />
+                      <span className="necessidade-texto">{necessidadeValue}</span>
+                      {canEditStatus && (
+                        <div className="necessidade-list-actions">
+                          <div className="necessidade-status-wrapper necessidade-status-dropdown">
+                            {loadingStatusNecessidadeId === necessidade.id ? (
+                              <span className="necessidade-status-loading" title="Salvando...">
+                                <span className="necessidade-status-spinner" aria-hidden />
+                                <span className="necessidade-status-loading-text">Salvando...</span>
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className={`necessidade-status-trigger trigger-status-${statusAtual || 'concluido'}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenStatusDropdownKey(k => (k === dropdownKey ? null : dropdownKey))
+                                  }}
+                                  title="Alterar status"
+                                >
+                                  <span className="necessidade-status-trigger-label">
+                                    {(NECESSIDADES_STATUS_LABELS[statusAtual] || statusAtual).toUpperCase()}
+                                  </span>
+                                  <FontAwesomeIcon icon={openStatusDropdownKey === dropdownKey ? faChevronUp : faChevronDown} className="necessidade-status-chevron" />
+                                </button>
+                                {openStatusDropdownKey === dropdownKey && (
+                                  <div className="necessidade-status-menu" role="listbox">
+                                    {opcoesStatus.map(s => (
+                                      <button
+                                        key={s}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={s === statusAtual}
+                                        className={`necessidade-status-option option-status-${s} ${s === statusAtual ? 'active' : ''}`}
+                                        onClick={() => handleNecessidadeStatusChange(necessidade, s, index)}
+                                      >
+                                        <span>{NECESSIDADES_STATUS_LABELS[s] || s}</span>
+                                        {s === statusAtual && <FontAwesomeIcon icon={faCheck} className="necessidade-status-option-check" />}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-remove-achado btn-remove-necessidade-view"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveNecessidade(necessidade, index) }}
+                            title="Remover necessidade"
+                            disabled={hasId && removingNecessidadeId === necessidade.id}
+                          >
+                            {hasId && removingNecessidadeId === necessidade.id ? (
+                              <span className="necessidade-status-spinner" aria-hidden />
+                            ) : (
+                              <FontAwesomeIcon icon={faTrash} />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </li>
                   )
                 })}
               </ul>

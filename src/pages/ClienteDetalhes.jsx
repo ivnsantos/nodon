@@ -14,7 +14,14 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
-import { useAuth } from '../context/AuthContext'
+import {
+  normalizeNecessidadesFromApi,
+  NECESSIDADES_STATUS_LABELS,
+  NECESSIDADES_STATUS_OPCOES_NOVA,
+  NECESSIDADES_STATUS_PADRAO_NOVA,
+  necessidadesApi
+} from '../utils/necessidades'
+import { useAuth } from '../context/useAuth'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
@@ -79,7 +86,11 @@ const ClienteDetalhes = () => {
   const [questionariosConcluidos, setQuestionariosConcluidos] = useState(0)
   const [enderecoExpandido, setEnderecoExpandido] = useState(false)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
+  const [loadingStatusCliente, setLoadingStatusCliente] = useState(false)
   const statusDropdownRef = useRef(null)
+  const [openStatusDropdownKey, setOpenStatusDropdownKey] = useState(null)
+  const [loadingStatusNecessidadeId, setLoadingStatusNecessidadeId] = useState(null)
+  const [removingNecessidadeId, setRemovingNecessidadeId] = useState(null)
   const [orcamentos, setOrcamentos] = useState([])
   const [loadingOrcamentos, setLoadingOrcamentos] = useState(false)
   const [orcamentoStatusDropdowns, setOrcamentoStatusDropdowns] = useState({})
@@ -111,6 +122,7 @@ const ClienteDetalhes = () => {
   const [arquivosPorPasta, setArquivosPorPasta] = useState({}) // { [pastaId]: [{ id, nome, tamanho?, tipo?, url? }] }
   const [isCriandoPasta, setIsCriandoPasta] = useState(false)
   const [nomeNovaPasta, setNomeNovaPasta] = useState('')
+  const [loadingCriarPasta, setLoadingCriarPasta] = useState(false)
   const [loadingPastas, setLoadingPastas] = useState(false)
   const [loadingArquivos, setLoadingArquivos] = useState(false)
   const [importandoArquivos, setImportandoArquivos] = useState(false)
@@ -142,7 +154,7 @@ const ClienteDetalhes = () => {
     }
   }, [cliente, id])
 
-  // Fechar dropdown de status ao clicar fora
+  // Fechar dropdown de status (outros) ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
@@ -158,6 +170,17 @@ const ClienteDetalhes = () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [statusDropdownOpen])
+
+  // Fechar dropdown de status das necessidades ao clicar fora
+  useEffect(() => {
+    const closeNecessidadeDropdown = (e) => {
+      if (openStatusDropdownKey && !e.target.closest('.necessidade-status-dropdown')) {
+        setOpenStatusDropdownKey(null)
+      }
+    }
+    document.addEventListener('mousedown', closeNecessidadeDropdown)
+    return () => document.removeEventListener('mousedown', closeNecessidadeDropdown)
+  }, [openStatusDropdownKey])
 
   const loadCliente = async () => {
     try {
@@ -208,43 +231,8 @@ const ClienteDetalhes = () => {
             return statusMap[statusNormalizado] || statusRaw
           })(),
           necessidades: (() => {
-            // Verificar se necessidades está em informacoesClinicas ou diretamente no paciente
             const necessidadesRaw = paciente.informacoesClinicas?.necessidades || paciente.necessidades
-            
-            if (!necessidadesRaw) return []
-            
-            // Se for array, normalizar cada item para string
-            if (Array.isArray(necessidadesRaw)) {
-              return necessidadesRaw.map(nec => {
-                // Se o item já é uma string, retornar
-                if (typeof nec === 'string') return nec
-                // Se for um array, juntar com vírgula
-                if (Array.isArray(nec)) return nec.join(', ')
-                // Se for objeto, tentar converter para string
-                if (typeof nec === 'object' && nec !== null) {
-                  return JSON.stringify(nec)
-                }
-                // Caso contrário, converter para string
-                return String(nec)
-              })
-            }
-            
-            // Se for string, retornar como array
-            if (typeof necessidadesRaw === 'string' && necessidadesRaw.trim()) {
-              // Tentar fazer parse se for JSON
-              try {
-                const parsed = JSON.parse(necessidadesRaw)
-                if (Array.isArray(parsed)) {
-                  return parsed.map(nec => typeof nec === 'string' ? nec : String(nec))
-                }
-              } catch (e) {
-                // Não é JSON, retornar como string única
-                return [necessidadesRaw]
-              }
-              return [necessidadesRaw]
-            }
-            
-            return []
+            return normalizeNecessidadesFromApi(necessidadesRaw, 'paciente')
           })(),
           observacoes: paciente.observacoes || '',
           createdAt: paciente.createdAt || new Date().toISOString()
@@ -454,13 +442,14 @@ const ClienteDetalhes = () => {
           radiografiasDetalhes[rad.id] = radData
           
           if (radData?.necessidades && Array.isArray(radData.necessidades)) {
-            radData.necessidades.forEach((nec, index) => {
-              if (nec && typeof nec === 'string' && nec.trim()) {
-                // Adicionar com referência à radiografia, índice e responsável
+            const normalizadas = normalizeNecessidadesFromApi(radData.necessidades, 'radiografia')
+            normalizadas.forEach((nec, index) => {
+              if (nec && nec.texto && nec.texto.trim()) {
                 todasNecessidades.push({
-                  texto: nec.trim(),
+                  ...nec,
+                  texto: nec.texto.trim(),
                   origem: 'radiografia',
-                  radiografiaId: rad.id,
+                  radiografiaId: nec.radiografiaId || rad.id,
                   radiografiaNome: rad.radiografia || 'Radiografia',
                   indexOriginal: index,
                   responsavelId: radData.responsavel || radData.responsavelId || null
@@ -661,13 +650,17 @@ const ClienteDetalhes = () => {
 
   // Iniciar edição de necessidades
   const handleStartEditNecessidades = () => {
-    // Criar lista de objetos com origem de cada necessidade
-    const necessidadesPaciente = Array.isArray(cliente.necessidades) 
-      ? cliente.necessidades.map((n, index) => ({
-          texto: typeof n === 'string' ? n : String(n),
-          origem: 'paciente',
-          indexOriginal: index
-        }))
+    const necessidadesPaciente = Array.isArray(cliente.necessidades)
+      ? cliente.necessidades.map((n, index) => {
+          const texto = typeof n === 'object' && n !== null && 'texto' in n ? n.texto : (typeof n === 'string' ? n : String(n))
+          return {
+            id: typeof n === 'object' && n != null ? n.id : undefined,
+            status: typeof n === 'object' && n != null ? n.status : undefined,
+            texto: typeof texto === 'string' ? texto : String(texto || ''),
+            origem: (typeof n === 'object' && n != null && n.origem) ? n.origem : 'paciente',
+            indexOriginal: index
+          }
+        })
       : []
     
     // Filtrar necessidades de radiografia que não estão no paciente
@@ -676,6 +669,7 @@ const ClienteDetalhes = () => {
     const necessidadesRad = necessidadesRadiografias
       .filter(n => !textosJaExistentes.has(n.texto.toLowerCase().trim()))
       .map(n => ({
+        ...n,
         texto: n.texto,
         origem: 'radiografia',
         radiografiaId: n.radiografiaId,
@@ -695,14 +689,63 @@ const ClienteDetalhes = () => {
     setIsEditingNecessidades(false)
   }
 
-  // Adicionar nova necessidade (sempre do paciente)
+  // Adicionar nova necessidade (sempre do paciente, status padrão)
   const handleAddNecessidadeInline = () => {
-    setEditedNecessidades([...editedNecessidades, { texto: '', origem: 'paciente', indexOriginal: -1 }])
+    setEditedNecessidades([...editedNecessidades, { texto: '', origem: 'paciente', indexOriginal: -1, status: NECESSIDADES_STATUS_PADRAO_NOVA }])
   }
 
-  // Remover necessidade
-  const handleRemoveNecessidade = (index) => {
-    setEditedNecessidades(editedNecessidades.filter((_, i) => i !== index))
+  // Remover necessidade (com API DELETE quando tem id)
+  const handleRemoveNecessidade = async (necessidadeOrIndex, indexOrUndefined) => {
+    const index = typeof necessidadeOrIndex === 'number' ? necessidadeOrIndex : indexOrUndefined
+    const necessidade = typeof necessidadeOrIndex === 'object' && necessidadeOrIndex !== null
+      ? necessidadeOrIndex
+      : editedNecessidades[index]
+    const necId = necessidade?.id
+    if (necId) {
+      setRemovingNecessidadeId(necId)
+      try {
+        await necessidadesApi(api).remover(necId)
+        if (isEditingNecessidades) {
+          setEditedNecessidades(prev => prev.filter((_, i) => i !== index))
+        }
+        await loadRadiografias(cliente || { id })
+        await loadCliente()
+      } catch (err) {
+        console.error('Erro ao remover necessidade:', err)
+        showError(err.response?.data?.message || 'Não foi possível remover a necessidade.')
+      } finally {
+        setRemovingNecessidadeId(null)
+      }
+    } else {
+      setEditedNecessidades(prev => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  // Alterar status da necessidade (PUT quando tem id)
+  const handleNecessidadeStatusChange = async (nec, newStatus, index) => {
+    if (nec?.id) {
+      setOpenStatusDropdownKey(null)
+      setLoadingStatusNecessidadeId(nec.id)
+      try {
+        await necessidadesApi(api).atualizar(nec.id, { status: newStatus })
+        setEditedNecessidades(prev => prev.map(n => (n?.id === nec.id ? { ...n, status: newStatus } : n)))
+        setNecessidadesRadiografias(prev => prev.map(n => (n?.id === nec.id ? { ...n, status: newStatus } : n)))
+        if (cliente && Array.isArray(cliente.necessidades)) {
+          setCliente(prev => ({
+            ...prev,
+            necessidades: (prev.necessidades || []).map(n => (typeof n === 'object' && n?.id === nec.id) ? { ...n, status: newStatus } : n)
+          }))
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar status da necessidade:', err)
+        showError(err.response?.data?.message || 'Não foi possível atualizar o status.')
+      } finally {
+        setLoadingStatusNecessidadeId(null)
+      }
+    } else {
+      setEditedNecessidades(prev => prev.map((n, i) => (i === index && typeof n === 'object' ? { ...n, status: newStatus } : n)))
+    }
+    setOpenStatusDropdownKey(null)
   }
 
   // Atualizar texto da necessidade
@@ -753,8 +796,11 @@ const ClienteDetalhes = () => {
         }
       }
       
-      // Atualizar estado local
-      setCliente({ ...cliente, necessidades: necessidadesPaciente })
+      // Atualizar estado local (manter formato interno: array de { texto, origem } )
+      setCliente({
+        ...cliente,
+        necessidades: necessidadesPaciente.map(t => ({ texto: t, origem: 'paciente' }))
+      })
       
       // Recarregar radiografias para atualizar necessidades
       await loadRadiografias()
@@ -775,21 +821,26 @@ const ClienteDetalhes = () => {
     if (!novaNecessidade.trim()) return
 
     try {
-      const necessidadesAtuais = Array.isArray(cliente.necessidades) 
-        ? cliente.necessidades 
+      const necessidadesAtuais = Array.isArray(cliente.necessidades)
+        ? cliente.necessidades
         : (cliente.necessidades ? [cliente.necessidades] : [])
-      
-      const updatedNecessidades = [...necessidadesAtuais, novaNecessidade.trim()]
-      
+      const stringsAtuais = necessidadesAtuais.map(n =>
+        typeof n === 'object' && n != null && 'texto' in n ? n.texto : String(n)
+      )
+      const updatedStrings = [...stringsAtuais, novaNecessidade.trim()]
+
       const payload = {
         informacoesClinicas: {
-          necessidades: updatedNecessidades
+          necessidades: updatedStrings
         }
       }
 
       await api.put(`/pacientes/${id}`, payload)
-      
-      setCliente({ ...cliente, necessidades: updatedNecessidades })
+
+      setCliente({
+        ...cliente,
+        necessidades: [...necessidadesAtuais, { texto: novaNecessidade.trim(), origem: 'paciente' }]
+      })
       await loadHistorico()
       
       setNovaNecessidade('')
@@ -1134,48 +1185,39 @@ const ClienteDetalhes = () => {
       return
     }
 
-    // Fechar dropdown imediatamente para melhor UX
     setStatusDropdownOpen(false)
+    setLoadingStatusCliente(true)
 
     try {
-      // Preparar payload para a API - status deve estar dentro de dadosPessoais
       const payload = {
         dadosPessoais: {
           status: novoStatusValue
         }
       }
 
-      // Fazer PUT para atualizar o status do paciente
       await api.put(`/pacientes/${id}`, payload)
       
-      // Se chegou aqui, a requisição foi bem-sucedida (axios só lança erro para status >= 400)
-      // Atualizar estado local
       if (cliente) {
         setCliente({ ...cliente, status: novoStatusValue })
       }
       
-      // Recarregar histórico da API (sem bloquear em caso de erro)
-      // Não usar await para não bloquear o fluxo de sucesso
       loadHistorico().catch(histError => {
         console.warn('Erro ao recarregar histórico (não crítico):', histError)
-        // Não mostrar erro se o histórico falhar, pois o status já foi atualizado
       })
     } catch (error) {
-      // Só mostrar erro se realmente for um erro da API (status >= 400)
-      // Verificar se é um erro de resposta da API
       if (error.response && error.response.status >= 400) {
         const errorMessage = error.response.data?.message || 
                            error.response.data?.error || 
                            `Erro ${error.response.status}: ${error.response.statusText}`
         showError(errorMessage)
       } else if (error.request) {
-        // A requisição foi feita, mas não houve resposta
         showError('Erro de conexão. Verifique sua internet e tente novamente.')
       } else {
-        // Erro ao configurar a requisição
         const errorMessage = error.message || 'Erro ao atualizar status. Tente novamente.'
         showError(errorMessage)
       }
+    } finally {
+      setLoadingStatusCliente(false)
     }
   }
 
@@ -1456,6 +1498,7 @@ const ClienteDetalhes = () => {
     const titulo = nomeNovaPasta.trim()
     if (!titulo || !id) return
     try {
+      setLoadingCriarPasta(true)
       const response = await api.post('/pastas-paciente', { titulo, pacienteId: id })
       const created = response.data?.data ?? response.data
       const novaPasta = { id: created.id, nome: created.titulo || titulo }
@@ -1468,6 +1511,8 @@ const ClienteDetalhes = () => {
       showSuccess('Pasta criada.')
     } catch (error) {
       showError(error.response?.data?.message || 'Erro ao criar pasta.')
+    } finally {
+      setLoadingCriarPasta(false)
     }
   }
 
@@ -1954,33 +1999,42 @@ const ClienteDetalhes = () => {
                   </label>
                   {isMaster ? (
                     <div className="status-dropdown-container" ref={statusDropdownRef}>
-                      <span 
-                        className="status-badge-large status-badge-clickable"
-                        style={{ backgroundColor: getStatusColor(cliente.status) }}
-                        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                        title="Clique para alterar status"
-                      >
-                        <FontAwesomeIcon icon={getStatusIcon(cliente.status)} />
-                        {getStatusLabel(cliente.status)}
-                        <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen ? 'open' : ''}`} />
-                      </span>
-                      {statusDropdownOpen && (
-                        <div className="status-dropdown-menu">
-                          {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
-                            <div
-                              key={statusOption}
-                              className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
-                              style={{ backgroundColor: getStatusColor(statusOption) }}
-                              onClick={() => handleUpdateStatus(statusOption)}
-                            >
-                              <FontAwesomeIcon icon={getStatusIcon(statusOption)} />
-                              <span>{getStatusLabel(statusOption)}</span>
-                              {cliente.status === statusOption && (
-                                <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
-                              )}
+                      {loadingStatusCliente ? (
+                        <span className="status-dropdown-loading" title="Salvando...">
+                          <FontAwesomeIcon icon={faSpinner} spin className="status-dropdown-loading-spinner" />
+                          <span className="status-dropdown-loading-text">Salvando...</span>
+                        </span>
+                      ) : (
+                        <>
+                          <span 
+                            className="status-badge-large status-badge-clickable"
+                            style={{ backgroundColor: getStatusColor(cliente.status) }}
+                            onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                            title="Clique para alterar status"
+                          >
+                            <FontAwesomeIcon icon={getStatusIcon(cliente.status)} />
+                            {getStatusLabel(cliente.status)}
+                            <FontAwesomeIcon icon={faChevronDown} className={`status-dropdown-icon ${statusDropdownOpen ? 'open' : ''}`} />
+                          </span>
+                          {statusDropdownOpen && (
+                            <div className="status-dropdown-menu">
+                              {['avaliacao-realizada', 'em-andamento', 'aprovado', 'tratamento-concluido', 'perdido'].map((statusOption) => (
+                                <div
+                                  key={statusOption}
+                                  className={`status-dropdown-item ${cliente.status === statusOption ? 'active' : ''}`}
+                                  style={{ backgroundColor: getStatusColor(statusOption) }}
+                                  onClick={() => handleUpdateStatus(statusOption)}
+                                >
+                                  <FontAwesomeIcon icon={getStatusIcon(statusOption)} />
+                                  <span>{getStatusLabel(statusOption)}</span>
+                                  {cliente.status === statusOption && (
+                                    <FontAwesomeIcon icon={faCheck} className="status-check-icon" />
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ) : (
@@ -2062,10 +2116,19 @@ const ClienteDetalhes = () => {
                   type="button"
                   className="btn-nova-pasta"
                   onClick={() => setIsCriandoPasta(true)}
-                  disabled={isCriandoPasta}
+                  disabled={isCriandoPasta || loadingCriarPasta}
                 >
-                  <FontAwesomeIcon icon={faFolderPlus} />
-                  Nova pasta
+                  {loadingCriarPasta ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                      Criando...
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faFolderPlus} />
+                      Nova pasta
+                    </>
+                  )}
                 </button>
               </div>
               <div className="pastas-arquivos-wrap">
@@ -2087,20 +2150,29 @@ const ClienteDetalhes = () => {
                   ))}
                   {isCriandoPasta && (
                     <div className="pasta-item pasta-item-input-wrap">
-                      <FontAwesomeIcon icon={faFolder} className="pasta-item-input-icon" />
-                      <input
-                        ref={novaPastaInputRef}
-                        type="text"
-                        value={nomeNovaPasta}
-                        onChange={(e) => setNomeNovaPasta(e.target.value)}
-                        onBlur={confirmarOuCancelarNovaPasta}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') confirmarOuCancelarNovaPasta()
-                          if (e.key === 'Escape') { setIsCriandoPasta(false); setNomeNovaPasta(''); e.target.blur() }
-                        }}
-                        placeholder="Nome da pasta"
-                        className="input-nova-pasta-inline"
-                      />
+                      {loadingCriarPasta ? (
+                        <>
+                          <FontAwesomeIcon icon={faSpinner} spin className="pasta-item-input-icon" />
+                          <span className="pasta-criando-text">Criando pasta...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faFolder} className="pasta-item-input-icon" />
+                          <input
+                            ref={novaPastaInputRef}
+                            type="text"
+                            value={nomeNovaPasta}
+                            onChange={(e) => setNomeNovaPasta(e.target.value)}
+                            onBlur={confirmarOuCancelarNovaPasta}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') confirmarOuCancelarNovaPasta()
+                              if (e.key === 'Escape') { setIsCriandoPasta(false); setNomeNovaPasta(''); e.target.blur() }
+                            }}
+                            placeholder="Nome da pasta"
+                            className="input-nova-pasta-inline"
+                          />
+                        </>
+                      )}
                     </div>
                   )}
                   {pastas.length === 0 && !isCriandoPasta && (
@@ -2154,16 +2226,16 @@ const ClienteDetalhes = () => {
                 <div className="necessidades-edit-list">
                   {editedNecessidades.length > 0 ? (
                     editedNecessidades.map((necessidade, index) => {
-                      // Verificar se pode editar essa necessidade específica
-                      // Necessidades do paciente: qualquer usuário pode editar
-                      // Necessidades de radiografia: pode editar se for master OU se for o responsável da radiografia
                       const usuarioLogadoId = user?.id || selectedClinicData?.usuarioId || selectedClinicData?.perfil?.id
-                      const podeEditarNecessidade = necessidade.origem === 'paciente' 
-                        ? true 
+                      const podeEditarNecessidade = necessidade.origem === 'paciente'
+                        ? true
                         : (isMaster || necessidade.responsavelId === usuarioLogadoId)
-                      
+                      const hasId = !!necessidade.id
+                      const statusAtual = necessidade.status || (hasId ? 'analisado_ia' : NECESSIDADES_STATUS_PADRAO_NOVA)
+                      const opcoesStatus = NECESSIDADES_STATUS_OPCOES_NOVA
+                      const dropdownKey = hasId ? necessidade.id : `edit-new-${index}`
                       return (
-                        <div key={index} className={`necessidade-edit-item ${necessidade.origem === 'radiografia' ? 'necessidade-radiografia-item' : ''}`}>
+                        <div key={index} className={`necessidade-edit-item necessidade-edit-item-com-status ${necessidade.origem === 'radiografia' ? 'necessidade-radiografia-item' : ''}`}>
                           <input
                             type="text"
                             className="necessidade-input"
@@ -2179,13 +2251,56 @@ const ClienteDetalhes = () => {
                             </span>
                           )}
                           {podeEditarNecessidade && (
-                            <button
-                              className="btn-remove-necessidade"
-                              onClick={() => handleRemoveNecessidade(index)}
-                              title="Remover necessidade"
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
+                            <div className="necessidade-list-actions">
+                              <div className="necessidade-status-wrapper necessidade-status-dropdown">
+                                {loadingStatusNecessidadeId === necessidade.id ? (
+                                  <span className="necessidade-status-loading" title="Salvando...">
+                                    <span className="necessidade-status-spinner" aria-hidden />
+                                    <span className="necessidade-status-loading-text">Salvando...</span>
+                                  </span>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className={`necessidade-status-trigger trigger-status-${statusAtual || 'concluido'}`}
+                                      onClick={(e) => { e.stopPropagation(); setOpenStatusDropdownKey(k => (k === dropdownKey ? null : dropdownKey)) }}
+                                    >
+                                      <span className="necessidade-status-trigger-label">{(NECESSIDADES_STATUS_LABELS[statusAtual] || statusAtual).toUpperCase()}</span>
+                                      <FontAwesomeIcon icon={openStatusDropdownKey === dropdownKey ? faChevronUp : faChevronDown} className="necessidade-status-chevron" />
+                                    </button>
+                                    {openStatusDropdownKey === dropdownKey && (
+                                      <div className="necessidade-status-menu" role="listbox">
+                                        {opcoesStatus.map(s => (
+                                          <button
+                                            key={s}
+                                            type="button"
+                                            role="option"
+                                            className={`necessidade-status-option option-status-${s} ${s === statusAtual ? 'active' : ''}`}
+                                            onClick={() => handleNecessidadeStatusChange(necessidade, s, index)}
+                                          >
+                                            <span>{NECESSIDADES_STATUS_LABELS[s] || s}</span>
+                                            {s === statusAtual && <FontAwesomeIcon icon={faCheck} className="necessidade-status-option-check" />}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-remove-necessidade"
+                                onClick={() => handleRemoveNecessidade(necessidade, index)}
+                                title="Remover necessidade"
+                                disabled={hasId && removingNecessidadeId === necessidade.id}
+                              >
+                                {hasId && removingNecessidadeId === necessidade.id ? (
+                                  <span className="necessidade-status-spinner" aria-hidden />
+                                ) : (
+                                  <FontAwesomeIcon icon={faTrash} />
+                                )}
+                              </button>
+                            </div>
                           )}
                         </div>
                       )
@@ -2196,41 +2311,94 @@ const ClienteDetalhes = () => {
                 </div>
               ) : (
                 (() => {
-                  // Filtrar duplicatas - necessidades de radiografia que não estão no paciente
+                  const getTexto = (n) => (typeof n === 'object' && n != null && 'texto' in n ? n.texto : (typeof n === 'string' ? n : String(n ?? '')))
                   const necessidadesPacienteTextos = new Set(
                     (Array.isArray(cliente.necessidades) ? cliente.necessidades : [])
-                      .map(n => (typeof n === 'string' ? n : String(n)).toLowerCase().trim())
+                      .map(n => getTexto(n).toLowerCase().trim())
                   )
                   const necessidadesRadFiltradas = necessidadesRadiografias.filter(
                     n => !necessidadesPacienteTextos.has(n.texto.toLowerCase().trim())
                   )
-                  
-                  const temNecessidades = (Array.isArray(cliente.necessidades) && cliente.necessidades.length > 0) || necessidadesRadFiltradas.length > 0
-                  
+                  const listaPaciente = (Array.isArray(cliente.necessidades) ? cliente.necessidades : []).map((n, i) => ({
+                    ...(typeof n === 'object' && n != null ? n : {}),
+                    texto: getTexto(n),
+                    origem: 'paciente',
+                    id: typeof n === 'object' && n != null ? n.id : undefined,
+                    status: typeof n === 'object' && n != null ? n.status : undefined
+                  }))
+                  const listaUnificada = [...listaPaciente, ...necessidadesRadFiltradas]
+                  const temNecessidades = listaUnificada.length > 0
+                  const usuarioLogadoId = user?.id || selectedClinicData?.usuarioId || selectedClinicData?.perfil?.id
+
                   return temNecessidades ? (
-                    <ul className="necessidades-detalhes-list">
-                      {/* Necessidades do cadastro do paciente */}
-                      {Array.isArray(cliente.necessidades) && cliente.necessidades.map((necessidade, index) => {
-                        const necessidadeTexto = typeof necessidade === 'string' 
-                          ? necessidade 
-                          : (Array.isArray(necessidade) 
-                              ? necessidade.join(', ') 
-                              : String(necessidade))
-                        
+                    <ul className="necessidades-detalhes-list detalhes-list-necessidades">
+                      {listaUnificada.map((necessidade, index) => {
+                        const texto = necessidade.texto || getTexto(necessidade)
+                        const hasId = !!necessidade.id
+                        const statusAtual = necessidade.status || (hasId ? 'analisado_ia' : NECESSIDADES_STATUS_PADRAO_NOVA)
+                        const opcoesStatus = NECESSIDADES_STATUS_OPCOES_NOVA
+                        const dropdownKey = hasId ? necessidade.id : `view-${index}`
+                        const podeEditar = necessidade.origem === 'paciente' || isMaster || necessidade.responsavelId === usuarioLogadoId
                         return (
-                          <li key={`paciente-${index}`}>
+                          <li key={necessidade.id || `necessidade-${index}`} className="detalhes-list-item-necessidade">
                             <FontAwesomeIcon icon={faCheck} className="list-icon" />
-                            {necessidadeTexto}
+                            <span className="necessidade-texto">{texto}</span>
+                            {podeEditar && (
+                              <div className="necessidade-list-actions">
+                                <div className="necessidade-status-wrapper necessidade-status-dropdown">
+                                  {loadingStatusNecessidadeId === necessidade.id ? (
+                                    <span className="necessidade-status-loading" title="Salvando...">
+                                      <span className="necessidade-status-spinner" aria-hidden />
+                                      <span className="necessidade-status-loading-text">Salvando...</span>
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className={`necessidade-status-trigger trigger-status-${statusAtual || 'concluido'}`}
+                                        onClick={(e) => { e.stopPropagation(); setOpenStatusDropdownKey(k => (k === dropdownKey ? null : dropdownKey)) }}
+                                        title="Alterar status"
+                                      >
+                                        <span className="necessidade-status-trigger-label">{(NECESSIDADES_STATUS_LABELS[statusAtual] || statusAtual).toUpperCase()}</span>
+                                        <FontAwesomeIcon icon={openStatusDropdownKey === dropdownKey ? faChevronUp : faChevronDown} className="necessidade-status-chevron" />
+                                      </button>
+                                      {openStatusDropdownKey === dropdownKey && (
+                                        <div className="necessidade-status-menu" role="listbox">
+                                          {opcoesStatus.map(s => (
+                                            <button
+                                              key={s}
+                                              type="button"
+                                              role="option"
+                                              className={`necessidade-status-option option-status-${s} ${s === statusAtual ? 'active' : ''}`}
+                                              onClick={() => handleNecessidadeStatusChange(necessidade, s, index)}
+                                            >
+                                              <span>{NECESSIDADES_STATUS_LABELS[s] || s}</span>
+                                              {s === statusAtual && <FontAwesomeIcon icon={faCheck} className="necessidade-status-option-check" />}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-remove-necessidade btn-remove-necessidade-view"
+                                  onClick={(e) => { e.stopPropagation(); handleRemoveNecessidade(necessidade, index) }}
+                                  title="Remover necessidade"
+                                  disabled={hasId && removingNecessidadeId === necessidade.id}
+                                >
+                                  {hasId && removingNecessidadeId === necessidade.id ? (
+                                    <span className="necessidade-status-spinner" aria-hidden />
+                                  ) : (
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  )}
+                                </button>
+                              </div>
+                            )}
                           </li>
                         )
                       })}
-                      {/* Necessidades das radiografias (sem duplicatas) */}
-                      {necessidadesRadFiltradas.map((nec, index) => (
-                        <li key={`radiografia-${index}`}>
-                          <FontAwesomeIcon icon={faCheck} className="list-icon" />
-                          {nec.texto}
-                        </li>
-                      ))}
                     </ul>
                   ) : (
                     <p className="empty-text-necessidades">Nenhuma necessidade registrada.</p>

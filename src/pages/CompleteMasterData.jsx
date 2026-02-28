@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBuilding, faSpinner, faXRay, faFileMedical, faSearch, faArrowRight, faSignOutAlt, faImage, faPalette, faUpload, faTimes } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
 import './Auth.css'
 

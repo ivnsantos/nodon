@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faSpinner, faArrowRight, faBuilding, faUser, faComment, 
@@ -11,6 +11,7 @@ import './ResponderQuestionario.css'
 const ResponderQuestionario = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
@@ -60,7 +61,8 @@ const ResponderQuestionario = () => {
   }
 
   const handleIniciar = () => {
-    navigate(`/responder-questionario/${id}/iniciar`)
+    const base = location.pathname.startsWith('/questionarios/resposta') ? '/questionarios/resposta' : '/responder-questionario'
+    navigate(`${base}/${id}/iniciar`)
   }
 
   if (loading) {

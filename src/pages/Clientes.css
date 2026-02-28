@@ -914,6 +914,27 @@
   z-index: 10;
 }
 
+.status-dropdown-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.status-dropdown-loading-spinner {
+  font-size: 0.8125rem;
+}
+
+.status-dropdown-loading-text {
+  white-space: nowrap;
+}
+
 .status-badge-clickable {
   cursor: pointer;
   transition: all 0.3s ease;

@@ -308,9 +308,16 @@ const FeedbackNovo = () => {
           {formData.perguntas.length === 0 && (
             <div className="empty-state">
               <FontAwesomeIcon icon={faComment} />
-              <p>Nenhuma pergunta adicionada. Clique em "Adicionar Pergunta" para começar.</p>
+              <p>Nenhuma pergunta adicionada. Use o botão abaixo para adicionar a primeira pergunta.</p>
             </div>
           )}
+
+          <div className="perguntas-add-footer">
+            <button type="button" className="btn-add-pergunta" onClick={addPergunta}>
+              <FontAwesomeIcon icon={faPlus} />
+              Adicionar Pergunta
+            </button>
+          </div>
         </div>
 
         <div className="form-actions">

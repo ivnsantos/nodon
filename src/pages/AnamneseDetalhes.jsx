@@ -6,7 +6,7 @@ import {
   faGripVertical, faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import './AnamneseDetalhes.css'

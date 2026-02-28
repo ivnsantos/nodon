@@ -7,7 +7,7 @@ import {
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import './PrecificacaoForm.css'
 
 const PrecificacaoTratamento = () => {
@@ -674,6 +674,7 @@ const PrecificacaoTratamento = () => {
                   // Reativar cálculo automático quando duração mudar
                   setAutoCalculatePrice(true)
                 }}
+                onWheel={(e) => e.target.blur()}
                 min="1"
                 required
               />
@@ -708,6 +709,7 @@ const PrecificacaoTratamento = () => {
                   // Desativa cálculo automático quando usuário edita manualmente
                   setAutoCalculatePrice(false)
                 }}
+                onWheel={(e) => e.target.blur()}
                 min="0"
                 required
               />

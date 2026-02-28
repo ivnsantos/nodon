@@ -7,7 +7,7 @@ import {
   faCalendarAlt, faClipboardQuestion, faComment, faDollarSign, faStickyNote,
   faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 import { useChatHeader } from '../../context/ChatHeaderContext'
 import ChatHeader from '../ChatHeader'
 import nodoLogo from '../../img/nodo.png'

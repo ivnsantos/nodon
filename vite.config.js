@@ -7,9 +7,7 @@ dotenv.config()
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // Usar env do loadEnv e process.env (dotenv acima preenche process.env)
-  const asaasToken = env.VITE_ASAAS_TOKEN || env.VITE_ASAAS_TOKEN_DEV
-    || process.env.VITE_ASAAS_TOKEN || process.env.VITE_ASAAS_TOKEN_DEV
+
 
   return {
   plugins: [react()],
@@ -21,21 +19,6 @@ export default defineConfig(({ mode }) => {
         target: 'http://localhost:5000',
         changeOrigin: true
       },
-      '/asaas-proxy': {
-        target: env.VITE_ASAAS_API_URL || process.env.VITE_ASAAS_API_URL || 'https://api-sandbox.asaas.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/asaas-proxy/, '/v3'),
-        configure: (proxy, _options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            if (!asaasToken) {
-              console.warn('[Vite proxy Asaas] Token não configurado. Adicione VITE_ASAAS_TOKEN_DEV ou VITE_ASAAS_TOKEN no .env e reinicie o servidor.')
-            } else {
-              proxyReq.setHeader('access_token', asaasToken)
-            }
-            proxyReq.setHeader('User-Agent', 'Checkout assas.com')
-          })
-        }
-      }
     },
     fs: {
       strict: false

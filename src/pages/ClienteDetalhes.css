@@ -160,6 +160,27 @@
   display: inline-block;
 }
 
+.status-dropdown-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-dropdown-loading-spinner {
+  font-size: 0.875rem;
+}
+
+.status-dropdown-loading-text {
+  white-space: nowrap;
+}
+
 .status-badge-clickable {
   cursor: pointer;
   transition: all 0.3s ease;
@@ -387,6 +408,13 @@
 
 .input-nova-pasta-inline::placeholder {
   color: rgba(255, 255, 255, 0.4);
+}
+
+.pasta-criando-text {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9375rem;
 }
 
 .pasta-conteudo {
@@ -1246,9 +1274,179 @@
   transition: all 0.2s ease;
 }
 
-.btn-remove-necessidade:hover {
+.btn-remove-necessidade:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.3);
   transform: translateY(-2px);
+}
+
+.btn-remove-necessidade:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Status dropdown (igual ao DiagnosticoDetalhes) */
+.necessidade-list-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.necessidade-status-wrapper {
+  display: inline-flex;
+  align-items: center;
+  min-width: 150px;
+  flex-shrink: 0;
+}
+
+.necessidade-status-dropdown {
+  position: relative;
+}
+
+.necessidade-status-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  color: #ffffff !important;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  min-width: 150px;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.necessidade-status-trigger.trigger-status-analisado_ia { background-color: #2563eb !important; }
+.necessidade-status-trigger.trigger-status-validado { background-color: #16a34a !important; }
+.necessidade-status-trigger.trigger-status-em_andamento { background-color: #ea580c !important; }
+.necessidade-status-trigger.trigger-status-concluido { background-color: #7c3aed !important; }
+
+.necessidade-status-trigger:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.necessidade-status-trigger-label { white-space: nowrap; }
+.necessidade-status-chevron { font-size: 0.75rem; opacity: 0.9; }
+
+.necessidade-status-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.necessidade-status-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.necessidade-status-loading-text { white-space: nowrap; }
+
+.necessidade-status-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.35rem;
+  min-width: 100%;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.necessidade-status-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.875rem;
+  border: none;
+  border-radius: 0.5rem;
+  color: #ffffff !important;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.necessidade-status-option.option-status-analisado_ia { background-color: #2563eb !important; }
+.necessidade-status-option.option-status-validado { background-color: #16a34a !important; }
+.necessidade-status-option.option-status-em_andamento { background-color: #ea580c !important; }
+.necessidade-status-option.option-status-concluido { background-color: #7c3aed !important; }
+
+.necessidade-status-option:hover { filter: brightness(1.12); }
+.necessidade-status-option.active {
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+.necessidade-status-option-check { font-size: 0.875rem; flex-shrink: 0; opacity: 0.95; }
+
+/* Lista de necessidades (view) - layout igual radiografias */
+.necessidades-detalhes-list.detalhes-list-necessidades {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detalhes-list-necessidades .detalhes-list-item-necessidade {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+}
+
+.detalhes-list-necessidades .detalhes-list-item-necessidade .list-icon {
+  color: #10b981;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.detalhes-list-necessidades .necessidade-texto {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.necessidade-edit-item-com-status {
+  flex-wrap: wrap;
+}
+
+.necessidade-edit-item-com-status .necessidade-input {
+  flex: 1;
+  min-width: 200px;
 }
 
 /* Necessidade de radiografia */
@@ -1875,6 +2073,47 @@
 
   .necessidades-header-actions .btn-add-necessidade span {
     display: inline !important;
+  }
+
+  /* Lista necessidades (view) em mobile: texto em bloco, status + lixeira em linha separada */
+  .detalhes-list-necessidades .detalhes-list-item-necessidade {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+    padding: 0.875rem 1rem;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .list-icon {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .necessidade-texto {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    word-break: break-word;
+  }
+
+  .detalhes-list-necessidades .detalhes-list-item-necessidade .necessidade-list-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: end;
+    min-width: 0;
+  }
+
+  .necessidade-status-trigger {
+    min-width: 140px;
+  }
+
+  .necessidade-status-menu {
+    right: 0;
+    left: auto;
+    min-width: 200px;
+    max-width: min(100vw - 2rem, 280px);
   }
 
   .necessidade-edit-item {

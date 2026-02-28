@@ -5,7 +5,7 @@ import {
   faClock, faCheckCircle, faSpinner, faCreditCard,
   faExclamationTriangle, faArrowRight, faArrowLeft
 } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
 import './AssinaturaPendente.css'
