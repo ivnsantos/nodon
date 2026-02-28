@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHistory } from '@fortawesome/free-solid-svg-icons'
+import { faHistory, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import { useChatHeader } from '../context/ChatHeaderContext'
 import nodoLogo from '../img/nodo.png'
@@ -33,6 +33,7 @@ const ChatHeader = ({ onHistoryToggle }) => {
 
   const {
     tokensInfo,
+    loadingTokens,
     getTokensPercentage,
     isNearLimit,
     isAtLimit,
@@ -67,7 +68,11 @@ const ChatHeader = ({ onHistoryToggle }) => {
         </div>
       </div>
       <div className="chat-header-right">
-        {tokensInfo && (
+        {loadingTokens ? (
+          <div className="tokens-loading-header">
+            <FontAwesomeIcon icon={faSpinner} spin /> Carregando...
+          </div>
+        ) : tokensInfo && (
           <div className="tokens-progress-container-header">
             <div className="tokens-progress-simple">
               <div className="tokens-simple-header">

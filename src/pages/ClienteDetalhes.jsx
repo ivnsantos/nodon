@@ -76,6 +76,8 @@ const ClienteDetalhes = () => {
   const [showVincularAnamneseModal, setShowVincularAnamneseModal] = useState(false)
   const [anamneseParaVincular, setAnamneseParaVincular] = useState('')
   const [loadingAnamneses, setLoadingAnamneses] = useState(false)
+  const [loadingAnamnesesVinculadas, setLoadingAnamnesesVinculadas] = useState(true)
+  const [loadingRadiografias, setLoadingRadiografias] = useState(true)
   const [showRespostasModal, setShowRespostasModal] = useState(false)
   const [respostasAnamnese, setRespostasAnamnese] = useState(null)
   const [loadingRespostas, setLoadingRespostas] = useState(false)
@@ -183,11 +185,13 @@ const ClienteDetalhes = () => {
   }, [openStatusDropdownKey])
 
   const loadCliente = async () => {
+    setLoading(true)
     try {
       // Fazer GET para buscar dados completos do paciente
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       if (!clienteMasterId) {
-        setError('Cliente Master não encontrado')
+        showError('Cliente Master não encontrado')
+        setLoading(false)
         return
       }
       const response = await api.get(`/pacientes/${id}/completo?clienteMasterId=${clienteMasterId}`)
@@ -387,12 +391,14 @@ const ClienteDetalhes = () => {
   }
 
   const loadRadiografias = async (clienteData = null) => {
+    setLoadingRadiografias(true)
     try {
       // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
       
       if (!clienteMasterId) {
         setRadiografias([])
+        setLoadingRadiografias(false)
         return
       }
 
@@ -468,6 +474,8 @@ const ClienteDetalhes = () => {
       console.error('Erro ao carregar radiografias:', error)
       setRadiografias([])
       setNecessidadesRadiografias([])
+    } finally {
+      setLoadingRadiografias(false)
     }
   }
 
@@ -853,6 +861,7 @@ const ClienteDetalhes = () => {
   }
 
   const loadAnamnesesVinculadas = async () => {
+    setLoadingAnamnesesVinculadas(true)
     try {
       const response = await api.get(`/anamneses/paciente/${id}`)
       // A API retorna { statusCode, message, data: [...] }
@@ -870,6 +879,8 @@ const ClienteDetalhes = () => {
     } catch (error) {
       console.error('Erro ao carregar anamneses vinculadas:', error)
       setAnamnesesVinculadas([])
+    } finally {
+      setLoadingAnamnesesVinculadas(false)
     }
   }
 
@@ -1767,8 +1778,9 @@ const ClienteDetalhes = () => {
   if (loading) {
     return (
       <div className="cliente-detalhes-loading">
-        <div className="loading-spinner"></div>
-        <p>Carregando dados do cliente...</p>
+        <div className="loading-spinner" aria-hidden="true" />
+        <p className="cliente-detalhes-loading-text">Carregando dados do cliente...</p>
+        <p className="cliente-detalhes-loading-hint">Aguarde enquanto buscamos as informações.</p>
       </div>
     )
   }
@@ -2438,7 +2450,12 @@ const ClienteDetalhes = () => {
                 )}
               </div>
 
-              {anamnesesVinculadas.length === 0 ? (
+              {loadingAnamnesesVinculadas ? (
+                <div className="ficha-section-loading">
+                  <FontAwesomeIcon icon={faSpinner} spin className="ficha-section-loading-spinner" />
+                  <p className="ficha-section-loading-text">Carregando anamneses...</p>
+                </div>
+              ) : anamnesesVinculadas.length === 0 ? (
                 <p className="empty-text">Nenhuma anamnese vinculada ainda.</p>
               ) : (
                 <div className="anamneses-list">
@@ -2642,8 +2659,9 @@ const ClienteDetalhes = () => {
                 )}
               </div>
               {loadingOrcamentos ? (
-                <div style={{ textAlign: 'center', padding: '2rem' }}>
-                  <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                <div className="ficha-section-loading">
+                  <FontAwesomeIcon icon={faSpinner} spin className="ficha-section-loading-spinner" />
+                  <p className="ficha-section-loading-text">Carregando orçamentos...</p>
                 </div>
               ) : orcamentos.length > 0 ? (
                 <div className="orcamentos-list-cliente">
@@ -2813,7 +2831,12 @@ const ClienteDetalhes = () => {
                 <FontAwesomeIcon icon={faXRay} />
                 Radiografias
               </h2>
-              {radiografias.length > 0 ? (
+              {loadingRadiografias ? (
+                <div className="ficha-section-loading">
+                  <FontAwesomeIcon icon={faSpinner} spin className="ficha-section-loading-spinner" />
+                  <p className="ficha-section-loading-text">Carregando radiografias...</p>
+                </div>
+              ) : radiografias.length > 0 ? (
                 <div className="radiografias-list">
                   {radiografias.map((radiografia) => (
                     <div 

@@ -35,7 +35,8 @@ const ResponderQuestionario = () => {
       setLoading(true)
       setError('')
       const response = await publicApi.get(`/questionarios/resposta/${id}`)
-      const responseData = response.data?.data || response.data
+      // API pode retornar data, data.data ou data.data.data (duplo aninhamento)
+      const responseData = response.data?.data?.data || response.data?.data || response.data
 
       if (responseData.concluida === true) {
         setConcluida(true)
@@ -102,18 +103,17 @@ const ResponderQuestionario = () => {
   const paciente = data.paciente || null
   const questionario = data.questionario
   const corEmpresa = empresa?.cor || '#0ea5e9'
+  const nomeEmpresa = empresa?.nomeEmpresa || 'Consultório'
 
   return (
     <div className="questionario-entrada-container">
       <div className="questionario-entrada-card">
-        {empresa && (
-          <div className="empresa-header" style={{ backgroundColor: corEmpresa }}>
-            {empresa.logo && (
-              <img src={empresa.logo} alt={empresa.nomeEmpresa || 'Logo'} className="empresa-logo" />
-            )}
-            <h1>{empresa.nomeEmpresa || 'Consultório'}</h1>
-          </div>
-        )}
+        <div className="empresa-header" style={{ backgroundColor: corEmpresa }}>
+          {empresa?.logo && (
+            <img src={empresa.logo} alt={nomeEmpresa} className="empresa-logo" />
+          )}
+          <h1>{nomeEmpresa}</h1>
+        </div>
 
         <div className="questionario-entrada-content">
           {concluida ? (

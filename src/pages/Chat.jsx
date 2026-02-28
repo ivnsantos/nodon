@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
   faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock, faStop,
-  faMicrophone, faImage, faTrash, faArrowUp
+  faMicrophone, faImage, faTrash, faArrowUp, faSpinner
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import ReactMarkdown from 'react-markdown'
@@ -26,6 +26,7 @@ const Chat = () => {
   const [showHistory, setShowHistory] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [tokensInfo, setTokensInfo] = useState(null)
+  const [loadingTokens, setLoadingTokens] = useState(true)
   const [tokensBlocked, setTokensBlocked] = useState(false)
   const [showTokenWarning, setShowTokenWarning] = useState(false)
   const [tokenWarningLevel, setTokenWarningLevel] = useState(null) // 'near' (80-89%) ou 'critical' (90-99%)
@@ -80,18 +81,32 @@ const Chat = () => {
   }, [])
 
   const checkTokens = async () => {
+    setLoadingTokens(true)
     try {
-      const response = await api.get('/assinaturas/dashboard')
-      const tokensChat = response.data?.tokensChat || response.data?.data?.tokensChat
+      // Buscar tokens de dashboard e de /chat/conversations (API retorna totalUsedTokens no conversations)
+      const [dashboardRes, convRes] = await Promise.all([
+        api.get('/assinaturas/dashboard'),
+        api.get('/chat/conversations').catch(() => ({ data: {} }))
+      ])
+      const data = dashboardRes.data?.data || dashboardRes.data
+      const convData = convRes.data?.data?.data || convRes.data?.data || convRes.data
+      const tokensChat = data?.tokensChat || dashboardRes.data?.tokensChat
+      const totalUsedTokens = convData?.totalUsedTokens ?? data?.totalUsedTokens ?? tokensChat?.tokensUtilizados
+      const totalUsedTokensPeriodo = convData?.totalUsedTokensPeriodo ?? convData?.totalUsedTokens ?? data?.totalUsedTokensPeriodo ?? data?.totalUsedTokens ?? tokensChat?.tokensUtilizadosMes
       
-      if (tokensChat) {
-        setTokensInfo(tokensChat)
+      if (tokensChat || totalUsedTokens != null || totalUsedTokensPeriodo != null) {
+        const tokensUtilizadosVal = totalUsedTokensPeriodo ?? totalUsedTokens ?? tokensChat?.tokensUtilizadosMes ?? tokensChat?.tokensUtilizados ?? 0
+        const planoTokenChat = selectedClinicData?.plano?.tokenChat ?? selectedClinicData?.plano?.token_chat ?? selectedClinicData?.plano?.tokensChat
+        const limitePlanoVal = tokensChat?.limitePlano ?? (Number(planoTokenChat) || 0)
+        setTokensInfo({
+          ...(tokensChat || {}),
+          tokensUtilizados: totalUsedTokens ?? tokensChat?.tokensUtilizados ?? 0,
+          tokensUtilizadosMes: tokensUtilizadosVal,
+          limitePlano: limitePlanoVal
+        })
         // Verificar se tokensUtilizados >= limitePlano
-        // Pode vir tokensUtilizados (total) ou tokensUtilizadosMes (do mês)
-        const tokensUtilizados = tokensChat.tokensUtilizadosMes !== undefined 
-          ? tokensChat.tokensUtilizadosMes 
-          : (tokensChat.tokensUtilizados || 0)
-        const limitePlano = tokensChat.limitePlano || 0
+        const tokensUtilizados = tokensUtilizadosVal
+        const limitePlano = limitePlanoVal
         
         if (limitePlano > 0) {
           const percentage = (tokensUtilizados / limitePlano) * 100
@@ -148,6 +163,8 @@ const Chat = () => {
         tokensUtilizadosMes: 0,
         limitePlano: 0
       })
+    } finally {
+      setLoadingTokens(false)
     }
   }
 
@@ -203,6 +220,17 @@ const Chat = () => {
       }
       
       
+      // Atualizar tokens a partir da resposta (API retorna totalUsedTokens, totalUsedTokensPeriodo)
+      const totalUsed = data?.totalUsedTokens ?? data?.totalUsedTokensPeriodo
+      if (totalUsed != null) {
+        setTokensInfo(prev => ({
+          ...prev,
+          tokensUtilizados: data.totalUsedTokens ?? prev?.tokensUtilizados ?? 0,
+          tokensUtilizadosMes: data.totalUsedTokensPeriodo ?? data.totalUsedTokens ?? prev?.tokensUtilizadosMes ?? 0,
+          limitePlano: prev?.limitePlano ?? 0
+        }))
+      }
+
       // A estrutura pode variar, então vamos tratar diferentes formatos
       let conversationsList = []
       if (Array.isArray(data)) {
@@ -945,6 +973,7 @@ const Chat = () => {
 
     chatHeaderContext.setChatHeaderContent({
       tokensInfo: tokensInfo || null,
+      loadingTokens,
       getTokensPercentage: () => getTokensPercentage(),
       isNearLimit: () => isNearLimit(),
       isAtLimit: () => isAtLimit(),
@@ -965,7 +994,7 @@ const Chat = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokensInfo])
+  }, [tokensInfo, loadingTokens])
 
   return (
     <div className="chat-modern">
@@ -985,7 +1014,11 @@ const Chat = () => {
           </div>
         </div>
         <div className="chat-header-right">
-          {tokensInfo && (
+          {loadingTokens ? (
+            <div className="tokens-loading-header">
+              <FontAwesomeIcon icon={faSpinner} spin /> Carregando...
+            </div>
+          ) : tokensInfo && (
             <div className="tokens-progress-container-header">
               <div className="tokens-progress-simple">
                 <div className="tokens-simple-header">

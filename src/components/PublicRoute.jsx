@@ -6,12 +6,21 @@ const PublicRoute = ({ children }) => {
   const location = useLocation()
 
   if (loading) {
-    return <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh' 
-    }}>Carregando...</div>
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        width: '100%',
+        background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%)',
+        color: '#e2e8f0',
+        fontSize: '1rem'
+      }}>
+        Carregando...
+      </div>
+    )
   }
 
   const pathname = location.pathname

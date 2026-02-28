@@ -38,7 +38,8 @@ const ResponderQuestionarioForm = () => {
       setLoading(true)
       setError('')
       const response = await publicApi.get(`/questionarios/resposta/${id}`)
-      const data = response.data?.data || response.data
+      // API pode retornar data, data.data ou data.data.data (duplo aninhamento)
+      const data = response.data?.data?.data || response.data?.data || response.data
 
       if (data.concluida === true) {
         setError('Este questionário já foi respondido.')

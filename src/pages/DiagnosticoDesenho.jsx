@@ -77,14 +77,22 @@ const dentesSVGs = {
   45: dente45, 46: dente46, 47: dente47, 48: dente48
 }
 
-// Dados mockados para a radiografia
+// Fallback mock quando API falhar
 const getMockRadiografia = (id) => {
   return {
     id: id || 1,
     paciente: 'Radiografia Panorâmica - Exemplo',
     cliente_nome: 'Ana Carolina Vaz',
-    imagem: exameImage
+    imagem: exameImage,
+    imagens: []
   }
+}
+
+// Normaliza URL da imagem (state pode vir como string ou objeto com .url)
+const normalizeImageUrl = (val) => {
+  if (val == null) return null
+  if (typeof val === 'string') return val || null
+  return val?.url || null
 }
 
 const DiagnosticoDesenho = () => {
@@ -104,7 +112,8 @@ const DiagnosticoDesenho = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
-  const selectedImageUrl = location.state?.imagemUrl
+  // Imagem dos detalhes (prioridade): exatamente a que está em Detalhes da radiografia
+  const selectedImageUrl = normalizeImageUrl(location.state?.imagemUrl)
   const [observacoes, setObservacoes] = useState('')
   const [editedTitulo, setEditedTitulo] = useState('')
   const [tituloError, setTituloError] = useState(false)
@@ -180,48 +189,48 @@ const DiagnosticoDesenho = () => {
 
   const loadRadiografia = async () => {
     setLoading(true)
-    // Simular carregamento
-    setTimeout(() => {
-      const mockData = getMockRadiografia(id)
-      setRadiografia(mockData)
-      // Título começa vazio para ser preenchido pelo usuário
-      setEditedTitulo('')
-      
-      // Carregar necessidades do diagnóstico
-      const savedDiagnosticos = JSON.parse(localStorage.getItem('mockDiagnosticos') || '[]')
-      const diagnostico = savedDiagnosticos.find(d => d.id === parseInt(id))
-      if (diagnostico) {
-        const necessidadesData = diagnostico.necessidades || diagnostico.recomendacoes || []
-        // Converter para formato de tabela se for array de strings
-        const necessidadesFormatadas = Array.isArray(necessidadesData) && necessidadesData.length > 0
-          ? necessidadesData.map(item => {
-              if (typeof item === 'string') {
-                return { procedimento: item, anotacoes: '' }
-              }
-              // API retorna { id, descricao, status, observacao, ... }
-              if (typeof item === 'object' && item !== null && 'descricao' in item) {
-                return {
-                  procedimento: item.descricao || '',
-                  anotacoes: item.observacao || ''
-                }
-              }
-              return {
-                procedimento: item.procedimento || '',
-                anotacoes: item.anotacoes || ''
-              }
-            })
+    try {
+      const response = await api.get(`/radiografias/${id}`)
+      const data = response.data?.data || response.data || {}
+      if (data && data.id) {
+        // Mesma estrutura de imagem que em DiagnosticoDetalhes: imagem = primeira URL, imagens = array de URLs
+        const imagensUrls = data.imagens && Array.isArray(data.imagens) && data.imagens.length > 0
+          ? data.imagens.map(img => (img && (img.url || img)) || null).filter(Boolean)
           : []
+        const primeiraImagem = imagensUrls.length > 0 ? imagensUrls[0] : (data.imagens?.[0]?.url || exameImage)
+        setRadiografia({
+          id: data.id,
+          paciente: data.nome || data.paciente || '',
+          cliente_nome: data.nome || '',
+          imagem: primeiraImagem,
+          imagens: imagensUrls
+        })
+        // Necessidades da API (mesmo formato que Detalhes)
+        const necessidadesRaw = data.necessidades && Array.isArray(data.necessidades) ? data.necessidades : []
+        const necessidadesFormatadas = necessidadesRaw.map(item => {
+          if (typeof item === 'string') return { procedimento: item, anotacoes: '' }
+          if (typeof item === 'object' && item !== null && 'descricao' in item) {
+            return { procedimento: item.descricao || '', anotacoes: item.observacao || '' }
+          }
+          return { procedimento: item?.procedimento || '', anotacoes: item?.anotacoes || '' }
+        })
         setNecessidades(necessidadesFormatadas)
         setEditedNecessidades(necessidadesFormatadas.length > 0 ? [...necessidadesFormatadas] : [])
       } else {
-        // Inicializar vazio se não houver diagnóstico
+        setRadiografia(getMockRadiografia(id))
         setNecessidades([])
         setEditedNecessidades([])
       }
-      
+      setEditedTitulo('')
+    } catch (error) {
+      console.error('Erro ao carregar radiografia:', error)
+      setRadiografia(getMockRadiografia(id))
+      setNecessidades([])
+      setEditedNecessidades([])
+      setEditedTitulo('')
+    } finally {
       setLoading(false)
-      // A imagem será carregada pelo useEffect quando radiografia mudar
-    }, 500)
+    }
   }
 
   const handleSaveTitulo = () => {
@@ -1587,8 +1596,9 @@ const DiagnosticoDesenho = () => {
       pdf.setTextColor(0, 0, 0)
       let yPosition = 50
       
-      // Carregar e adicionar a imagem da radiografia com borda
-      const radiografiaImg = await loadImage(radiografia?.imagem || exameImage)
+      // Mesma imagem do canvas (a que está em detalhes / selecionada)
+      const pdfImageUrl = selectedImageUrl || radiografia?.imagem || radiografia?.imagens?.[0] || exameImage
+      const radiografiaImg = await loadImage(pdfImageUrl)
       
       // Calcular dimensões da imagem
       const maxWidth = contentWidth

@@ -518,7 +518,10 @@ const Calendario = () => {
       // A lógica já foi aplicada no handleSubmit do formulário, apenas usar o valor
       const profissionalId = eventData.professionalId // Já vem correto do formulário
 
-      // Preparar dados para a API (usando camelCase conforme esperado)
+      // Preparar dados para a API (usando camelCase conforme esperado); API exige hora em HH:MM
+      const horaConsulta = (eventData.time && eventData.time.includes(':'))
+        ? `${String(eventData.time.split(':')[0]).padStart(2, '0')}:${String(eventData.time.split(':')[1]).padStart(2, '0')}`
+        : eventData.time
       const payload = {
         tipoConsultaId: eventData.typeId,
         // Só incluir pacienteId se não for null (gerar link)
@@ -526,7 +529,7 @@ const Calendario = () => {
         profissionalId: profissionalId, // null se for cliente master, ou UUID do usuário comum
         titulo: eventData.title || null, // Será gerado automaticamente se null
         dataConsulta: dateStr,
-        horaConsulta: eventData.time,
+        horaConsulta: horaConsulta,
         observacoes: eventData.notes || null,
         status: eventData.status || 'agendada'
       }
@@ -804,6 +807,7 @@ const Calendario = () => {
 
       await api.post('/calendario/consultas/enviar-sms-agendamento', payload)
       showSuccess('SMS enviado com sucesso!')
+      await fetchConsultas()
     } catch (error) {
       console.error('Erro ao enviar SMS:', error)
       showError(error.response?.data?.message || 'Erro ao enviar SMS. Tente novamente.')
@@ -1105,7 +1109,7 @@ const Calendario = () => {
                       </div>
                       {event.status && (
                         <div 
-                          className={`event-status-badge status-${event.status}`}
+                          className={`event-status-badge agenda-status-${event.status}`}
                         >
                           {event.status === 'confirmada' && <FontAwesomeIcon icon={faCheckCircle} />}
                           {event.status === 'agendada' && <FontAwesomeIcon icon={faCalendarAlt} />}
@@ -1192,6 +1196,12 @@ const Calendario = () => {
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
           onReload={fetchConsultas}
+          onEventUpdated={(updatedEvent) => {
+            if (updatedEvent && updatedEvent.id) {
+              setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e))
+            }
+          }}
+          setEditingEvent={setEditingEvent}
           onSendSMS={handleSendSMS}
           onSolicitarConfirmacao={handleSolicitarConfirmacao}
           solicitandoConfirmacaoId={solicitandoConfirmacaoId}
@@ -1471,7 +1481,7 @@ const EventTypesModal = ({ eventTypes, onClose, onAdd, onEdit, onDelete, editing
 }
 
 // Componente Modal de Nova Consulta
-const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete, onReload, onSendSMS, onSolicitarConfirmacao, solicitandoConfirmacaoId, isTodayOrTomorrow, selectedClinicData }) => {
+const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, setEditingEvent, clientes, setClientes, profissionais, currentUser, showError, showSuccess, isGerarLink = false, onClose, onSave, onDelete, onReload, onEventUpdated, onSendSMS, onSolicitarConfirmacao, solicitandoConfirmacaoId, isTodayOrTomorrow, selectedClinicData }) => {
   
   // Estado para controlar se está em modo edição ou visualização
   const [isEditing, setIsEditing] = useState(!editingEvent)
@@ -1967,6 +1977,18 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
     }
   }
 
+  // Normaliza hora para HH:MM (API exige esse formato)
+  const toHHMM = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return '09:00'
+    const parts = timeStr.trim().split(':')
+    if (parts.length >= 2) {
+      const h = parts[0].padStart(2, '0')
+      const m = parts[1].padStart(2, '0')
+      return `${h}:${m}`
+    }
+    return '09:00'
+  }
+
   // Função para atualizar apenas o status
   const handleQuickStatusUpdate = async (newStatus) => {
     if (!editingEvent || savingStatus) return
@@ -1985,20 +2007,41 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, cliente
         profissionalId: editingEvent.professionalId || null,
         titulo: editingEvent.title || null,
         dataConsulta: dateStr,
-        horaConsulta: editingEvent.time,
+        horaConsulta: toHHMM(editingEvent.time),
         observacoes: editingEvent.notes || null,
         status: newStatus
       }
 
-      await api.put(`/calendario/consultas/alterar/${editingEvent.id}`, payload)
+      const response = await api.put(`/calendario/consultas/alterar/${editingEvent.id}`, payload)
       
-      // Atualizar o status localmente
-      const updatedEvent = { ...editingEvent, status: newStatus }
-      setEditingEvent(updatedEvent)
+      // Atualizar estado com o retorno da API (status e demais campos)
+      const consulta = response?.data?.data?.data?.consulta || response?.data?.data?.consulta || response?.data?.consulta
+      if (consulta) {
+        const [y, m, d] = (consulta.data_consulta || '').split('-').map(Number)
+        const tipo = consulta.tipo_consulta || {}
+        const updatedEvent = {
+          id: consulta.id,
+          title: consulta.titulo || editingEvent.title,
+          date: y && m && d ? new Date(y, m - 1, d) : editingEvent.date,
+          time: consulta.hora_consulta || editingEvent.time,
+          typeId: tipo.id || consulta.tipo_consulta_id || editingEvent.typeId,
+          patient: (consulta.paciente && consulta.paciente.nome) || consulta.paciente_nome || editingEvent.patient,
+          patientId: ((consulta.paciente && consulta.paciente.id) || consulta.paciente_id) ?? editingEvent.patientId,
+          professional: (consulta.profissional && consulta.profissional.nome) || consulta.profissional_nome || editingEvent.professional,
+          professionalId: ((consulta.profissional && consulta.profissional.id) || consulta.profissional_id) ?? editingEvent.professionalId,
+          professionalType: editingEvent.professionalType,
+          notes: consulta.observacoes ?? editingEvent.notes,
+          status: consulta.status ?? newStatus
+        }
+        setEditingEvent(updatedEvent)
+        if (onEventUpdated) onEventUpdated(updatedEvent)
+      } else {
+        setEditingEvent(prev => prev ? { ...prev, status: newStatus } : null)
+        if (onEventUpdated) onEventUpdated({ ...editingEvent, status: newStatus })
+      }
       setQuickStatusEdit(null)
       showSuccess('Status atualizado com sucesso!')
       
-      // Recarregar eventos se a função estiver disponível
       if (onReload) {
         await onReload()
       }

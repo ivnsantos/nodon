@@ -587,6 +587,31 @@ export const AuthProvider = ({ children }) => {
     clearUserComumId
   ])
 
+  // Rotas públicas que não precisam esperar autenticação
+  const publicPathsNoAuth = [
+    '/responder-questionario',
+    '/responder-anamnese',
+    '/anamneses/publica',
+    '/questionarios/resposta',
+    '/agendamento',
+    '/confirmar-agendamento',
+    '/lp/dentista',
+    '/lp/estudante',
+    '/profissional'
+  ]
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+  const isPublicPathNoAuth = publicPathsNoAuth.some(p => pathname.startsWith(p))
+
+  // Se for rota pública, renderizar imediatamente sem bloquear (loading=false para não travar PublicRoute)
+  if (isPublicPathNoAuth) {
+    const valuePublic = useMemo(() => ({ ...value, loading: false }), [value])
+    return (
+      <AuthContext.Provider value={valuePublic}>
+        {children}
+      </AuthContext.Provider>
+    )
+  }
+
   // Tela de carregamento no refresh; com botão de recuperação se travar
   if (loading) {
     return (

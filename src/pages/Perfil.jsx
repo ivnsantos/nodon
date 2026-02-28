@@ -132,46 +132,51 @@ const Perfil = () => {
       
       let assinaturaFromClinic = null
       
-      // Buscar dados do dashboard da API (sempre usar API para dados atualizados)
-      const response = await api.get('/assinaturas/dashboard')
-      // A API retorna { statusCode: 200, message: "Success", data: { ... } }
-      // Os dados estão em response.data.data
-      const data = response.data?.data || response.data
+      // Buscar dados do dashboard e conversas (tokens podem vir de ambos)
+      const [dashboardRes, conversationsRes] = await Promise.all([
+        api.get('/assinaturas/dashboard'),
+        api.get('/chat/conversations').catch(() => ({ data: {} }))
+      ])
+      const data = dashboardRes.data?.data || dashboardRes.data
+      // API pode retornar data.data.data (duplo aninhamento)
+      const convData = conversationsRes.data?.data?.data || conversationsRes.data?.data || conversationsRes.data
 
-      // Mapear dados de tokens
-      if (data.tokensChat) {
-        setTokensChat({
-          tokensUtilizados: data.tokensChat.tokensUtilizados || 0,
-          tokensUtilizadosMes: data.tokensChat.tokensUtilizadosMes || 0,
-          limitePlano: data.tokensChat.limitePlano || 0,
-          porcentagemUso: data.tokensChat.porcentagemUso || 0,
-          ultimaAtualizacao: data.tokensChat.ultimaAtualizacao
-        })
-      }
+      // Mapear dados de tokens (dashboard + fallback de /chat/conversations)
+      const totalUsed = convData?.totalUsedTokens ?? data?.totalUsedTokens
+      const totalUsedPeriodo = convData?.totalUsedTokensPeriodo ?? convData?.totalUsedTokens ?? data?.totalUsedTokensPeriodo ?? data?.totalUsedTokens
+      const tokensFromDashboard = data?.tokensChat
+      const tokensUtilizados = totalUsed ?? tokensFromDashboard?.tokensUtilizados ?? 0
+      const tokensUtilizadosMes = totalUsedPeriodo ?? tokensFromDashboard?.tokensUtilizadosMes ?? 0
+      const planoTokenChat = selectedClinicData?.plano?.tokenChat ?? selectedClinicData?.plano?.token_chat ?? selectedClinicData?.plano?.tokensChat
+      const limitePlano = tokensFromDashboard?.limitePlano ?? (Number(planoTokenChat) || 0)
+      const porcentagemUso = limitePlano > 0
+        ? Math.round((tokensUtilizadosMes / limitePlano) * 100 * 10) / 10
+        : (tokensFromDashboard?.porcentagemUso ?? 0)
+
+      setTokensChat({
+        tokensUtilizados,
+        tokensUtilizadosMes,
+        limitePlano,
+        porcentagemUso,
+        ultimaAtualizacao: tokensFromDashboard?.ultimaAtualizacao ?? null
+      })
 
       // Mapear dados de análises
       if (data.analises) {
         const limitePlano = Number(data.analises.limitePlano) || 0
+        const analisesFeitas = Number(data.analises.analisesFeitas) || 0
         const analisesFeitasMes = Number(data.analises.analisesFeitasMes) || 0
-        // Calcular porcentagem localmente baseado em analisesFeitasMes / limitePlano
-        const porcentagemUso = limitePlano > 0 
-          ? Math.round((analisesFeitasMes / limitePlano) * 100 * 10) / 10
-          : 0
-        
-        console.log('=== ANÁLISES DEBUG ===')
-        console.log('limitePlano:', limitePlano)
-        console.log('analisesFeitasMes:', analisesFeitasMes)
-        console.log('porcentagemUso calculada:', porcentagemUso)
-        console.log('isAnalisesAtLimit:', porcentagemUso >= 100)
-        console.log('isAnalisesCritical:', porcentagemUso >= 85 && porcentagemUso < 100)
-        console.log('isAnalisesPulsing:', porcentagemUso >= 95)
-        
+        // Uso no período: analisesFeitas reflete a quantidade realizada no plano
+        const porcentagemUso = limitePlano > 0
+          ? Math.round((analisesFeitas / limitePlano) * 100 * 10) / 10
+          : (Number(data.analises.porcentagemUso) || 0)
+
         setAnalises({
-          analisesFeitas: data.analises.analisesFeitas || 0,
-          analisesFeitasMes: analisesFeitasMes,
+          analisesFeitas,
+          analisesFeitasMes,
           analisesRestantes: data.analises.analisesRestantes || 0,
-          limitePlano: limitePlano,
-          porcentagemUso: porcentagemUso
+          limitePlano,
+          porcentagemUso
         })
       }
 
@@ -529,7 +534,7 @@ const Perfil = () => {
                     <div className="token-progress-header">
                       <span className="progress-label">Uso no período</span>
                       <span className="progress-value">
-                        {analises.analisesFeitasMes.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
+                        {analises.analisesFeitas.toLocaleString('pt-BR')} / {analises.limitePlano.toLocaleString('pt-BR')}
                       </span>
                     </div>
                     <div className="token-progress-bar">

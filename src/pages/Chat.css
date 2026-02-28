@@ -816,6 +816,14 @@
   flex-shrink: 0;
 }
 
+.tokens-loading-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .tokens-progress-container-header {
   display: flex;
   align-items: center;

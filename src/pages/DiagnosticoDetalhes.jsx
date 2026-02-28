@@ -878,7 +878,9 @@ const DiagnosticoDetalhes = () => {
                 if (diagnostico?.imagens && diagnostico.imagens.length > 1) {
                   setShowImageSelector(true)
                 } else {
-                  const imagemUrl = diagnostico?.imagens?.[0] || diagnostico?.imagem || ''
+                  // Mesma imagem exibida nos detalhes: primeira da lista ou imagem principal
+                  const first = diagnostico?.imagens?.[0]
+                  const imagemUrl = (typeof first === 'string' ? first : first?.url) || diagnostico?.imagem || ''
                   navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl } })
                 }
               }}
@@ -1467,7 +1469,9 @@ const DiagnosticoDetalhes = () => {
                   key={index}
                   className="modal-image-selector-item"
                   onClick={() => {
-                    navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl: img } })
+                    // Garantir URL string (mesma exibida no detalhe)
+                    const imagemUrl = typeof img === 'string' ? img : img?.url || ''
+                    navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl } })
                     setShowImageSelector(false)
                   }}
                 >
