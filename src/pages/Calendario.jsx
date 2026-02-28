@@ -47,7 +47,7 @@ const Calendario = () => {
   const [profissionais, setProfissionais] = useState([])
   const [filterProfessionalId, setFilterProfessionalId] = useState(null) // null = todos
   const [loading, setLoading] = useState(false)
-  const [loadingEvents, setLoadingEvents] = useState(false)
+  const [loadingEvents, setLoadingEvents] = useState(true)
   const [clienteMasterInfo, setClienteMasterInfo] = useState(null) // Info do cliente master para o filtro
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [linkGerado, setLinkGerado] = useState('')
@@ -196,9 +196,11 @@ const Calendario = () => {
 
   // Carregar eventos da API quando mudar o mês ou filtro
   useEffect(() => {
-    if (selectedClinicId) {
-      fetchConsultas()
+    if (!selectedClinicId) {
+      setLoadingEvents(false)
+      return
     }
+    fetchConsultas()
   }, [currentDate, selectedClinicId, filterProfessionalId])
 
   const fetchConsultas = async () => {
@@ -969,6 +971,13 @@ const Calendario = () => {
       </div>
 
       <div className="calendario-content">
+        {loadingEvents ? (
+          <div className="calendario-loading">
+            <FontAwesomeIcon icon={faSpinner} spin className="calendario-loading-spinner" />
+            <p className="calendario-loading-text">Carregando consultas...</p>
+          </div>
+        ) : (
+        <>
         <div className="calendario-grid">
           <div className="weekdays-header">
             {weekDays.map((day, index) => (
@@ -1156,6 +1165,8 @@ const Calendario = () => {
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* Modal de Gerenciamento de Tipos */}

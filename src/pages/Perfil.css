@@ -121,6 +121,29 @@
   color: #fbbf24;
 }
 
+.perfil-plan-badge-label {
+  padding: 0.35rem 0.75rem;
+  background: rgba(14, 159, 227, 0.2);
+  border: 1px solid rgba(14, 159, 227, 0.5);
+  border-radius: 0.375rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: default;
+  user-select: none;
+}
+
+.perfil-plan-badge-label svg {
+  color: #fbbf24;
+  font-size: 0.8em;
+}
+
 .btn-suporte-whatsapp {
   padding: 0.75rem 1.5rem;
   background: #25d366;

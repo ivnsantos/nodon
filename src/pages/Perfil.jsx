@@ -389,10 +389,10 @@ const Perfil = () => {
         </div>
         <div className="perfil-header-actions">
           {isMaster && selectedClinicData?.assinatura?.status === 'ACTIVE' && (
-            <button className="perfil-plan-badge-btn">
+            <span className="perfil-plan-badge-label" aria-label="Plano ativo">
               <FontAwesomeIcon icon={faCrown} />
               PLANO ATIVO
-            </button>
+            </span>
           )}
           <button 
             className="btn-suporte-whatsapp"

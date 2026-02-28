@@ -226,6 +226,31 @@
   width: 100%;
 }
 
+.calendario-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calendario-loading-spinner {
+  font-size: 2rem;
+  color: var(--clinic-primary-color, #0ea5e9);
+}
+
+.calendario-loading-text {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .calendario-grid {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
