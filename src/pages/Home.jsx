@@ -302,7 +302,7 @@ const Home = () => {
               <span>Sistema Completo de Gestão Odontológica</span>
             </div>
             <h1 className="home-hero-title">
-             Aumente sua renda em até 30% com as tecnicas e organização do jeito <span className="home-highlight">NODON</span>.
+             Aumente sua renda mais de 30% com as tecnicas e organizações <span className="home-highlight">NODON</span>.
             </h1>
             <p className="home-hero-subtitle">
               Uma plataforma completa que aumenta seu lucro e organiza seu tempo.
