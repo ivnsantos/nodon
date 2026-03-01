@@ -1,8 +1,9 @@
+/* Escopo: estilos só para páginas públicas de questionário; não interferem em outras páginas. Cores via --cor-empresa e --cor-empresa-secundaria. */
 .questionario-entrada-container,
 .questionario-form-container {
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+  background: linear-gradient(135deg, #0a0e27 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 14%, #1a1f3a) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,10 +11,10 @@
   box-sizing: border-box;
 }
 
-.questionario-entrada-card,
-.questionario-form-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.questionario-entrada-container .questionario-entrada-card,
+.questionario-form-container .questionario-form-card {
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 8%, rgba(255, 255, 255, 0.05));
+  border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 30%, rgba(255, 255, 255, 0.1));
   border-radius: 1.5rem;
   width: 100%;
   max-width: 600px;
@@ -22,113 +23,130 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-.empresa-header {
-  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+.questionario-entrada-container .empresa-header.questionario-empresa-header {
+  background: var(--cor-empresa, #0ea5e9);
   padding: 2rem;
   text-align: center;
-  color: #ffffff;
 }
 
-.empresa-logo {
+.questionario-entrada-container .empresa-logo {
   max-width: 120px;
   max-height: 120px;
   margin-bottom: 1rem;
-  border-radius: 0.75rem;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
-.empresa-header h1 {
+.questionario-entrada-container .empresa-logo-placeholder {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cor-empresa-secundaria, #06b6d4) 30%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.questionario-entrada-container .empresa-header h1,
+.questionario-entrada-container .questionario-empresa-nome {
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
+  color: var(--cor-empresa-secundaria, #06b6d4);
 }
 
-.questionario-entrada-content {
+.questionario-entrada-container .questionario-entrada-content {
   padding: 2.5rem;
 }
 
-.questionario-info {
+.questionario-entrada-container .questionario-info {
   text-align: center;
   margin-bottom: 2rem;
 }
 
-.info-icon {
+.questionario-entrada-container .info-icon {
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: rgba(14, 165, 233, 0.2);
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 25%, transparent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0ea5e9;
+  color: var(--cor-empresa, #0ea5e9);
   font-size: 2.5rem;
 }
 
-.questionario-info h2 {
+.questionario-entrada-container .questionario-info h2,
+.questionario-entrada-container .questionario-titulo {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 1rem 0;
 }
 
-.questionario-descricao {
-  color: rgba(255, 255, 255, 0.7);
+.questionario-entrada-container .questionario-descricao {
+  color: var(--cor-empresa-secundaria, #06b6d4);
   font-size: 1rem;
   line-height: 1.6;
   margin: 0;
 }
 
-.paciente-info {
+.questionario-entrada-container .paciente-info {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 10%, rgba(255, 255, 255, 0.05));
+  border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 25%, transparent);
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
 }
 
-.paciente-info svg {
-  color: #0ea5e9;
+.questionario-entrada-container .paciente-info svg {
+  color: var(--cor-empresa, #0ea5e9);
   font-size: 1.5rem;
 }
 
-.paciente-label {
+.questionario-entrada-container .paciente-label {
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0;
 }
 
-.paciente-nome {
+.questionario-entrada-container .paciente-nome {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0.25rem 0 0 0;
 }
 
-.questionario-stats {
+.questionario-entrada-container .questionario-stats {
   display: flex;
   justify-content: center;
   gap: 2rem;
   margin-bottom: 2rem;
 }
 
-.stat-item {
+.questionario-entrada-container .stat-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--cor-empresa-secundaria, #06b6d4);
   font-size: 0.9375rem;
 }
 
-.stat-item svg {
-  color: #0ea5e9;
+.questionario-entrada-container .stat-item svg {
+  color: var(--cor-empresa, #0ea5e9);
 }
 
-.btn-iniciar {
+.questionario-entrada-container .btn-iniciar {
   width: 100%;
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  background: var(--cor-empresa, #0ea5e9);
   color: #ffffff;
   border: none;
   border-radius: 0.75rem;
@@ -140,64 +158,80 @@
   justify-content: center;
   gap: 0.75rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
 }
 
-.btn-iniciar:hover {
+.questionario-entrada-container .btn-iniciar:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 50%, transparent);
 }
 
-.concluida-container {
+.questionario-entrada-container .concluida-container {
   text-align: center;
   padding: 3rem 2rem;
 }
 
-.check-icon {
-  font-size: 4rem;
-  color: #10b981;
-  margin-bottom: 1.5rem;
+.questionario-entrada-container .concluida-icon-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
 }
 
-.concluida-container h2 {
+.questionario-entrada-container .concluida-icon-box .check-icon {
+  font-size: 2.5rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.questionario-entrada-container .concluida-container h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 1rem 0;
 }
 
-.concluida-container p {
-  color: rgba(255, 255, 255, 0.7);
+.questionario-entrada-container .concluida-container p {
+  color: var(--cor-empresa-secundaria, #06b6d4);
   font-size: 1rem;
   margin: 0;
 }
 
-.loading-container,
-.error-container {
+.questionario-entrada-container .loading-container,
+.questionario-entrada-container .error-container {
   text-align: center;
   padding: 3rem 2rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--cor-empresa-secundaria, #06b6d4);
 }
 
-.loading-container svg,
-.error-container svg {
+.questionario-entrada-container .loading-container svg,
+.questionario-entrada-container .error-container svg {
   font-size: 3rem;
-  color: rgba(14, 165, 233, 0.5);
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin-bottom: 1rem;
 }
 
-.loading-spinner {
+.questionario-entrada-container .loading-spinner {
   font-size: 3rem;
-  color: #0ea5e9;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin-bottom: 1rem;
 }
 
-.error-container p {
+.questionario-entrada-container .loading-text {
+  margin: 0;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.questionario-entrada-container .error-container p {
   font-size: 1rem;
   margin: 0 0 1.5rem 0;
 }
 
-.btn-voltar {
+.questionario-entrada-container .btn-voltar,
+.questionario-form-container .btn-voltar {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
@@ -212,21 +246,52 @@
   transition: all 0.3s ease;
 }
 
-.btn-voltar:hover {
+.questionario-entrada-container .btn-voltar:hover,
+.questionario-form-container .btn-voltar:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Form Styles */
-.questionario-form-header {
+.questionario-form-container .loading-container,
+.questionario-form-container .error-container {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.questionario-form-container .loading-container svg,
+.questionario-form-container .error-container svg {
+  font-size: 3rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  margin-bottom: 1rem;
+}
+
+.questionario-form-container .loading-spinner {
+  font-size: 3rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  margin-bottom: 1rem;
+}
+
+.questionario-form-container .loading-text {
+  margin: 0;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.questionario-form-container .error-container p {
+  font-size: 1rem;
+  margin: 0 0 1.5rem 0;
+}
+
+/* Form Styles - escopo .questionario-form-container */
+.questionario-form-container .questionario-form-header {
   padding: 1.5rem 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 10%, rgba(255, 255, 255, 0.05));
+  border-bottom: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 25%, transparent);
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.btn-voltar-header {
+.questionario-form-container .btn-voltar-header {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.7);
@@ -239,48 +304,48 @@
   justify-content: center;
 }
 
-.btn-voltar-header:hover {
+.questionario-form-container .btn-voltar-header:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
-.header-info {
+.questionario-form-container .header-info {
   flex: 1;
 }
 
-.header-info h2 {
+.questionario-form-container .header-info h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 0.75rem 0;
 }
 
-.progress-bar {
+.questionario-form-container .progress-bar {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--cor-empresa-secundaria, #06b6d4) 15%, rgba(255, 255, 255, 0.1));
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 0.5rem;
 }
 
-.progress-fill {
+.questionario-form-container .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0ea5e9 0%, #06b6d4 100%);
+  background: var(--cor-empresa-secundaria, #06b6d4);
   transition: width 0.3s ease;
 }
 
-.progress-text {
+.questionario-form-container .progress-text {
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0;
 }
 
-.questionario-form {
+.questionario-form-container .questionario-form {
   padding: 2rem;
 }
 
-.pergunta-container {
+.questionario-form-container .pergunta-container {
   margin-bottom: 2rem;
   animation: slideIn 0.3s ease;
 }
@@ -296,7 +361,7 @@
   }
 }
 
-.pergunta-container.prev {
+.questionario-form-container .pergunta-container.prev {
   animation: slideInPrev 0.3s ease;
 }
 
@@ -311,7 +376,7 @@
   }
 }
 
-.pergunta-header {
+.questionario-form-container .pergunta-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -320,21 +385,21 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.pergunta-header-left {
+.questionario-form-container .pergunta-header-left {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.pergunta-label {
+.questionario-form-container .pergunta-label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #0ea5e9;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-.pergunta-number {
+.questionario-form-container .pergunta-number {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -342,13 +407,13 @@
   height: 2.5rem;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0ea5e9;
-  background: rgba(14, 165, 233, 0.1);
-  border: 2px solid rgba(14, 165, 233, 0.3);
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  background: color-mix(in srgb, var(--cor-empresa-secundaria, #06b6d4) 15%, transparent);
+  border: 2px solid color-mix(in srgb, var(--cor-empresa-secundaria, #06b6d4) 35%, transparent);
   border-radius: 0.5rem;
 }
 
-.pergunta-obrigatoria {
+.questionario-form-container .pergunta-obrigatoria {
   font-size: 0.8125rem;
   color: #ef4444;
   font-weight: 600;
@@ -357,20 +422,20 @@
   border-radius: 0.375rem;
 }
 
-.pergunta-texto {
+.questionario-form-container .pergunta-texto {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 1.5rem 0;
   line-height: 1.5;
 }
 
-.pergunta-resposta {
+.questionario-form-container .pergunta-resposta {
   margin-top: 1rem;
 }
 
-.resposta-input,
-.resposta-textarea {
+.questionario-form-container .resposta-input,
+.questionario-form-container .resposta-textarea {
   width: 100%;
   padding: 1rem;
   background: rgba(255, 255, 255, 0.08);
@@ -382,35 +447,35 @@
   transition: all 0.3s ease;
 }
 
-.resposta-input:focus,
-.resposta-textarea:focus {
+.questionario-form-container .resposta-input:focus,
+.questionario-form-container .resposta-textarea:focus {
   outline: none;
-  border-color: #0ea5e9;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+  border-color: var(--cor-empresa, #0ea5e9);
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 25%, transparent);
 }
 
-.resposta-input::placeholder,
-.resposta-textarea::placeholder {
+.questionario-form-container .resposta-input::placeholder,
+.questionario-form-container .resposta-textarea::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
 
-.resposta-textarea {
+.questionario-form-container .resposta-textarea {
   resize: vertical;
   min-height: 120px;
 }
 
-.resposta-booleano,
-.resposta-multipla-escolha,
-.resposta-escala {
+.questionario-form-container .resposta-booleano,
+.questionario-form-container .resposta-multipla-escolha,
+.questionario-form-container .resposta-escala {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.opcao-booleano,
-.opcao-multipla,
-.opcao-escala {
+.questionario-form-container .opcao-booleano,
+.questionario-form-container .opcao-multipla,
+.questionario-form-container .opcao-escala {
   padding: 1rem 1.25rem;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.1);
@@ -422,58 +487,58 @@
   gap: 0.75rem;
 }
 
-.opcao-booleano:hover,
-.opcao-multipla:hover,
-.opcao-escala:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(14, 165, 233, 0.3);
+.questionario-form-container .opcao-booleano:hover,
+.questionario-form-container .opcao-multipla:hover,
+.questionario-form-container .opcao-escala:hover {
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, transparent);
+  border-color: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 35%, transparent);
 }
 
-.opcao-booleano.selected,
-.opcao-multipla.selected,
-.opcao-escala.selected {
-  background: rgba(14, 165, 233, 0.15);
-  border-color: #0ea5e9;
+.questionario-form-container .opcao-booleano.selected,
+.questionario-form-container .opcao-multipla.selected,
+.questionario-form-container .opcao-escala.selected {
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 20%, transparent);
+  border-color: var(--cor-empresa, #0ea5e9);
 }
 
-.opcao-booleano input[type="radio"],
-.opcao-multipla input[type="radio"],
-.opcao-escala input[type="radio"] {
+.questionario-form-container .opcao-booleano input[type="radio"],
+.questionario-form-container .opcao-multipla input[type="radio"],
+.questionario-form-container .opcao-escala input[type="radio"] {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #0ea5e9;
+  accent-color: var(--cor-empresa, #0ea5e9);
 }
 
-.opcao-booleano span,
-.opcao-multipla span,
-.opcao-escala span {
+.questionario-form-container .opcao-booleano span,
+.questionario-form-container .opcao-multipla span,
+.questionario-form-container .opcao-escala span {
   color: #ffffff;
   font-size: 1rem;
   font-weight: 500;
 }
 
-.resposta-escala {
+.questionario-form-container .resposta-escala {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
-.opcao-escala {
+.questionario-form-container .opcao-escala {
   flex: 1;
   min-width: 80px;
   justify-content: center;
   padding: 1rem;
 }
 
-.erro-opcoes {
+.questionario-form-container .erro-opcoes {
   color: rgba(239, 68, 68, 0.8);
   font-size: 0.9375rem;
   margin: 0;
 }
 
-.error-message {
+.questionario-form-container .error-message {
   padding: 1rem;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -481,13 +546,13 @@
   margin-bottom: 1.5rem;
 }
 
-.error-message p {
+.questionario-form-container .error-message p {
   color: #ef4444;
   margin: 0;
   font-size: 0.9375rem;
 }
 
-.form-navigation {
+.questionario-form-container .form-navigation {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -495,7 +560,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.btn-nav {
+.questionario-form-container .btn-nav {
   padding: 0.875rem 1.5rem;
   border-radius: 0.75rem;
   font-size: 1rem;
@@ -506,68 +571,69 @@
   gap: 0.5rem;
   transition: all 0.3s ease;
   border: none;
+  color: var(--cor-empresa-secundaria, #06b6d4);
 }
 
-.btn-prev {
+.questionario-form-container .btn-prev {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.btn-prev:hover:not(:disabled) {
+.questionario-form-container .btn-prev:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
 }
 
-.btn-prev:disabled {
+.questionario-form-container .btn-prev:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-next {
-  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+.questionario-form-container .btn-next {
+  background: var(--cor-empresa, #0ea5e9);
   color: #ffffff;
 }
 
-.btn-next:hover {
+.questionario-form-container .btn-next:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
 }
 
-.btn-submit {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.questionario-form-container .btn-submit {
+  background: var(--cor-empresa, #0ea5e9);
   color: #ffffff;
 }
 
-.btn-submit:hover:not(:disabled) {
+.questionario-form-container .btn-submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
 }
 
-.btn-submit:disabled {
+.questionario-form-container .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.success-container {
+.questionario-form-container .success-container {
   text-align: center;
   padding: 3rem 2rem;
 }
 
-.success-icon {
+.questionario-form-container .success-container .success-icon {
   font-size: 4rem;
-  color: #10b981;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin-bottom: 1.5rem;
 }
 
-.success-container h2 {
+.questionario-form-container .success-container h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 1rem 0;
 }
 
-.success-container p {
-  color: rgba(255, 255, 255, 0.7);
+.questionario-form-container .success-container p {
+  color: var(--cor-empresa-secundaria, #06b6d4);
   font-size: 1rem;
   margin: 0;
 }
@@ -579,53 +645,53 @@
     padding: 1rem;
   }
 
-  .questionario-entrada-card,
-  .questionario-form-card {
+  .questionario-entrada-container .questionario-entrada-card,
+  .questionario-form-container .questionario-form-card {
     border-radius: 1rem;
   }
 
-  .empresa-header {
+  .questionario-entrada-container .empresa-header {
     padding: 1.5rem;
   }
 
-  .empresa-header h1 {
+  .questionario-entrada-container .empresa-header h1 {
     font-size: 1.5rem;
   }
 
-  .questionario-entrada-content {
+  .questionario-entrada-container .questionario-entrada-content {
     padding: 1.5rem;
   }
 
-  .questionario-info h2 {
+  .questionario-entrada-container .questionario-info h2 {
     font-size: 1.5rem;
   }
 
-  .questionario-form-header {
+  .questionario-form-container .questionario-form-header {
     padding: 1rem 1.25rem;
   }
 
-  .questionario-form {
+  .questionario-form-container .questionario-form {
     padding: 1.5rem;
   }
 
-  .pergunta-texto {
+  .questionario-form-container .pergunta-texto {
     font-size: 1.125rem;
   }
 
-  .form-navigation {
+  .questionario-form-container .form-navigation {
     flex-direction: column;
   }
 
-  .btn-nav {
+  .questionario-form-container .btn-nav {
     width: 100%;
     justify-content: center;
   }
 
-  .resposta-escala {
+  .questionario-form-container .resposta-escala {
     flex-direction: column;
   }
 
-  .opcao-escala {
+  .questionario-form-container .opcao-escala {
     min-width: auto;
   }
 }

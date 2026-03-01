@@ -18,8 +18,13 @@ import {
   faIdCard,
   faChevronDown,
   faChevronUp,
+  faChevronLeft,
   faBars,
-  faTimes
+  faTimes,
+  faImage,
+  faPalette,
+  faUpload,
+  faSave
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -49,6 +54,23 @@ const SelectClinic = () => {
   const [editError, setEditError] = useState('')
   const [editSuccess, setEditSuccess] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // Modal editar dados do consultório (cliente master)
+  const [editingClinic, setEditingClinic] = useState(null)
+  const [masterFormData, setMasterFormData] = useState({
+    nomeEmpresa: '',
+    cnpj: '',
+    logo: '',
+    cor: '#0ea5e9',
+    corSecundaria: '#020827',
+    telefoneEmpresa: '',
+    endereco: ''
+  })
+  const [masterLogoFile, setMasterLogoFile] = useState(null)
+  const [masterLogoPreview, setMasterLogoPreview] = useState(null)
+  const [masterFormLoading, setMasterFormLoading] = useState(false)
+  const [masterFormLoadingData, setMasterFormLoadingData] = useState(false)
+  const [masterFormError, setMasterFormError] = useState('')
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -112,6 +134,10 @@ const SelectClinic = () => {
 
           if (clinics.length > 0) {
             setClinics(clinics)
+            // Se há apenas um consultório, já selecionar para o botão "Entrar" ficar habilitado
+            if (clinics.length === 1) {
+              setSelectedClinic(clinics[0])
+            }
           } else {
             setError('Nenhum consultório encontrado para este email.')
           }
@@ -163,6 +189,236 @@ const SelectClinic = () => {
 
   const handleSelectClinic = (clinic) => {
     setSelectedClinic(clinic)
+  }
+
+  // ID do Plano Estudante (double check além do nome)
+  const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+
+  // Cores: só aceitamos hexadecimal (#RGB ou #RRGGBB). Retorna 6 dígitos ou null.
+  const normalizeHex = (val) => {
+    if (!val || typeof val !== 'string') return null
+    const s = val.trim()
+    if (/^#[0-9A-Fa-f]{6}$/.test(s)) return s
+    if (/^#[0-9A-Fa-f]{3}$/.test(s)) {
+      const r = s[1] + s[1], g = s[2] + s[2], b = s[3] + s[3]
+      return `#${r}${g}${b}`
+    }
+    return null
+  }
+
+  // Só quem é cliente master do consultório pode editar (get-client-token pode retornar tipo: "master" no item do consultório)
+  const isClienteMasterDoConsultorio = (clinic) => {
+    if (!clinic) return false
+    const tipoRel = clinic.relacionamento?.tipo ?? clinic.tipo
+    if (tipoRel === 'clienteMaster' || tipoRel === 'master' || clinic.ehClienteMaster === true) return true
+    // Usuário é master e este consultório é o dele (ex.: /auth/me retorna tipo: "master", clienteMasterId: "...")
+    const userMasterId = user?.clienteMasterId || user?.cliente_master_id
+    return user?.tipo === 'master' && userMasterId && clinic.id === userMasterId
+  }
+
+  // Regra: plano diferente de "Plano Estudante" e nome da empresa é "Empresa" → precisa editar dados antes de entrar
+  const clinicPrecisaEditar = (clinic) => {
+    if (!clinic) return false
+    const plano = clinic.assinatura?.plano
+    const planId = (plano?.id || '').trim().toLowerCase()
+    const planName = (plano?.nome || '').trim()
+    const isPlanoEstudante = planId === PLANO_ESTUDANTE_ID.toLowerCase() || planName === 'Plano Estudante'
+    const nome = (clinic.nomeEmpresa || clinic.nome || '').trim()
+    return !isPlanoEstudante && nome === 'Empresa'
+  }
+
+  const selectedClinicPrecisaEditar = clinicPrecisaEditar(selectedClinic)
+
+  // Telefone: armazenar só dígitos (máx. 11). Exibir com máscara. API recebe com prefixo 55.
+  const normalizeTelefoneInput = (value) => {
+    const digits = (value || '').replace(/\D/g, '')
+    const sem55 = digits.startsWith('55') ? digits.slice(2) : digits
+    return sem55.slice(0, 11)
+  }
+  const formatTelefoneDisplay = (digits) => {
+    const d = (digits || '').replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 2) return d ? `(${d}` : ''
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  }
+  const getTelefoneEmpresaParaApi = () => {
+    const digits = (masterFormData.telefoneEmpresa || '').replace(/\D/g, '').slice(0, 11)
+    return digits ? `55${digits}` : ''
+  }
+
+  // Preenche o formulário a partir de um objeto cliente master (API ou card).
+  const fillMasterFormFromData = (data) => {
+    const c = data || {}
+    const telRaw = (c.telefoneEmpresa || c.telefone_empresa || '').replace(/\D/g, '')
+    const telNormalized = telRaw.startsWith('55') ? telRaw.slice(2).slice(0, 11) : telRaw.slice(0, 11)
+    const corVal = normalizeHex(c.cor) || c.cor || '#0ea5e9'
+    const corSecVal = c.corSecundaria ? (normalizeHex(c.corSecundaria) || c.corSecundaria) : '#020827'
+    setMasterFormData({
+      nomeEmpresa: c.nomeEmpresa || c.nome || '',
+      cnpj: c.cnpj || c.documento || '',
+      logo: c.logo || '',
+      cor: corVal,
+      corSecundaria: corSecVal,
+      telefoneEmpresa: telNormalized,
+      endereco: c.endereco || c.endereco_empresa || ''
+    })
+    setMasterLogoPreview(c.logo || null)
+  }
+
+  // Abre o painel de edição: preenche com dados do card e busca dados atuais via GET /clientes-master/:id.
+  const openEditClinicPanel = async (clinic, e) => {
+    if (e) e.stopPropagation()
+    if (!clinic?.id) return
+    setEditingClinic(clinic)
+    setMasterFormError('')
+    setMasterLogoFile(null)
+    setMasterLogoPreview(clinic.logo || null)
+    fillMasterFormFromData(clinic)
+    setMasterFormLoadingData(true)
+    try {
+      const response = await api.get(`/clientes-master/${clinic.id}`, { headers: { 'Content-Type': 'application/json' } })
+      const data = response.data?.data ?? response.data
+      if (data) fillMasterFormFromData(data)
+    } catch (err) {
+      console.error('Erro ao carregar dados do consultório:', err)
+      // Mantém os dados do card já preenchidos
+    } finally {
+      setMasterFormLoadingData(false)
+    }
+  }
+
+  const closeEditClinicPanel = () => {
+    setEditingClinic(null)
+    setMasterLogoFile(null)
+    setMasterLogoPreview(null)
+    setMasterFormError('')
+  }
+
+  const handleMasterFormChange = (e) => {
+    const { name, value } = e.target
+    if (name === 'cnpj') {
+      const numbers = value.replace(/\D/g, '')
+      let formatted
+      if (numbers.length <= 11) {
+        formatted = numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (m, p1, p2, p3, p4) =>
+          p4 ? `${p1}.${p2}.${p3}-${p4}` : p3 ? `${p1}.${p2}.${p3}` : p2 ? `${p1}.${p2}` : p1)
+      } else {
+        formatted = numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (m, p1, p2, p3, p4, p5) =>
+          p5 ? `${p1}.${p2}.${p3}/${p4}-${p5}` : p4 ? `${p1}.${p2}.${p3}/${p4}` : p3 ? `${p1}.${p2}.${p3}` : p2 ? `${p1}.${p2}` : p1)
+      }
+      setMasterFormData(prev => ({ ...prev, [name]: formatted }))
+    } else if (name === 'telefoneEmpresa') {
+      setMasterFormData(prev => ({ ...prev, [name]: normalizeTelefoneInput(value) }))
+    } else if (name === 'logo') {
+      setMasterFormData(prev => ({ ...prev, [name]: value }))
+      if (value.startsWith('http')) {
+        setMasterLogoPreview(value)
+        setMasterLogoFile(null)
+      }
+    } else {
+      setMasterFormData(prev => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleMasterLogoFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setMasterFormError('Selecione um arquivo de imagem (PNG, JPG, etc.)')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMasterFormError('O arquivo deve ter no máximo 5MB')
+      return
+    }
+    setMasterLogoFile(file)
+    setMasterFormData(prev => ({ ...prev, logo: '' }))
+    const reader = new FileReader()
+    reader.onloadend = () => setMasterLogoPreview(reader.result)
+    reader.readAsDataURL(file)
+    setMasterFormError('')
+  }
+
+  const handleRemoveMasterLogo = () => {
+    setMasterLogoFile(null)
+    setMasterLogoPreview(null)
+    setMasterFormData(prev => ({ ...prev, logo: '' }))
+  }
+
+  const refetchClinics = async () => {
+    try {
+      const response = await api.get('/auth/get-client-token')
+      if (response.data?.statusCode === 200 && response.data?.data?.clientesMaster) {
+        setClinics(response.data.data.clientesMaster)
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar lista de consultórios:', err)
+    }
+  }
+
+  const handleSaveMasterData = async (e) => {
+    e.preventDefault()
+    if (!editingClinic?.id) return
+    if (!masterFormData.nomeEmpresa.trim()) {
+      setMasterFormError('Informe o nome da empresa.')
+      return
+    }
+    const corHex = normalizeHex(masterFormData.cor)
+    const corSecundariaHex = masterFormData.corSecundaria ? normalizeHex(masterFormData.corSecundaria) : null
+    if (!corHex) {
+      setMasterFormError('Cor principal deve ser um hexadecimal válido (ex: #001c29).')
+      return
+    }
+    if (masterFormData.corSecundaria && !corSecundariaHex) {
+      setMasterFormError('Cor secundária deve ser um hexadecimal válido (ex: #ff5722).')
+      return
+    }
+    setMasterFormLoading(true)
+    setMasterFormError('')
+    try {
+      if (masterLogoFile) {
+        const fd = new FormData()
+        fd.append('file', masterLogoFile)
+        fd.append('nomeEmpresa', masterFormData.nomeEmpresa.trim())
+        if (masterFormData.cnpj.trim()) fd.append('cnpj', masterFormData.cnpj.trim())
+        fd.append('cor', corHex)
+        if (corSecundariaHex) fd.append('corSecundaria', corSecundariaHex)
+        if (getTelefoneEmpresaParaApi()) fd.append('telefoneEmpresa', getTelefoneEmpresaParaApi())
+        if (masterFormData.endereco.trim()) fd.append('endereco', masterFormData.endereco.trim())
+        await api.post('/clientes-master/meus-dados', fd, {
+          headers: { 'Content-Type': 'multipart/form-data', 'X-Cliente-Master-Id': editingClinic.id }
+        })
+      } else {
+        await api.put(`/clientes-master/${editingClinic.id}`, {
+          nomeEmpresa: masterFormData.nomeEmpresa.trim(),
+          cnpj: masterFormData.cnpj.trim() || undefined,
+          logo: masterFormData.logo.trim() || undefined,
+          cor: corHex,
+          corSecundaria: corSecundariaHex || undefined,
+          telefoneEmpresa: getTelefoneEmpresaParaApi() || undefined,
+          endereco: masterFormData.endereco.trim() || undefined
+        }, { headers: { 'Content-Type': 'application/json' } })
+      }
+      await refetchClinics()
+      if (editingClinic.id === selectedClinic?.id) {
+        setSelectedClinic(prev => prev ? {
+          ...prev,
+          nomeEmpresa: masterFormData.nomeEmpresa.trim(),
+          cnpj: masterFormData.cnpj.trim() || prev.cnpj,
+          logo: masterLogoPreview || prev.logo,
+          cor: corHex,
+          corSecundaria: corSecundariaHex ?? prev.corSecundaria,
+          telefoneEmpresa: getTelefoneEmpresaParaApi() || prev.telefoneEmpresa,
+          endereco: masterFormData.endereco.trim() || prev.endereco
+        } : null)
+      }
+      closeEditClinicPanel()
+    } catch (err) {
+      console.error('Erro ao salvar:', err)
+      setMasterFormError(err.response?.data?.message || err.response?.data?.data?.message || 'Erro ao salvar. Tente novamente.')
+    } finally {
+      setMasterFormLoading(false)
+    }
   }
 
   const handleEditInputChange = (e) => {
@@ -563,28 +819,106 @@ const SelectClinic = () => {
           </div>
         </div>
 
-        {/* Área Principal com Consultórios */}
+        {/* Área Principal com Consultórios ou Painel de Edição */}
         <div className="select-clinic-main">
-          <div className="main-header">
-            <div>
-              <h2>Selecione seu Consultório</h2>
-              <p>Escolha o consultório que deseja acessar</p>
+          {editingClinic ? (
+            /* Painel de edição do consultório */
+            <div className="select-clinic-edit-panel">
+              <div className="select-clinic-edit-panel-header">
+                <button type="button" className="select-clinic-edit-back" onClick={closeEditClinicPanel}>
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                  Voltar à lista
+                </button>
+                <h2>Editar dados do consultório</h2>
+                <p>{editingClinic.nomeEmpresa || editingClinic.nome || 'Consultório'}</p>
+              </div>
+              {masterFormLoadingData ? (
+                <div className="select-clinic-edit-loading">
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                  <p>Carregando dados do consultório...</p>
+                </div>
+              ) : (
+              <form onSubmit={handleSaveMasterData} className="select-clinic-master-form select-clinic-master-form-panel">
+                {masterFormError && <div className="select-clinic-master-form-error">{masterFormError}</div>}
+                <div className="form-group">
+                  <label>Nome da empresa *</label>
+                  <input name="nomeEmpresa" value={masterFormData.nomeEmpresa} onChange={handleMasterFormChange} placeholder="Ex: Clínica Odontológica" required />
+                </div>
+                <div className="form-group">
+                  <label>CPF/CNPJ</label>
+                  <input name="cnpj" value={masterFormData.cnpj} onChange={handleMasterFormChange} placeholder="00.000.000/0000-00" maxLength={18} />
+                </div>
+                <div className="form-group">
+                  <label>Logo</label>
+                  {masterLogoPreview ? (
+                    <div className="master-logo-preview-wrap">
+                      <img src={masterLogoPreview} alt="Logo" className="master-logo-preview-img" />
+                      <button type="button" className="master-logo-remove" onClick={handleRemoveMasterLogo}><FontAwesomeIcon icon={faTimes} /></button>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="master-file-label">
+                        <FontAwesomeIcon icon={faUpload} /> {masterLogoFile ? masterLogoFile.name : 'Enviar imagem'}
+                        <input type="file" accept="image/*" onChange={handleMasterLogoFileChange} className="master-file-input" />
+                      </label>
+                      <span className="master-form-or">ou</span>
+                      <input name="logo" type="url" value={masterFormData.logo} onChange={handleMasterFormChange} placeholder="https://exemplo.com/logo.png" />
+                    </>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>Cor principal (Cor mais escura)</label>
+                  <div className="master-cor-row">
+                    <input name="cor" type="color" value={masterFormData.cor} onChange={handleMasterFormChange} className="master-cor-picker" />
+                    <input type="text" value={masterFormData.cor} onChange={(e) => { const v = e.target.value; if (v === '' || /^#[0-9A-Fa-f]{0,6}$/.test(v)) setMasterFormData(prev => ({ ...prev, cor: v || '#' })) }} placeholder="#001c29 (somente hex)" className="master-cor-text" maxLength={7} />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Cor secundária (Cor mais clara)</label>
+                  <div className="master-cor-row">
+                    <input name="corSecundaria" type="color" value={masterFormData.corSecundaria} onChange={handleMasterFormChange} className="master-cor-picker" />
+                    <input type="text" value={masterFormData.corSecundaria} onChange={(e) => { const v = e.target.value; if (v === '' || /^#[0-9A-Fa-f]{0,6}$/.test(v)) setMasterFormData(prev => ({ ...prev, corSecundaria: v || '#' })) }} placeholder="#ff5722 (somente hex)" className="master-cor-text" maxLength={7} />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label><FontAwesomeIcon icon={faPhone} /> Telefone da empresa</label>
+                  <input name="telefoneEmpresa" type="tel" value={formatTelefoneDisplay(masterFormData.telefoneEmpresa)} onChange={handleMasterFormChange} placeholder="(11) 99999-9999" />
+                </div>
+                <div className="form-group">
+                  <label><FontAwesomeIcon icon={faMapMarkerAlt} /> Endereço</label>
+                  <input name="endereco" type="text" value={masterFormData.endereco} onChange={handleMasterFormChange} placeholder="Rua, número, bairro, cidade..." />
+                </div>
+                <div className="select-clinic-modal-actions">
+                  <button type="button" className="btn-cancel-master" onClick={closeEditClinicPanel}>Cancelar</button>
+                  <button type="submit" className="btn-save-master" disabled={masterFormLoading}>
+                    {masterFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin /> Salvando...</> : <><FontAwesomeIcon icon={faSave} /> Salvar</>}
+                  </button>
+                </div>
+              </form>
+              )}
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="main-header">
+                <div>
+                  <h2>Selecione seu Consultório</h2>
+                  <p>Escolha o consultório que deseja acessar</p>
+                </div>
+              </div>
 
-          {error && !loading && (
-            <div className="error-message">{error}</div>
-          )}
+              {error && !loading && (
+                <div className="error-message">{error}</div>
+              )}
 
-          {clinics.length === 0 && !loading && !error && (
-            <div className="error-message">
-              Nenhum consultório encontrado. Entre em contato com o suporte.
-            </div>
-          )}
+              {clinics.length === 0 && !loading && !error && (
+                <div className="error-message">
+                  Nenhum consultório encontrado. Entre em contato com o suporte.
+                </div>
+              )}
 
-          {clinics.length > 0 && (
-            <form onSubmit={handleSubmit} className="clinics-form">
-              <div className="clinics-grid">
+              {clinics.length > 0 && (
+                <form onSubmit={handleSubmit} className="clinics-form">
+                  <div className="clinics-grid">
                 {/* Card para adicionar novo consultório */}
                 <div
                   className="clinic-card add-clinic-card"
@@ -604,11 +938,23 @@ const SelectClinic = () => {
                     className={`clinic-card ${selectedClinic?.id === clinic.id ? 'selected' : ''}`}
                     onClick={() => handleSelectClinic(clinic)}
                   >
+                    {isClienteMasterDoConsultorio(clinic) && (
+                      <button
+                        type="button"
+                        className="clinic-card-edit-btn"
+                        onClick={(e) => openEditClinicPanel(clinic, e)}
+                        title="Editar dados do consultório"
+                        aria-label="Editar dados do consultório"
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                        Editar
+                      </button>
+                    )}
                     <div 
                       className="clinic-icon"
                       style={{
-                        background: clinic.cor ? `${clinic.cor}20` : 'rgba(14, 165, 233, 0.2)',
-                        color: clinic.cor || '#0ea5e9'
+                        background: 'rgba(14, 165, 233, 0.2)',
+                        color: '#0ea5e9'
                       }}
                     >
                       {clinic.logo ? (
@@ -625,7 +971,7 @@ const SelectClinic = () => {
                       )}
                     </div>
                     <div className="clinic-info">
-                      <h3 style={{ color: clinic.cor || '#ffffff' }}>
+                      <h3>
                         {clinic.nomeEmpresa || clinic.nome || 'Consultório'}
                       </h3>
                       <p className="clinic-email">{clinic.email || 'Email não informado'}</p>
@@ -660,10 +1006,18 @@ const SelectClinic = () => {
                 ))}
               </div>
 
+              <div className="select-clinic-entrar-area">
+              {selectedClinicPrecisaEditar && (
+                <div className="select-clinic-precisa-editar-aviso">
+                  <FontAwesomeIcon icon={faEdit} />
+                  <span>Para iniciar precisa editar os dados do seu consultório.</span>
+                </div>
+              )}
+
               <button 
                 type="submit" 
-                className="submit-btn" 
-                disabled={!selectedClinic || submitting}
+                className={`submit-btn ${selectedClinicPrecisaEditar ? 'submit-btn-disabled-rule' : ''}`}
+                disabled={!selectedClinic || submitting || selectedClinicPrecisaEditar}
               >
                 {submitting ? (
                   <>
@@ -677,7 +1031,10 @@ const SelectClinic = () => {
                   </>
                 )}
               </button>
+              </div>
             </form>
+              )}
+            </>
           )}
         </div>
       </div>

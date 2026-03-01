@@ -1,37 +1,302 @@
-/* Confirmar Agendamento: layout compacto, 2 colunas, botão visível sem rolar */
+/* Confirmar Agendamento: estilos escopados em .confirmar-agendamento-page para não interferir em outras páginas. Cores via --cor-empresa e --cor-empresa-secundaria. */
 
-.confirmar-agendamento .confirmar-container {
+.confirmar-agendamento-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, #1e293b) 100%);
+  padding: 0;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmar-agendamento-page .confirmar-header-logo {
+  border-radius: 50%;
+  object-fit: cover;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.confirmar-agendamento-page .nodon-header {
+  padding: 1rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 18%, rgba(15, 23, 42, 0.95));
+  border-bottom: 2px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
+}
+
+.confirmar-agendamento-page .nodon-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.confirmar-agendamento-page .nodon-logo {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.05em;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.confirmar-agendamento-page .nodon-footer {
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem 1.5rem;
+  margin-top: auto;
+}
+
+.confirmar-agendamento-page .nodon-footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.confirmar-agendamento-page .nodon-footer-content p {
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.confirmar-agendamento-page .container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmar-agendamento-page .header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.confirmar-agendamento-page .header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.confirmar-agendamento-page .clinic-name {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-weight: 400;
+}
+
+.confirmar-agendamento-page .info-box {
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 10%, rgba(30, 41, 59, 0.6));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 30%, rgba(255, 255, 255, 0.1));
+}
+
+.confirmar-agendamento-page .info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.confirmar-agendamento-page .info-row:last-child {
+  border-bottom: none;
+}
+
+.confirmar-agendamento-page .info-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.confirmar-agendamento-page .info-value {
+  font-size: 1rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.confirmar-agendamento-page .action-box {
+  margin-top: 1rem;
+  padding-top: 0;
+}
+
+.confirmar-agendamento-page .info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 35%, transparent);
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-weight: 500;
+}
+
+.confirmar-agendamento-page .info-banner svg {
+  color: var(--cor-empresa, #0ea5e9);
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.confirmar-agendamento-page .btn-main {
+  width: 100%;
+  padding: 1rem;
+  background: var(--cor-empresa, #0ea5e9);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
+}
+
+.confirmar-agendamento-page .btn-main:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--cor-empresa, #0ea5e9) 50%, transparent);
+}
+
+.confirmar-agendamento-page .btn-main:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirmar-agendamento-page .loading,
+.confirmar-agendamento-page .error {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  max-width: 500px;
+  margin: 2rem auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.confirmar-agendamento-page .error-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2.5rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.confirmar-agendamento-page .loading svg {
+  font-size: 2rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  margin-bottom: 1rem;
+}
+
+.confirmar-agendamento-page .loading p,
+.confirmar-agendamento-page .error p {
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.confirmar-agendamento-page .error h2 {
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.confirmar-agendamento-page .success-box {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.confirmar-agendamento-page .success-box .success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--cor-empresa, #0ea5e9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 2rem;
+  margin: 0 auto 1rem;
+}
+
+.confirmar-agendamento-page .success-box h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+}
+
+.confirmar-agendamento-page .success-box p {
+  margin: 0 0 1.5rem 0;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-size: 0.9375rem;
+}
+
+/* Overrides compactos para esta página */
+.confirmar-agendamento-page .confirmar-container {
   padding: 0.75rem 1rem 1.25rem;
   max-width: 560px;
   flex: 0 1 auto;
 }
 
-.confirmar-agendamento .confirmar-header {
+.confirmar-agendamento-page .confirmar-header {
   margin-bottom: 1rem;
 }
 
-.confirmar-agendamento .confirmar-header h1 {
+.confirmar-agendamento-page .confirmar-header h1 {
   font-size: 1.25rem;
   margin: 0 0 0.25rem 0;
 }
 
-.confirmar-agendamento .clinic-name {
+.confirmar-agendamento-page .confirmar-header .clinic-name {
   font-size: 0.8125rem;
 }
 
-/* Bloco de dados: grid em 2 colunas */
-.confirmar-agendamento .confirmar-info-box {
+.confirmar-agendamento-page .confirmar-info-box {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
 
-.confirmar-agendamento .confirmar-info-grid {
+.confirmar-agendamento-page .confirmar-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem 1rem;
 }
 
-.confirmar-agendamento .confirmar-info-grid .info-row {
+.confirmar-agendamento-page .confirmar-info-grid .info-row {
   padding: 0.5rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   gap: 0.25rem;
@@ -40,43 +305,63 @@
   align-items: center;
 }
 
-.confirmar-agendamento .confirmar-info-grid .info-row.full {
+.confirmar-agendamento-page .confirmar-info-grid .info-row.full {
   grid-column: 1 / -1;
 }
 
-.confirmar-agendamento .confirmar-info-grid .info-row:last-child {
+.confirmar-agendamento-page .confirmar-info-grid .info-row:last-child {
   border-bottom: none;
 }
 
-.confirmar-agendamento .confirmar-info-box .info-label {
+.confirmar-agendamento-page .confirmar-info-box .info-label {
   font-size: 0.6875rem;
   letter-spacing: 0.03em;
   text-align: center;
 }
 
-.confirmar-agendamento .confirmar-info-box .info-value {
+.confirmar-agendamento-page .confirmar-info-box .info-value {
   font-size: 0.8125rem;
   line-height: 1.35;
   text-align: center;
 }
 
-.confirmar-agendamento .confirmar-action-box {
+.confirmar-agendamento-page .confirmar-action-box {
   padding-top: 0.5rem;
   margin-top: 0;
 }
 
-.confirmar-agendamento .confirmar-action-box .info-banner {
+.confirmar-agendamento-page .confirmar-action-box .info-banner {
   padding: 0.625rem 0.75rem;
   margin-bottom: 0.75rem;
   font-size: 0.8125rem;
 }
 
-.confirmar-agendamento .confirmar-action-box .info-banner svg {
+.confirmar-agendamento-page .confirmar-action-box .info-banner svg {
   font-size: 1rem;
 }
 
-.confirmar-agendamento .confirmar-action-box .btn-main {
+.confirmar-agendamento-page .confirmar-action-box .btn-main {
   padding: 0.75rem 1rem;
   font-size: 0.9375rem;
 }
 
+@media (max-width: 768px) {
+  .confirmar-agendamento-page .nodon-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .confirmar-agendamento-page .confirmar-header-logo {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  .confirmar-agendamento-page .container {
+    padding: 1rem;
+  }
+
+  .confirmar-agendamento-page .confirmar-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

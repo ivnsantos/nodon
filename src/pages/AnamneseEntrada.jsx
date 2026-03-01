@@ -63,12 +63,21 @@ const AnamneseEntrada = () => {
     navigate(`/responder-anamnese/${id}/iniciar`)
   }
 
+  // Cores: da API quando há data, senão padrão (para loading/erro já terem tema)
+  const empresa = data?.paciente?.masterClient || data?.anamnese?.clienteMaster
+  const corEmpresa = empresa?.cor || '#0ea5e9'
+  const corSecundaria = empresa?.corSecundaria || '#06b6d4'
+  const coresStyle = {
+    '--cor-empresa': corEmpresa,
+    '--cor-empresa-secundaria': corSecundaria,
+  }
+
   if (loading) {
     return (
-      <div className="anamnese-entrada-container">
+      <div className="anamnese-entrada-container" style={coresStyle}>
         <div className="loading-container">
           <FontAwesomeIcon icon={faSpinner} spin className="loading-spinner" />
-          <p>Carregando informações...</p>
+          <p className="loading-text">Carregando informações...</p>
         </div>
       </div>
     )
@@ -76,7 +85,7 @@ const AnamneseEntrada = () => {
 
   if (error) {
     return (
-      <div className="anamnese-entrada-container">
+      <div className="anamnese-entrada-container" style={coresStyle}>
         <div className="error-container">
           <p>{error}</p>
         </div>
@@ -86,7 +95,7 @@ const AnamneseEntrada = () => {
 
   if (!data) {
     return (
-      <div className="anamnese-entrada-container">
+      <div className="anamnese-entrada-container" style={coresStyle}>
         <div className="error-container">
           <p>Questionário não encontrado.</p>
         </div>
@@ -94,18 +103,28 @@ const AnamneseEntrada = () => {
     )
   }
 
-  const empresa = data.paciente?.masterClient || data.anamnese?.clienteMaster
   const paciente = data.paciente
   const anamnese = data.anamnese
-  const corEmpresa = empresa?.cor || '#0ea5e9'
+
+  // Header e botão: apenas cor PRINCIPAL (background, borda, sombra)
+  const headerStyle = {
+    background: `linear-gradient(135deg, ${corEmpresa}35 0%, ${corEmpresa}20 100%)`,
+    borderColor: `${corEmpresa}99`,
+    boxShadow: `0 4px 24px ${corEmpresa}50`,
+  }
+  const btnIniciarStyle = {
+    background: corEmpresa,
+    borderColor: `${corEmpresa}cc`,
+    boxShadow: `0 4px 24px ${corEmpresa}60`,
+  }
 
   // Se estiver concluída, mostrar mensagem de sucesso
   if (concluida) {
     return (
-      <div className="anamnese-entrada-container">
+      <div className="anamnese-entrada-container" style={coresStyle}>
         <div className="anamnese-entrada-content">
-          {/* Header com logo/nome da empresa */}
-          <div className="empresa-header" style={{ '--cor-empresa': corEmpresa }}>
+          {/* Header com logo/nome da empresa - cores da API */}
+          <div className="empresa-header" style={{ ...coresStyle, ...headerStyle }}>
             {empresa?.logo ? (
               <img src={empresa.logo} alt={empresa.nomeEmpresa} className="empresa-logo" />
             ) : (
@@ -113,7 +132,7 @@ const AnamneseEntrada = () => {
                 <FontAwesomeIcon icon={faBuilding} />
               </div>
             )}
-            <h1 className="empresa-nome">{empresa?.nomeEmpresa || 'Consultório'}</h1>
+            <h1 className="empresa-nome" style={{ color: corSecundaria }}>{empresa?.nomeEmpresa || 'Consultório'}</h1>
           </div>
 
           {/* Mensagem de Concluída */}
@@ -138,10 +157,10 @@ const AnamneseEntrada = () => {
   }
 
   return (
-    <div className="anamnese-entrada-container">
+    <div className="anamnese-entrada-container" style={coresStyle}>
       <div className="anamnese-entrada-content">
-        {/* Header com logo/nome da empresa */}
-        <div className="empresa-header" style={{ '--cor-empresa': corEmpresa }}>
+        {/* Header com logo/nome da empresa - cores da API */}
+        <div className="empresa-header" style={{ ...coresStyle, ...headerStyle }}>
           {empresa?.logo ? (
             <img src={empresa.logo} alt={empresa.nomeEmpresa} className="empresa-logo" />
           ) : (
@@ -149,7 +168,7 @@ const AnamneseEntrada = () => {
               <FontAwesomeIcon icon={faBuilding} />
             </div>
           )}
-          <h1 className="empresa-nome">{empresa?.nomeEmpresa || 'Consultório'}</h1>
+          <h1 className="empresa-nome" style={{ color: corSecundaria }}>{empresa?.nomeEmpresa || 'Consultório'}</h1>
         </div>
 
         {/* Informações do Questionário */}
@@ -204,11 +223,12 @@ const AnamneseEntrada = () => {
           <p>Responda todas as perguntas obrigatórias <span className="required-mark">*</span> e navegue usando os botões</p>
         </div>
 
-        {/* Botão para iniciar */}
+        {/* Botão para iniciar - cores da API */}
         <button
+          type="button"
           onClick={handleIniciar}
           className="btn-iniciar"
-          style={{ '--cor-empresa': corEmpresa }}
+          style={{ ...coresStyle, ...btnIniciarStyle }}
         >
           Iniciar Questionário
           <FontAwesomeIcon icon={faArrowRight} />

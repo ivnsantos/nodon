@@ -321,12 +321,18 @@ const ResponderAnamnese = () => {
     }
   }
 
+  // Cores: da API quando há respostaAnamnese, senão padrão (loading/erro já têm tema)
+  const empresa = respostaAnamnese?.paciente?.masterClient || respostaAnamnese?.anamnese?.clienteMaster
+  const corEmpresa = empresa?.cor || '#0ea5e9'
+  const corSecundaria = empresa?.corSecundaria || '#06b6d4'
+  const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
+
   if (loading) {
     return (
-      <div className="responder-anamnese-container">
+      <div className="responder-anamnese-container" style={coresStyle}>
         <div className="loading-container">
           <FontAwesomeIcon icon={faSpinner} spin className="loading-spinner" />
-          <p>Carregando questionário...</p>
+          <p className="loading-text">Carregando questionário...</p>
         </div>
       </div>
     )
@@ -334,7 +340,7 @@ const ResponderAnamnese = () => {
 
   if (success) {
     return (
-      <div className="responder-anamnese-container">
+      <div className="responder-anamnese-container" style={coresStyle}>
         <div className="success-container">
           <FontAwesomeIcon icon={faCheckCircle} className="success-icon" />
           <h2>Questionário Respondido com Sucesso!</h2>
@@ -346,7 +352,7 @@ const ResponderAnamnese = () => {
 
   if (!respostaAnamnese || !respostaAnamnese.anamnese) {
     return (
-      <div className="responder-anamnese-container">
+      <div className="responder-anamnese-container" style={coresStyle}>
         <div className="error-container">
           <p>{error || 'Questionário não encontrado.'}</p>
         </div>
@@ -354,10 +360,9 @@ const ResponderAnamnese = () => {
     )
   }
 
-  // Verificar se já está concluída (verificar primeiro)
   if (respostaAnamnese.concluida === true) {
     return (
-      <div className="responder-anamnese-container">
+      <div className="responder-anamnese-container" style={coresStyle}>
         <div className="success-container">
           <FontAwesomeIcon icon={faCheckCircle} className="success-icon" />
           <h2>Questionário Já Respondido</h2>
@@ -367,10 +372,9 @@ const ResponderAnamnese = () => {
     )
   }
 
-  // Verificar novamente se está ativa antes de renderizar o formulário
   if (!respostaAnamnese.ativa) {
     return (
-      <div className="responder-anamnese-container">
+      <div className="responder-anamnese-container" style={coresStyle}>
         <div className="error-container">
           <p>Esta anamnese não está ativa no momento. Entre em contato com o consultório.</p>
         </div>
@@ -379,6 +383,7 @@ const ResponderAnamnese = () => {
   }
 
   const anamnese = respostaAnamnese.anamnese
+
   const perguntasOrdenadas = [...(anamnese.perguntas || [])].sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
   const currentPergunta = perguntasOrdenadas[currentStep]
   const totalSteps = perguntasOrdenadas.length
@@ -386,20 +391,35 @@ const ResponderAnamnese = () => {
   const isLastStep = currentStep === totalSteps - 1
   const isFirstStep = currentStep === 0
 
+  const hexToRgba = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16)
+    const r = (n >> 16) & 255
+    const g = (n >> 8) & 255
+    const b = n & 255
+    return `rgba(${r},${g},${b},${a})`
+  }
+
+  // Textos e títulos = cor SECUNDÁRIA. Barra = cor SECUNDÁRIA. Resto (fundos, bordas, botões) = cor PRINCIPAL.
+  const progressBarStyle = { borderColor: hexToRgba(corSecundaria, 0.35), background: hexToRgba(corSecundaria, 0.15) }
+  const progressFillStyle = { width: `${progress}%`, background: corSecundaria }
+  const perguntaLabelStyle = { color: corSecundaria }
+  const btnNavStyle = { color: corSecundaria, borderColor: hexToRgba(corEmpresa, 0.5), background: hexToRgba(corEmpresa, 0.12) }
+  const btnSubmitStyle = { background: corEmpresa, color: '#fff' }
+
   return (
-    <div className="responder-anamnese-container">
+    <div className="responder-anamnese-container" style={coresStyle}>
       <div className="responder-anamnese-content">
         <div className="anamnese-header">
-          <h1 className="anamnese-title">{anamnese.titulo}</h1>
+          <h1 className="anamnese-title" style={{ color: corSecundaria }}>{anamnese.titulo}</h1>
           {anamnese.descricao && (
-            <p className="anamnese-description">{anamnese.descricao}</p>
+            <p className="anamnese-description" style={{ color: corSecundaria }}>{anamnese.descricao}</p>
           )}
           <div className="step-counter">
-            <span className="step-text">Pergunta {currentStep + 1} de {totalSteps}</span>
+            <span className="step-text" style={{ color: corSecundaria }}>Pergunta {currentStep + 1} de {totalSteps}</span>
           </div>
           <div className="progress-container">
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+            <div className="progress-bar" style={progressBarStyle}>
+              <div className="progress-fill" style={progressFillStyle}></div>
             </div>
           </div>
         </div>
@@ -437,7 +457,7 @@ const ResponderAnamnese = () => {
               {perguntasOrdenadas.map((pergunta, index) => (
                 <div key={pergunta.id} className="pergunta-slide">
                   <div className="pergunta-item">
-                    <label className="pergunta-label">
+                    <label className="pergunta-label" style={perguntaLabelStyle}>
                       {index + 1}. {pergunta.texto}
                       {pergunta.obrigatoria && <span className="required-mark"> *</span>}
                     </label>
@@ -454,6 +474,7 @@ const ResponderAnamnese = () => {
             <button
               type="button"
               className="btn-nav btn-prev"
+              style={btnNavStyle}
               onClick={handlePrevious}
               disabled={isFirstStep}
             >
@@ -465,6 +486,7 @@ const ResponderAnamnese = () => {
               <button
                 type="submit"
                 className="btn-submit"
+                style={btnSubmitStyle}
                 disabled={submitting}
               >
                 {submitting ? (
@@ -481,6 +503,7 @@ const ResponderAnamnese = () => {
               <button
                 type="button"
                 className="btn-nav btn-next"
+                style={btnNavStyle}
                 onClick={handleNext}
               >
                 Próxima

@@ -75,6 +75,7 @@ const ClienteDetalhes = () => {
   const [anamnesesDisponiveis, setAnamnesesDisponiveis] = useState([])
   const [showVincularAnamneseModal, setShowVincularAnamneseModal] = useState(false)
   const [anamneseParaVincular, setAnamneseParaVincular] = useState('')
+  const [loadingVincularAnamnese, setLoadingVincularAnamnese] = useState(false)
   const [loadingAnamneses, setLoadingAnamneses] = useState(false)
   const [loadingAnamnesesVinculadas, setLoadingAnamnesesVinculadas] = useState(true)
   const [loadingRadiografias, setLoadingRadiografias] = useState(true)
@@ -988,6 +989,7 @@ const ClienteDetalhes = () => {
       return
     }
 
+    setLoadingVincularAnamnese(true)
     try {
       // Vincular anamnese ao paciente
       const vincularResponse = await api.post('/anamneses/vincular-paciente', {
@@ -1018,6 +1020,8 @@ const ClienteDetalhes = () => {
       console.error('Erro ao vincular anamnese:', error)
       const errorMessage = error.response?.data?.message || 'Erro ao vincular anamnese. Tente novamente.'
       showError(errorMessage)
+    } finally {
+      setLoadingVincularAnamnese(false)
     }
   }
 
@@ -3015,7 +3019,7 @@ const ClienteDetalhes = () => {
 
       {/* Modal Vincular Anamnese */}
       {showVincularAnamneseModal && (
-        <div className="modal-overlay" onClick={() => setShowVincularAnamneseModal(false)}>
+        <div className="modal-overlay" onClick={() => !loadingVincularAnamnese && setShowVincularAnamneseModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Vincular Anamnese</h3>
             {loadingAnamneses ? (
@@ -3040,18 +3044,33 @@ const ClienteDetalhes = () => {
                   </p>
                 )}
                 <div className="modal-actions">
-                  <button className="btn-cancel" onClick={() => {
-                    setShowVincularAnamneseModal(false)
-                    setAnamneseParaVincular('')
-                  }}>
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => {
+                      if (!loadingVincularAnamnese) {
+                        setShowVincularAnamneseModal(false)
+                        setAnamneseParaVincular('')
+                      }
+                    }}
+                    disabled={loadingVincularAnamnese}
+                  >
                     Cancelar
                   </button>
                   <button 
+                    type="button"
                     className="btn-save" 
                     onClick={handleVincularAnamnese}
-                    disabled={!anamneseParaVincular || anamnesesDisponiveis.length === 0}
+                    disabled={!anamneseParaVincular || anamnesesDisponiveis.length === 0 || loadingVincularAnamnese}
                   >
-                    Vincular
+                    {loadingVincularAnamnese ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '0.5rem' }} />
+                        Vinculando...
+                      </>
+                    ) : (
+                      'Vincular'
+                    )}
                   </button>
                 </div>
               </>

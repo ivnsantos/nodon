@@ -88,6 +88,11 @@ const ResponderQuestionarioForm = () => {
   const perguntas = respostaQuestionario?.questionario?.perguntas || []
   const totalPerguntas = perguntas.length
 
+  const empresa = respostaQuestionario?.questionario?.clienteMaster || respostaQuestionario?.paciente?.masterClient || null
+  const corEmpresa = empresa?.cor || '#0ea5e9'
+  const corSecundaria = empresa?.corSecundaria || '#06b6d4'
+  const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
+
   const nextStep = () => {
     if (currentStep < totalPerguntas - 1) {
       setDirection('next')
@@ -288,10 +293,10 @@ const ResponderQuestionarioForm = () => {
 
   if (loading) {
     return (
-      <div className="questionario-form-container">
+      <div className="questionario-form-container" style={coresStyle}>
         <div className="loading-container">
           <FontAwesomeIcon icon={faSpinner} spin className="loading-spinner" />
-          <p>Carregando questionário...</p>
+          <p className="loading-text">Carregando questionário...</p>
         </div>
       </div>
     )
@@ -299,7 +304,7 @@ const ResponderQuestionarioForm = () => {
 
   if (error && !respostaQuestionario) {
     return (
-      <div className="questionario-form-container">
+      <div className="questionario-form-container" style={coresStyle}>
         <div className="error-container">
           <FontAwesomeIcon icon={faComment} />
           <p>{error}</p>
@@ -314,11 +319,11 @@ const ResponderQuestionarioForm = () => {
 
   if (success) {
     return (
-      <div className="questionario-form-container">
+      <div className="questionario-form-container" style={coresStyle}>
         <div className="success-container">
           <FontAwesomeIcon icon={faCheckCircle} className="success-icon" />
-          <h2>Questionário Enviado!</h2>
-          <p>Obrigado por responder o questionário. Suas respostas foram registradas com sucesso.</p>
+          <h2 style={{ color: corSecundaria }}>Questionário Enviado!</h2>
+          <p style={{ color: corSecundaria }}>Obrigado por responder o questionário. Suas respostas foram registradas com sucesso.</p>
         </div>
       </div>
     )
@@ -326,7 +331,7 @@ const ResponderQuestionarioForm = () => {
 
   if (!respostaQuestionario || perguntas.length === 0) {
     return (
-      <div className="questionario-form-container">
+      <div className="questionario-form-container" style={coresStyle}>
         <div className="error-container">
           <FontAwesomeIcon icon={faComment} />
           <p>Questionário não encontrado ou sem perguntas.</p>
@@ -342,19 +347,25 @@ const ResponderQuestionarioForm = () => {
   const perguntaAtual = perguntas[currentStep]
   const progresso = ((currentStep + 1) / totalPerguntas) * 100
 
+  const progressBarStyle = { background: `rgba(0,0,0,0.1)`, border: `1px solid ${corSecundaria}40` }
+  const progressFillStyle = { width: `${progresso}%`, background: corSecundaria }
+  const labelStyle = { color: corSecundaria }
+  const btnPrevStyle = { color: corSecundaria, borderColor: `${corEmpresa}60`, background: `${corEmpresa}15` }
+  const btnSubmitStyle = { background: corEmpresa, color: '#fff' }
+
   return (
-    <div className="questionario-form-container">
+    <div className="questionario-form-container" style={coresStyle}>
       <div className="questionario-form-card">
         <div className="questionario-form-header">
           <button className="btn-voltar-header" onClick={() => navigate(`/responder-questionario/${id}`)}>
             <FontAwesomeIcon icon={faArrowLeft} />
           </button>
           <div className="header-info">
-            <h2>{respostaQuestionario.questionario?.titulo || 'Questionário'}</h2>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progresso}%` }}></div>
+            <h2 style={labelStyle}>{respostaQuestionario.questionario?.titulo || 'Questionário'}</h2>
+            <div className="progress-bar" style={progressBarStyle}>
+              <div className="progress-fill" style={progressFillStyle}></div>
             </div>
-            <p className="progress-text">
+            <p className="progress-text" style={labelStyle}>
               Pergunta {currentStep + 1} de {totalPerguntas}
             </p>
           </div>
@@ -364,14 +375,14 @@ const ResponderQuestionarioForm = () => {
           <div className={`pergunta-container ${direction}`}>
             <div className="pergunta-header">
               <div className="pergunta-header-left">
-                <span className="pergunta-label">PERGUNTA</span>
-                <span className="pergunta-number">{currentStep + 1}</span>
+                <span className="pergunta-label" style={labelStyle}>PERGUNTA</span>
+                <span className="pergunta-number" style={labelStyle}>{currentStep + 1}</span>
               </div>
               {perguntaAtual.obrigatoria && (
                 <span className="pergunta-obrigatoria">* Obrigatória</span>
               )}
             </div>
-            <h3 className="pergunta-texto">{perguntaAtual.texto}</h3>
+            <h3 className="pergunta-texto" style={labelStyle}>{perguntaAtual.texto}</h3>
             <div className="pergunta-resposta">
               {renderPergunta(perguntaAtual)}
             </div>
@@ -387,6 +398,7 @@ const ResponderQuestionarioForm = () => {
             <button
               type="button"
               className="btn-nav btn-prev"
+              style={btnPrevStyle}
               onClick={prevStep}
               disabled={currentStep === 0}
             >
@@ -398,6 +410,7 @@ const ResponderQuestionarioForm = () => {
               <button
                 type="submit"
                 className="btn-nav btn-submit"
+                style={btnSubmitStyle}
                 disabled={submitting}
               >
                 {submitting ? (
@@ -416,6 +429,7 @@ const ResponderQuestionarioForm = () => {
               <button
                 type="button"
                 className="btn-nav btn-next"
+                style={btnSubmitStyle}
                 onClick={nextStep}
               >
                 Próxima

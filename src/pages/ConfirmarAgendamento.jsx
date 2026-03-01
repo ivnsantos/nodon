@@ -6,7 +6,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import nodoLogo from '../img/nodo.png'
 import api from '../utils/api'
-import './AgendamentoPublico.css'
 import './ConfirmarAgendamento.css'
 
 const ConfirmarAgendamento = () => {
@@ -18,6 +17,11 @@ const ConfirmarAgendamento = () => {
   const [confirmando, setConfirmando] = useState(false)
   const [confirmado, setConfirmado] = useState(false)
   const [jaConfirmada, setJaConfirmada] = useState(false)
+
+  const corEmpresa = clienteMaster?.cor || clienteMaster?.cor_empresa || '#0ea5e9'
+  const corSecundaria = clienteMaster?.corSecundaria || clienteMaster?.cor_secundaria || '#06b6d4'
+  const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
+  const nomeEmpresa = clienteMaster?.nomeEmpresa || clienteMaster?.nome_empresa || 'Clínica'
 
   useEffect(() => {
     if (consultaId) {
@@ -108,25 +112,31 @@ const ConfirmarAgendamento = () => {
   }
 
   const Header = () => (
-    <header className="nodon-header">
+    <header className="nodon-header" style={coresStyle}>
       <div className="nodon-header-content">
-        <img src={nodoLogo} alt="Nodon" className="nodon-icon" />
-        <h1 className="nodon-logo">Nodon</h1>
+        {clienteMaster?.logo ? (
+          <img src={clienteMaster.logo} alt={nomeEmpresa} className="nodon-icon confirmar-header-logo" />
+        ) : (
+          <img src={nodoLogo} alt="Logo" className="nodon-icon confirmar-header-logo" />
+        )}
+        <h1 className="nodon-logo" style={{ color: corSecundaria }}>
+          {nomeEmpresa}
+        </h1>
       </div>
     </header>
   )
 
   const Footer = () => (
-    <footer className="nodon-footer">
+    <footer className="nodon-footer" style={coresStyle}>
       <div className="nodon-footer-content">
-        <p>&copy; {new Date().getFullYear()} Nodon. Todos os direitos reservados.</p>
+        <p>&copy; {new Date().getFullYear()} {nomeEmpresa}. Todos os direitos reservados.</p>
       </div>
     </footer>
   )
 
   if (loading) {
     return (
-      <div className="agendamento-page">
+      <div className="confirmar-agendamento-page" style={coresStyle}>
         <Header />
         <div className="loading">
           <FontAwesomeIcon icon={faSpinner} spin />
@@ -139,7 +149,7 @@ const ConfirmarAgendamento = () => {
 
   if (error && !consulta) {
     return (
-      <div className="agendamento-page">
+      <div className="confirmar-agendamento-page" style={coresStyle}>
         <Header />
         <div className="error">
           <div className="error-icon">
@@ -158,7 +168,7 @@ const ConfirmarAgendamento = () => {
 
   if (!consulta) {
     return (
-      <div className="agendamento-page">
+      <div className="confirmar-agendamento-page" style={coresStyle}>
         <Header />
         <div className="error">
           <div className="error-icon">
@@ -174,7 +184,7 @@ const ConfirmarAgendamento = () => {
 
   if (confirmado) {
     return (
-      <div className="agendamento-page">
+      <div className="confirmar-agendamento-page" style={coresStyle}>
         <Header />
         <div className="success-box">
           <div className="success-icon">
@@ -194,12 +204,12 @@ const ConfirmarAgendamento = () => {
   }
 
   return (
-    <div className="agendamento-page confirmar-agendamento">
+    <div className="confirmar-agendamento-page" style={coresStyle}>
       <Header />
       <div className="container confirmar-container">
         <div className="header confirmar-header">
-          <h1>Confirmar Consulta</h1>
-          <p className="clinic-name">{clienteMaster?.nome_empresa || clienteMaster?.nomeEmpresa || 'Clínica'}</p>
+          <h1 style={{ color: corSecundaria }}>Confirmar Consulta</h1>
+          <p className="clinic-name" style={{ color: corSecundaria }}>{nomeEmpresa}</p>
         </div>
 
         <div className="info-box confirmar-info-box">

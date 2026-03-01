@@ -34,6 +34,11 @@ const AgendamentoPublico = () => {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
+  const clienteMaster = agendamento?.clienteMaster || null
+  const corEmpresa = clienteMaster?.cor || '#0ea5e9'
+  const corSecundaria = clienteMaster?.corSecundaria || '#06b6d4'
+  const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
+
   useEffect(() => {
     if (id) {
       fetchAgendamento()
@@ -295,25 +300,31 @@ const AgendamentoPublico = () => {
 
 
   const Header = () => (
-    <header className="nodon-header">
+    <header className="nodon-header agendamento-publico-header" style={coresStyle}>
       <div className="nodon-header-content">
-        <img src={nodoLogo} alt="Nodon" className="nodon-icon" />
-        <h1 className="nodon-logo">Nodon</h1>
+        {clienteMaster?.logo ? (
+          <img src={clienteMaster.logo} alt={clienteMaster.nomeEmpresa || 'Clínica'} className="nodon-icon empresa-logo-img agendamento-header-logo" />
+        ) : (
+          <img src={nodoLogo} alt="Logo" className="nodon-icon agendamento-header-logo" />
+        )}
+        <h1 className="nodon-logo agendamento-empresa-nome" style={{ color: corSecundaria }}>
+          {clienteMaster?.nomeEmpresa || 'Nodon'}
+        </h1>
       </div>
     </header>
   )
 
   const Footer = () => (
-    <footer className="nodon-footer">
+    <footer className="nodon-footer" style={coresStyle}>
       <div className="nodon-footer-content">
-        <p>&copy; {new Date().getFullYear()} Nodon. Todos os direitos reservados.</p>
+        <p>&copy; {new Date().getFullYear()} {clienteMaster?.nomeEmpresa || 'Nodon'}. Todos os direitos reservados.</p>
       </div>
     </footer>
   )
 
   if (loading) {
     return (
-      <div className="agendamento-page">
+      <div className="agendamento-page" style={coresStyle}>
         <Header />
         <div className="loading">
           <FontAwesomeIcon icon={faSpinner} spin />
@@ -328,7 +339,7 @@ const AgendamentoPublico = () => {
     const isPacienteVinculado = error.includes('paciente vinculado') || error.includes('possui paciente')
     
     return (
-      <div className="agendamento-page">
+      <div className="agendamento-page" style={coresStyle}>
         <Header />
         <div className={`error ${isPacienteVinculado ? 'error-info' : ''}`}>
           <div className="error-icon">
@@ -349,7 +360,7 @@ const AgendamentoPublico = () => {
 
   if (!agendamento) {
     return (
-      <div className="agendamento-page">
+      <div className="agendamento-page" style={coresStyle}>
         <Header />
         <div className="error">
           <div className="error-icon">
@@ -365,7 +376,7 @@ const AgendamentoPublico = () => {
 
   if (success) {
     return (
-      <div className="agendamento-page">
+      <div className="agendamento-page" style={coresStyle}>
         <Header />
         <div className="success-box">
           <div className="success-icon">
@@ -380,12 +391,12 @@ const AgendamentoPublico = () => {
   }
 
   return (
-    <div className="agendamento-page">
+    <div className="agendamento-page" style={coresStyle}>
       <Header />
       <div className="container">
         <div className="header">
-          <h1>Agendamento</h1>
-          <p className="clinic-name">{agendamento.clienteMaster?.nomeEmpresa || 'Clínica'}</p>
+          <h1 className="agendamento-titulo" style={{ color: corSecundaria }}>Agendamento</h1>
+          <p className="clinic-name" style={{ color: corSecundaria }}>{agendamento.clienteMaster?.nomeEmpresa || 'Clínica'}</p>
         </div>
 
         <div className="info-box">
@@ -627,7 +638,7 @@ const AgendamentoPublico = () => {
               </button>
             )}
 
-            <div className="form-actions" style={{backgroundColor: '#1e293b'}}>
+            <div className="form-actions agendamento-form-actions">
             <button type="button" onClick={() => setStep(1)} className="btn-cancel">
               Cancelar
             </button>

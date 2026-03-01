@@ -66,12 +66,14 @@ const ResponderQuestionario = () => {
     navigate(`${base}/${id}/iniciar`)
   }
 
+  const defaultCores = { '--cor-empresa': '#0ea5e9', '--cor-empresa-secundaria': '#06b6d4' }
+
   if (loading) {
     return (
-      <div className="questionario-entrada-container">
+      <div className="questionario-entrada-container" style={defaultCores}>
         <div className="loading-container">
           <FontAwesomeIcon icon={faSpinner} spin className="loading-spinner" />
-          <p>Carregando informações...</p>
+          <p className="loading-text">Carregando informações...</p>
         </div>
       </div>
     )
@@ -79,7 +81,7 @@ const ResponderQuestionario = () => {
 
   if (error) {
     return (
-      <div className="questionario-entrada-container">
+      <div className="questionario-entrada-container" style={defaultCores}>
         <div className="error-container">
           <FontAwesomeIcon icon={faComment} />
           <p>{error}</p>
@@ -90,7 +92,7 @@ const ResponderQuestionario = () => {
 
   if (!data) {
     return (
-      <div className="questionario-entrada-container">
+      <div className="questionario-entrada-container" style={defaultCores}>
         <div className="error-container">
           <FontAwesomeIcon icon={faComment} />
           <p>Questionário não encontrado.</p>
@@ -103,24 +105,32 @@ const ResponderQuestionario = () => {
   const paciente = data.paciente || null
   const questionario = data.questionario
   const corEmpresa = empresa?.cor || '#0ea5e9'
+  const corSecundaria = empresa?.corSecundaria || '#06b6d4'
   const nomeEmpresa = empresa?.nomeEmpresa || 'Consultório'
+  const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
 
   return (
-    <div className="questionario-entrada-container">
+    <div className="questionario-entrada-container" style={coresStyle}>
       <div className="questionario-entrada-card">
-        <div className="empresa-header" style={{ backgroundColor: corEmpresa }}>
-          {empresa?.logo && (
+        <div className="empresa-header questionario-empresa-header" style={{ background: corEmpresa }}>
+          {empresa?.logo ? (
             <img src={empresa.logo} alt={nomeEmpresa} className="empresa-logo" />
+          ) : (
+            <div className="empresa-logo-placeholder">
+              <FontAwesomeIcon icon={faBuilding} />
+            </div>
           )}
-          <h1>{nomeEmpresa}</h1>
+          <h1 className="questionario-empresa-nome" style={{ color: corSecundaria }}>{nomeEmpresa}</h1>
         </div>
 
         <div className="questionario-entrada-content">
           {concluida ? (
             <div className="concluida-container">
-              <FontAwesomeIcon icon={faCheckCircle} className="check-icon" />
-              <h2>Questionário Respondido</h2>
-              <p>Você já respondeu este questionário. Obrigado pela sua participação!</p>
+              <div className="concluida-icon-box" style={{ background: corEmpresa }}>
+                <FontAwesomeIcon icon={faCheckCircle} className="check-icon" />
+              </div>
+              <h2 style={{ color: corSecundaria }}>Questionário Respondido</h2>
+              <p style={{ color: corSecundaria }}>Você já respondeu este questionário. Obrigado pela sua participação!</p>
             </div>
           ) : (
             <>
@@ -128,9 +138,9 @@ const ResponderQuestionario = () => {
                 <div className="info-icon">
                   <FontAwesomeIcon icon={faComment} />
                 </div>
-                <h2>{questionario?.titulo || 'Questionário'}</h2>
+                <h2 className="questionario-titulo" style={{ color: corSecundaria }}>{questionario?.titulo || 'Questionário'}</h2>
                 {questionario?.descricao && (
-                  <p className="questionario-descricao">{questionario.descricao}</p>
+                  <p className="questionario-descricao" style={{ color: corSecundaria }}>{questionario.descricao}</p>
                 )}
               </div>
 
@@ -138,28 +148,28 @@ const ResponderQuestionario = () => {
                 <div className="paciente-info">
                   <FontAwesomeIcon icon={faUser} />
                   <div>
-                    <p className="paciente-label">Paciente</p>
-                    <p className="paciente-nome">{paciente.nome}</p>
+                    <p className="paciente-label" style={{ color: corSecundaria }}>Paciente</p>
+                    <p className="paciente-nome" style={{ color: corSecundaria }}>{paciente.nome}</p>
                   </div>
                 </div>
               ) : (
                 <div className="paciente-info">
                   <FontAwesomeIcon icon={faUser} />
                   <div>
-                    <p className="paciente-label">Questionário Público</p>
-                    <p className="paciente-nome">Resposta anônima</p>
+                    <p className="paciente-label" style={{ color: corSecundaria }}>Questionário Público</p>
+                    <p className="paciente-nome" style={{ color: corSecundaria }}>Resposta anônima</p>
                   </div>
                 </div>
               )}
 
               <div className="questionario-stats">
-                <div className="stat-item">
+                <div className="stat-item" style={{ color: corSecundaria }}>
                   <FontAwesomeIcon icon={faComment} />
                   <span>{questionario?.perguntas?.length || 0} pergunta(s)</span>
                 </div>
               </div>
 
-              <button className="btn-iniciar" onClick={handleIniciar}>
+              <button className="btn-iniciar" style={{ background: corEmpresa }} onClick={handleIniciar}>
                 Iniciar Questionário
                 <FontAwesomeIcon icon={faArrowRight} />
               </button>
