@@ -31,6 +31,8 @@ import SelectClinic from './pages/SelectClinic'
 import UsuarioInativo from './pages/UsuarioInativo'
 import RegisterByHash from './pages/RegisterByHash'
 import LPDentista from './pages/LPDentista'
+import LPDentistaPRO from './pages/LPDentistaPRO'
+import LPDentistaPROv2 from './pages/LPDentistaPROv2'
 import LPEstudante from './pages/LPEstudante'
 import GoogleCallback from './pages/GoogleCallback'
 import ForgotPassword from './pages/ForgotPassword'
@@ -123,6 +125,16 @@ function AppRoutes() {
         <Route path="/lp/dentista" element={
           <PublicRoute>
             <LPDentista />
+          </PublicRoute>
+        } />
+        <Route path="/lp/dentista-pro" element={
+          <PublicRoute>
+            <LPDentistaPRO />
+          </PublicRoute>
+        } />
+        <Route path="/lp/dentista-pro-v2" element={
+          <PublicRoute>
+            <LPDentistaPROv2 />
           </PublicRoute>
         } />
         <Route path="/lp/estudante" element={

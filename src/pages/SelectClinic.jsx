@@ -206,6 +206,14 @@ const SelectClinic = () => {
     return null
   }
 
+  const hexToRgba = (hex, a) => {
+    const h = normalizeHex(hex) || '#1e293b'
+    const r = parseInt(h.slice(1, 3), 16)
+    const g = parseInt(h.slice(3, 5), 16)
+    const b = parseInt(h.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},${a})`
+  }
+
   // Só quem é cliente master do consultório pode editar (get-client-token pode retornar tipo: "master" no item do consultório)
   const isClienteMasterDoConsultorio = (clinic) => {
     if (!clinic) return false
@@ -867,19 +875,52 @@ const SelectClinic = () => {
                   )}
                 </div>
                 <div className="form-group">
-                  <label>Cor principal (Cor mais escura)</label>
+                  <label>Cor principal (Cor predominante)</label>
                   <div className="master-cor-row">
                     <input name="cor" type="color" value={masterFormData.cor} onChange={handleMasterFormChange} className="master-cor-picker" />
                     <input type="text" value={masterFormData.cor} onChange={(e) => { const v = e.target.value; if (v === '' || /^#[0-9A-Fa-f]{0,6}$/.test(v)) setMasterFormData(prev => ({ ...prev, cor: v || '#' })) }} placeholder="#001c29 (somente hex)" className="master-cor-text" maxLength={7} />
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Cor secundária (Cor mais clara)</label>
+                  <label>Cor secundária (Cor para textos)</label>
                   <div className="master-cor-row">
                     <input name="corSecundaria" type="color" value={masterFormData.corSecundaria} onChange={handleMasterFormChange} className="master-cor-picker" />
                     <input type="text" value={masterFormData.corSecundaria} onChange={(e) => { const v = e.target.value; if (v === '' || /^#[0-9A-Fa-f]{0,6}$/.test(v)) setMasterFormData(prev => ({ ...prev, corSecundaria: v || '#' })) }} placeholder="#ff5722 (somente hex)" className="master-cor-text" maxLength={7} />
                   </div>
                 </div>
+                {(() => {
+                  const previewCor = normalizeHex(masterFormData.cor) || '#1e293b'
+                  const previewSec = normalizeHex(masterFormData.corSecundaria) || '#e2e8f0'
+                  return (
+                    <div className="form-group master-cor-preview-wrap">
+                      <label>Preview da página</label>
+                      <div
+                        className="master-cor-preview"
+                        style={{
+                          background: previewCor,
+                          border: `1px solid ${hexToRgba(previewCor, 0.6)}`
+                        }}
+                      >
+                        <div className="master-cor-preview-header" style={{ background: hexToRgba(previewCor, 0.6), borderBottom: `1px solid ${hexToRgba(previewSec, 0.2)}` }}>
+                          {(masterLogoPreview || masterFormData.logo) ? (
+                            <img src={masterLogoPreview || masterFormData.logo} alt="" className="master-cor-preview-logo master-cor-preview-logo-img" />
+                          ) : (
+                            <span className="master-cor-preview-logo" style={{ background: previewSec }} />
+                          )}
+                          <span className="master-cor-preview-title" style={{ color: previewSec }}>{masterFormData.nomeEmpresa.trim() || 'Nome da empresa'}</span>
+                        </div>
+                        <div className="master-cor-preview-body">
+                          <h3 className="master-cor-preview-h3" style={{ color: previewSec }}>Título da página</h3>
+                          <div className="master-cor-preview-card" style={{ background: hexToRgba(previewCor, 0.15), borderColor: '#ffffff52' }}>
+                            <span className="master-cor-preview-label" style={{ color: previewSec }}>Campo</span>
+                            <span className="master-cor-preview-value" style={{ color: previewSec, opacity: 0.9 }}>Valor do campo</span>
+                          </div>
+                          <button type="button" className="master-cor-preview-btn" style={{ background: previewCor, color: previewSec, borderColor: previewCor }} disabled>Botão</button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
                 <div className="form-group">
                   <label><FontAwesomeIcon icon={faPhone} /> Telefone da empresa</label>
                   <input name="telefoneEmpresa" type="tel" value={formatTelefoneDisplay(masterFormData.telefoneEmpresa)} onChange={handleMasterFormChange} placeholder="(11) 99999-9999" />

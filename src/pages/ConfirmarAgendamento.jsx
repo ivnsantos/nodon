@@ -18,9 +18,15 @@ const ConfirmarAgendamento = () => {
   const [confirmado, setConfirmado] = useState(false)
   const [jaConfirmada, setJaConfirmada] = useState(false)
 
-  const corEmpresa = clienteMaster?.cor || clienteMaster?.cor_empresa || '#0ea5e9'
-  const corSecundaria = clienteMaster?.corSecundaria || clienteMaster?.cor_secundaria || '#06b6d4'
-  const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
+  // Cores somente da API (cor = principal, corSecundaria = textos/destaques). Sem fallback para não usar outra cor.
+  const corEmpresa = clienteMaster?.cor ?? clienteMaster?.cor_empresa ?? null
+  const corSecundaria = clienteMaster?.corSecundaria ?? clienteMaster?.cor_secundaria ?? null
+  const corPrincipal = corEmpresa || '#0f172a'
+  const corTexto = corSecundaria || '#e2e8f0'
+  const coresStyle = {
+    '--cor-empresa': corPrincipal,
+    '--cor-empresa-secundaria': corTexto
+  }
   const nomeEmpresa = clienteMaster?.nomeEmpresa || clienteMaster?.nome_empresa || 'Clínica'
 
   useEffect(() => {
@@ -40,14 +46,19 @@ const ConfirmarAgendamento = () => {
         return
       }
       const innerData = response.data?.data?.data || response.data?.data || {}
-      if (innerData.consulta) {
-        setConsulta(innerData.consulta)
-        if (innerData.consulta.status === 'confirmada' || innerData.ja_confirmada) {
+      const consultaData = innerData.consulta
+      if (consultaData) {
+        setConsulta(consultaData)
+        if (consultaData.status === 'confirmada' || innerData.ja_confirmada) {
           setConfirmado(true)
           setJaConfirmada(true)
         }
+        // Cores vêm da API: pegar cliente_master da resposta ou aninhado em consulta
+        const master = innerData.cliente_master || innerData.clienteMaster || consultaData.cliente_master || consultaData.clienteMaster
+        if (master) setClienteMaster(master)
       }
-      if (innerData.cliente_master) setClienteMaster(innerData.cliente_master)
+      if (innerData.cliente_master && !consultaData) setClienteMaster(innerData.cliente_master)
+      if (innerData.clienteMaster && !consultaData) setClienteMaster(innerData.clienteMaster)
       if (innerData.ja_confirmada) {
         setJaConfirmada(true)
         setConfirmado(true)
@@ -112,14 +123,14 @@ const ConfirmarAgendamento = () => {
   }
 
   const Header = () => (
-    <header className="nodon-header" style={coresStyle}>
+    <header className="nodon-header">
       <div className="nodon-header-content">
         {clienteMaster?.logo ? (
-          <img src={clienteMaster.logo} alt={nomeEmpresa} className="nodon-icon confirmar-header-logo" />
+          <img src={clienteMaster.logo} alt={nomeEmpresa} className="nodon-icon confirmar-header-logo" style={{ border: `2px solid ${corTexto}` }} />
         ) : (
-          <img src={nodoLogo} alt="Logo" className="nodon-icon confirmar-header-logo" />
+          <img src={nodoLogo} alt="Logo" className="nodon-icon confirmar-header-logo" style={{ border: `2px solid ${corTexto}` }} />
         )}
-        <h1 className="nodon-logo" style={{ color: corSecundaria }}>
+        <h1 className="nodon-logo">
           {nomeEmpresa}
         </h1>
       </div>
@@ -127,9 +138,9 @@ const ConfirmarAgendamento = () => {
   )
 
   const Footer = () => (
-    <footer className="nodon-footer" style={coresStyle}>
+    <footer className="nodon-footer">
       <div className="nodon-footer-content">
-        <p>&copy; {new Date().getFullYear()} {nomeEmpresa}. Todos os direitos reservados.</p>
+        <p style={{ color: corTexto }}>&copy; {new Date().getFullYear()} {nomeEmpresa}. Todos os direitos reservados.</p>
       </div>
     </footer>
   )
@@ -157,7 +168,7 @@ const ConfirmarAgendamento = () => {
           </div>
           <h2>Erro</h2>
           <p>{error}</p>
-          <button type="button" onClick={() => { setError(null); fetchDadosBasicos() }} className="btn-main" style={{ marginTop: '1rem', maxWidth: 280 }}>
+          <button type="button" onClick={() => { setError(null); fetchDadosBasicos() }} className="btn-main" style={{ marginTop: '1rem', maxWidth: 280, background: corPrincipal, color: corTexto }}>
             Tentar novamente
           </button>
         </div>
@@ -208,8 +219,8 @@ const ConfirmarAgendamento = () => {
       <Header />
       <div className="container confirmar-container">
         <div className="header confirmar-header">
-          <h1 style={{ color: corSecundaria }}>Confirmar Consulta</h1>
-          <p className="clinic-name" style={{ color: corSecundaria }}>{nomeEmpresa}</p>
+          <h1 style={{ color: corTexto }}>Confirmar Consulta</h1>
+          <p className="clinic-name" style={{ color: corTexto }}>{nomeEmpresa}</p>
         </div>
 
         <div className="info-box confirmar-info-box">
@@ -243,13 +254,13 @@ const ConfirmarAgendamento = () => {
 
         <div className="action-box confirmar-action-box">
           {error && (
-            <div className="info-banner" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-              <FontAwesomeIcon icon={faTimes} style={{ color: '#ef4444' }} />
+            <div className="info-banner" style={{ background: `${corPrincipal}25`, borderColor: `${corPrincipal}60`, color: corTexto }}>
+              <FontAwesomeIcon icon={faTimes} style={{ color: corPrincipal }} />
               <span>{error}</span>
             </div>
           )}
-          <div className="info-banner">
-            <FontAwesomeIcon icon={faInfoCircle} />
+          <div className="info-banner" style={{ background: `${corPrincipal}25`, borderColor: `${corPrincipal}50`, color: corTexto }}>
+            <FontAwesomeIcon icon={faInfoCircle} style={{ color: corPrincipal }} />
             <span>Confira os dados acima e confirme sua consulta</span>
           </div>
           <button
@@ -257,6 +268,7 @@ const ConfirmarAgendamento = () => {
             onClick={handleConfirmar}
             disabled={confirmando}
             className="btn-main"
+            style={{ background: corPrincipal, color: corTexto }}
           >
             {confirmando ? (
               <>

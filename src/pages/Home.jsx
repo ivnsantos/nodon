@@ -302,11 +302,10 @@ const Home = () => {
               <span>Sistema Completo de Gestão Odontológica</span>
             </div>
             <h1 className="home-hero-title">
-              Transforme sua carreira odontológica com <span className="home-highlight">NODON</span>
+             Aumente sua renda em até 30% com as tecnicas e organização do jeito <span className="home-highlight">NODON</span>.
             </h1>
             <p className="home-hero-subtitle">
-              Plataforma completa para gestão odontológica com IA avançada para diagnósticos, 
-              gestão de pacientes, orçamentos, precificação, agendamentos e muito mais.
+              Uma plataforma completa que aumenta seu lucro e organiza seu tempo.
             </p>
             <div className="home-hero-buttons">
               <button className="home-btn-hero-primary" onClick={() => navigate('/login')}>

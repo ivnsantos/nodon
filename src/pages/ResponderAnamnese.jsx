@@ -403,8 +403,20 @@ const ResponderAnamnese = () => {
   const progressBarStyle = { borderColor: hexToRgba(corSecundaria, 0.35), background: hexToRgba(corSecundaria, 0.15) }
   const progressFillStyle = { width: `${progress}%`, background: corSecundaria }
   const perguntaLabelStyle = { color: corSecundaria }
-  const btnNavStyle = { color: corSecundaria, borderColor: hexToRgba(corEmpresa, 0.5), background: hexToRgba(corEmpresa, 0.12) }
-  const btnSubmitStyle = { background: corEmpresa, color: '#fff' }
+  // Anterior: fundo e borda cor PRINCIPAL (bem visível), texto cor SECUNDÁRIA
+  const btnPrevStyle = {
+    color: corSecundaria,
+    background: hexToRgba(corEmpresa, 0.35),
+    border: `2px solid ${corEmpresa}`,
+    boxShadow: `0 0 0 1px ${hexToRgba(corEmpresa, 0.2)}`
+  }
+  // Próxima e Enviar: fundo sólido cor PRINCIPAL, texto cor SECUNDÁRIA (ou branco)
+  const btnNextSubmitStyle = {
+    background: corEmpresa,
+    color: corSecundaria,
+    border: `2px solid ${corEmpresa}`,
+    boxShadow: `0 4px 12px ${hexToRgba(corEmpresa, 0.4)}`
+  }
 
   return (
     <div className="responder-anamnese-container" style={coresStyle}>
@@ -474,7 +486,7 @@ const ResponderAnamnese = () => {
             <button
               type="button"
               className="btn-nav btn-prev"
-              style={btnNavStyle}
+              style={btnPrevStyle}
               onClick={handlePrevious}
               disabled={isFirstStep}
             >
@@ -486,7 +498,7 @@ const ResponderAnamnese = () => {
               <button
                 type="submit"
                 className="btn-submit"
-                style={btnSubmitStyle}
+                style={btnNextSubmitStyle}
                 disabled={submitting}
               >
                 {submitting ? (
@@ -503,7 +515,7 @@ const ResponderAnamnese = () => {
               <button
                 type="button"
                 className="btn-nav btn-next"
-                style={btnNavStyle}
+                style={btnNextSubmitStyle}
                 onClick={handleNext}
               >
                 Próxima

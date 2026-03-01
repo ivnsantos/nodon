@@ -1,6 +1,6 @@
 .anamnese-entrada-container {
   min-height: 100vh;
-  background: linear-gradient(160deg, #0f172a 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, #0f172a) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cor-empresa) 45%, #0a0a0f) 0%, color-mix(in srgb, var(--cor-empresa) 25%, #050508) 100%);
   padding: 0;
   display: flex;
   justify-content: center;
@@ -49,9 +49,10 @@
 
 .empresa-nome {
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0;
+  opacity: 0.92;
   text-shadow: 0 0 20px color-mix(in srgb, var(--cor-empresa-secundaria, #06b6d4) 25%, transparent);
 }
 
@@ -85,20 +86,28 @@
   min-width: 0;
 }
 
-.anamnese-titulo,
-.paciente-nome {
+.anamnese-titulo {
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 0.25rem 0;
 }
 
+.paciente-nome {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  margin: 0 0 0.25rem 0;
+  opacity: 0.92;
+}
+
 .anamnese-descricao {
   font-size: 0.8125rem;
+  font-weight: 400;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 0.5rem 0;
   line-height: 1.4;
-  opacity: 0.95;
+  opacity: 0.88;
 }
 
 .anamnese-stats {
@@ -114,7 +123,7 @@
 
 .stat-item strong {
   color: var(--cor-empresa-secundaria, #06b6d4);
-  font-weight: 600;
+  font-weight: 700;
   margin-right: 0.25rem;
 }
 
@@ -134,16 +143,17 @@
 }
 
 .detalhe-label {
-  font-weight: 500;
+  font-weight: 700;
   color: var(--cor-empresa-secundaria, #06b6d4);
   min-width: 50px;
   flex-shrink: 0;
-  opacity: 0.9;
 }
 
 .detalhe-value {
+  font-weight: 400;
   color: var(--cor-empresa-secundaria, #06b6d4);
   word-break: break-word;
+  opacity: 0.9;
 }
 
 /* Botão - cor PRINCIPAL (background, borda, sombra) */

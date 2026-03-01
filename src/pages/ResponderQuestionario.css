@@ -3,7 +3,7 @@
 .questionario-form-container {
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #0a0e27 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 14%, #1a1f3a) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 45%, #0a0a0f) 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 25%, #050508) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -80,19 +80,28 @@
   font-size: 2.5rem;
 }
 
-.questionario-entrada-container .questionario-info h2,
-.questionario-entrada-container .questionario-titulo {
+.questionario-entrada-container .questionario-info h2 {
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 1rem 0;
 }
 
+.questionario-entrada-container .questionario-titulo {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--cor-empresa-secundaria, #06b6d4);
+  margin: 0 0 1rem 0;
+  opacity: 0.92;
+}
+
 .questionario-entrada-container .questionario-descricao {
   color: var(--cor-empresa-secundaria, #06b6d4);
   font-size: 1rem;
+  font-weight: 400;
   line-height: 1.6;
   margin: 0;
+  opacity: 0.88;
 }
 
 .questionario-entrada-container .paciente-info {
@@ -113,15 +122,17 @@
 
 .questionario-entrada-container .paciente-label {
   font-size: 0.8125rem;
+  font-weight: 700;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0;
 }
 
 .questionario-entrada-container .paciente-nome {
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0.25rem 0 0 0;
+  opacity: 0.92;
 }
 
 .questionario-entrada-container .questionario-stats {
@@ -315,9 +326,10 @@
 
 .questionario-form-container .header-info h2 {
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 0.75rem 0;
+  opacity: 0.92;
 }
 
 .questionario-form-container .progress-bar {
@@ -337,6 +349,7 @@
 
 .questionario-form-container .progress-text {
   font-size: 0.8125rem;
+  font-weight: 700;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0;
 }
@@ -423,11 +436,12 @@
 }
 
 .questionario-form-container .pergunta-texto {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 400;
   color: var(--cor-empresa-secundaria, #06b6d4);
   margin: 0 0 1.5rem 0;
   line-height: 1.5;
+  opacity: 0.92;
 }
 
 .questionario-form-container .pergunta-resposta {

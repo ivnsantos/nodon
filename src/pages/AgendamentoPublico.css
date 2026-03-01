@@ -1,7 +1,7 @@
 /* Escopo: todos os estilos abaixo aplicam apenas dentro de .agendamento-page para não conflitar com outras páginas */
 .agendamento-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, #1e293b) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 45%, #0a0a0f) 0%, color-mix(in srgb, var(--cor-empresa, #0ea5e9) 25%, #050508) 100%);
   padding: 0;
   color: #ffffff;
   display: flex;
@@ -21,7 +21,7 @@
 
 /* Header - fundo cor PRINCIPAL, texto cor SECUNDÁRIA */
 .agendamento-page .nodon-header.agendamento-publico-header {
-  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 18%, rgba(15, 23, 42, 0.95));
+  background: color-mix(in srgb, var(--cor-empresa) 25%, rgba(0, 0, 0, 0.95));
   border-bottom: 2px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
 }
 
@@ -74,7 +74,7 @@
 
 /* Footer */
 .agendamento-page .nodon-footer {
-  background: rgba(15, 23, 42, 0.95);
+  background: color-mix(in srgb, var(--cor-empresa) 25%, rgba(0, 0, 0, 0.95));
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1.5rem 1.5rem;
   margin-top: auto;
@@ -87,7 +87,7 @@
 }
 
 .agendamento-page .nodon-footer-content p {
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   font-size: 0.875rem;
   margin: 0;
 }
@@ -113,22 +113,22 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
 }
 
 .agendamento-page .clinic-name {
   margin: 0;
   font-size: 1rem;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   font-weight: 400;
+  opacity: 0.92;
 }
 
 .agendamento-page .info-box {
-  background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 10%, rgba(30, 41, 59, 0.6));
   border-radius: 1rem;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 30%, rgba(255, 255, 255, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.527);
 }
 
 .agendamento-page .info-row {
@@ -136,7 +136,7 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.527);
 }
 
 .agendamento-page .info-row:last-child {
@@ -150,17 +150,18 @@
 
 .agendamento-page .info-label {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  font-weight: 700;
+  color: var(--cor-empresa-secundaria, );
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .agendamento-page .info-value {
-  font-size: 1rem;
-  color: var(--cor-empresa-secundaria, #06b6d4);
-  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--cor-empresa-secundaria, );
+  font-weight: 400;
   line-height: 1.5;
+  opacity: 0.92;
 }
 
 /* Botão "Preencher Dados" logo abaixo do card e do banner, não no fim da tela */
@@ -179,7 +180,7 @@
   border-radius: 0.75rem;
   margin-bottom: 1rem;
   font-size: 0.875rem;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   font-weight: 500;
 }
 
@@ -248,7 +249,7 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, transparent);
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
   border-radius: 0.625rem;
   font-size: 0.875rem;
@@ -265,7 +266,7 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   flex: 1;
 }
 
@@ -289,7 +290,7 @@
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
 }
 
 .agendamento-page .form-field input,
@@ -381,7 +382,7 @@
   flex: 1;
   padding: 0.875rem;
   background: color-mix(in srgb, var(--cor-empresa, #0ea5e9) 12%, transparent);
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   border: 1px solid color-mix(in srgb, var(--cor-empresa, #0ea5e9) 40%, transparent);
   border-radius: 0.625rem;
   font-size: 0.9375rem;
@@ -429,27 +430,27 @@
 
 .agendamento-page .loading svg {
   font-size: 2rem;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   margin-bottom: 1rem;
 }
 
 .agendamento-page .loading p,
 .agendamento-page .error p {
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   font-size: 1rem;
   line-height: 1.6;
   margin: 0;
 }
 
 .agendamento-page .error h2 {
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   margin: 0 0 1rem 0;
   font-size: 1.5rem;
   font-weight: 700;
 }
 
 .agendamento-page .error.error-info h2 {
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
 }
 
 .agendamento-page .error-info-box {
@@ -495,12 +496,12 @@
 .agendamento-page .success-box h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
 }
 
 .agendamento-page .success-box p {
   margin: 0 0 1.5rem 0;
-  color: var(--cor-empresa-secundaria, #06b6d4);
+  color: var(--cor-empresa-secundaria, );
   font-size: 0.9375rem;
 }
 
