@@ -536,7 +536,7 @@ const LPDentista = () => {
           <div className="hero-content">
             <div className="hero-text">
               <h1 className="hero-title">
-              Mais Tratamentos e Mais Lucro.
+              Dentista! Tenha mais organizção e clareza no seu trabalho.
               </h1>
               <p className="hero-description">
                 Aumente sua receita, economize tempo e alcance a liberdade financeira. Tudo em uma plataforma completa feita para dentistas.
