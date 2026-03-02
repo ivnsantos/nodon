@@ -23,6 +23,13 @@ const PrecificacaoProduto = () => {
     if (val === 'Metro') return 'Centímetro'
     return val
   }
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value || 0)
+  }
   
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(!!id)
@@ -188,9 +195,9 @@ const PrecificacaoProduto = () => {
             </select>
           </div>
 
-          <div className="form-row">
+          <div className="form-row form-row-3">
             <div className="form-group">
-              <label>Custo Unitário (R$) *</label>
+              <label>Custo (R$) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -210,22 +217,37 @@ const PrecificacaoProduto = () => {
                 onChange={(unitType) => setFormData({ ...formData, unitType })}
               />
             </div>
+
+            <div className="form-group">
+              <label>Tamanho / Quantidade</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.stockQuantity || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? null : parseFloat(e.target.value) || null
+                  setFormData({ ...formData, stockQuantity: value })
+                }}
+                min="0"
+                placeholder="Opcional"
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Quantidade</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.stockQuantity || ''}
-              onChange={(e) => {
-                const value = e.target.value === '' ? null : parseFloat(e.target.value) || null
-                setFormData({ ...formData, stockQuantity: value })
-              }}
-              min="0"
-              placeholder="Opcional"
-            />
-            <small className="form-help">Deixe em branco se não quiser controlar estoque</small>
+          <div className="unit-preview">
+            <div className="unit-preview-title">Preview</div>
+            <div className="unit-preview-row">
+              <div className="unit-preview-item">
+                <span className="unit-preview-label">Custo</span>
+                <span className="unit-preview-value">{formatCurrency(Number(formData.unitCost) || 0)}</span>
+              </div>
+              <div className="unit-preview-item">
+                <span className="unit-preview-label">Quantidade/Unidade</span>
+                <span className="unit-preview-value">
+                  {(formData.stockQuantity === null || formData.stockQuantity === '' ? '—' : Number(formData.stockQuantity))}/{normalizeUnitType(formData.unitType)}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

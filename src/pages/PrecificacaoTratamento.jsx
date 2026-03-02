@@ -667,7 +667,7 @@ const PrecificacaoTratamento = () => {
               )}
             </div>
             <div className="form-group">
-              <label>Preço (R$) *</label>
+              <label>Preço que você cobra (R$) *</label>
               <input
                 type="number"
                 step="0.01"
