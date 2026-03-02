@@ -153,6 +153,7 @@ function App() {
                   </PublicRoute>
                 } />
                 <Route path="/agendamento-publico" element={<AgendamentoPublico />} />
+                <Route path="/agendamento-publico/:id" element={<AgendamentoPublico />} />
                 <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
                 <Route path="/responder-anamnese/:token" element={<ResponderAnamnese />} />
                 <Route path="/anamnese-entrada/:token" element={<AnamneseEntrada />} />

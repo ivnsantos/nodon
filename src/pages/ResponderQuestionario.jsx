@@ -9,7 +9,8 @@ import axios from 'axios'
 import './ResponderQuestionario.css'
 
 const ResponderQuestionario = () => {
-  const { id } = useParams()
+  const { id, token } = useParams()
+  const idPublico = id || token
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(true)
@@ -25,16 +26,16 @@ const ResponderQuestionario = () => {
   })
 
   useEffect(() => {
-    if (id) {
+    if (idPublico) {
       loadQuestionario()
     }
-  }, [id])
+  }, [idPublico])
 
   const loadQuestionario = async () => {
     try {
       setLoading(true)
       setError('')
-      const response = await publicApi.get(`/questionarios/resposta/${id}`)
+      const response = await publicApi.get(`/questionarios/resposta/${idPublico}`)
       // API pode retornar data, data.data ou data.data.data (duplo aninhamento)
       const responseData = response.data?.data?.data || response.data?.data || response.data
 
@@ -63,7 +64,7 @@ const ResponderQuestionario = () => {
 
   const handleIniciar = () => {
     const base = location.pathname.startsWith('/questionarios/resposta') ? '/questionarios/resposta' : '/responder-questionario'
-    navigate(`${base}/${id}/iniciar`)
+    navigate(`${base}/${idPublico}/iniciar`)
   }
 
   const defaultCores = { '--cor-empresa': '#0ea5e9', '--cor-empresa-secundaria': '#06b6d4' }

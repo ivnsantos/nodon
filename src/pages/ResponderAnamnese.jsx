@@ -6,7 +6,8 @@ import axios from 'axios'
 import './ResponderAnamnese.css'
 
 const ResponderAnamnese = () => {
-  const { id } = useParams()
+  const { id, token } = useParams()
+  const idPublico = id || token
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -26,16 +27,16 @@ const ResponderAnamnese = () => {
   })
 
   useEffect(() => {
-    if (id) {
+    if (idPublico) {
       loadAnamnese()
     }
-  }, [id])
+  }, [idPublico])
 
   const loadAnamnese = async () => {
     try {
       setLoading(true)
       setError('')
-      const response = await publicApi.get(`/anamneses/publica/${id}`)
+      const response = await publicApi.get(`/anamneses/publica/${idPublico}`)
       // A API retorna { statusCode, message, data: { ... } }
       const data = response.data?.data || response.data
 
@@ -203,7 +204,7 @@ const ResponderAnamnese = () => {
       }))
 
       await publicApi.put(`/anamneses/publica/responder`, {
-        respostaAnamneseId: id,
+        respostaAnamneseId: idPublico,
         concluida: true,
         respostas: respostasArray
       })

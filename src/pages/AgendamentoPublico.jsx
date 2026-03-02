@@ -9,7 +9,8 @@ import api from '../utils/api'
 import './AgendamentoPublico.css'
 
 const AgendamentoPublico = () => {
-  const { id } = useParams()
+  const { id, token } = useParams()
+  const consultaPublicId = id || token
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [agendamento, setAgendamento] = useState(null)
@@ -40,16 +41,16 @@ const AgendamentoPublico = () => {
   const coresStyle = { '--cor-empresa': corEmpresa, '--cor-empresa-secundaria': corSecundaria }
 
   useEffect(() => {
-    if (id) {
+    if (consultaPublicId) {
       fetchAgendamento()
     }
-  }, [id])
+  }, [consultaPublicId])
 
   const fetchAgendamento = async () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await api.get(`/calendario/consultas/publica/${id}`)
+      const response = await api.get(`/calendario/consultas/publica/${consultaPublicId}`)
       
       // Verificar se é erro (statusCode diferente de 200)
       if (response.data.statusCode !== 200) {
@@ -253,7 +254,7 @@ const AgendamentoPublico = () => {
       
       // Preparar payload conforme a nova API
       const payload = {
-        consultaId: id,
+        consultaId: consultaPublicId,
         dadosPessoais: {
           nome: formData.nome.trim(),
           cpf: formData.cpf.replace(/\D/g, ''),

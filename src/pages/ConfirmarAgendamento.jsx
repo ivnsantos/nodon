@@ -9,7 +9,8 @@ import api from '../utils/api'
 import './ConfirmarAgendamento.css'
 
 const ConfirmarAgendamento = () => {
-  const { consultaId } = useParams()
+  const { token, consultaId, id } = useParams()
+  const consultaPublicId = consultaId || token || id
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [consulta, setConsulta] = useState(null)
@@ -30,16 +31,16 @@ const ConfirmarAgendamento = () => {
   const nomeEmpresa = clienteMaster?.nomeEmpresa || clienteMaster?.nome_empresa || 'Clínica'
 
   useEffect(() => {
-    if (consultaId) {
+    if (consultaPublicId) {
       fetchDadosBasicos()
     }
-  }, [consultaId])
+  }, [consultaPublicId])
 
   const fetchDadosBasicos = async () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await api.get(`/calendario/consultas/publica/${consultaId}/dados-basicos`)
+      const response = await api.get(`/calendario/consultas/publica/${consultaPublicId}/dados-basicos`)
       if (response.data.statusCode !== 200) {
         setError(response.data?.message || 'Erro ao buscar dados da consulta')
         setLoading(false)
@@ -92,12 +93,12 @@ const ConfirmarAgendamento = () => {
 
   const handleConfirmar = async (e) => {
     if (e) e.preventDefault()
-    if (!consultaId) return
+    if (!consultaPublicId) return
     try {
       setConfirmando(true)
       setError(null)
       const response = await api.post('/calendario/consultas/publica/confirmar-por-dados', {
-        consultaId,
+        consultaId: consultaPublicId,
         confirmar: true
       })
       if (response.data?.statusCode === 200) {

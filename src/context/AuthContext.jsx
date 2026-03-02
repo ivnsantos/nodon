@@ -594,7 +594,11 @@ export const AuthProvider = ({ children }) => {
     '/anamneses/publica',
     '/questionarios/resposta',
     '/agendamento',
+    '/agendamento-publico',
     '/confirmar-agendamento',
+    '/anamnese-entrada',
+    '/questionario',
+    '/feedback',
     '/lp/dentista',
     '/lp/estudante',
     '/profissional'
