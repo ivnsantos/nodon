@@ -8,6 +8,7 @@ import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import { useAuth } from '../context/useAuth'
+import UnitTypeSelect from '../components/UnitTypeSelect'
 import './PrecificacaoForm.css'
 
 const PrecificacaoProduto = () => {
@@ -197,11 +198,9 @@ const PrecificacaoProduto = () => {
             </div>
             <div className="form-group">
               <label>Tipo de Unidade</label>
-              <input
-                type="text"
+              <UnitTypeSelect
                 value={formData.unitType}
-                onChange={(e) => setFormData({ ...formData, unitType: e.target.value })}
-                placeholder="Ex: Unidade, Litro, etc."
+                onChange={(unitType) => setFormData({ ...formData, unitType })}
               />
             </div>
           </div>

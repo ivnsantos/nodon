@@ -30,7 +30,7 @@ const PrecificacaoTratamento = () => {
   const [novoProduto, setNovoProduto] = useState({ name: '', categoryId: '', unitCost: '', unitType: 'Unidade', stockQuantity: null })
   
   // Opções para tipo de unidade
-  const unitTypes = ['Litro', 'Metro', 'Grama', 'Unitário']
+  const unitTypes = ['Unidade']
   
   const [formData, setFormData] = useState({
     name: '',
