@@ -984,7 +984,7 @@ const Home = () => {
             </div>
           </div>
           <div className="home-footer-bottom">
-            <p>NODON DIAGNOSTICO POR IMAGEM LTDA - ME - CNPJ 41.300.720/0001-50</p>
+            <p>NODON SISTEMA DE GESTÃO LTDA - ME - CNPJ</p>
             <p><a href="#">Termos de Uso e Política de Privacidade</a></p>
           </div>
         </div>
