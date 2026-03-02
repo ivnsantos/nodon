@@ -6,7 +6,8 @@ import axios from 'axios'
 import './AnamneseEntrada.css'
 
 const AnamneseEntrada = () => {
-  const { id } = useParams()
+  const { id, token } = useParams()
+  const idPublico = id || token
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
@@ -22,16 +23,16 @@ const AnamneseEntrada = () => {
   })
 
   useEffect(() => {
-    if (id) {
+    if (idPublico) {
       loadAnamnese()
     }
-  }, [id])
+  }, [idPublico])
 
   const loadAnamnese = async () => {
     try {
       setLoading(true)
       setError('')
-      const response = await publicApi.get(`/anamneses/publica/${id}`)
+      const response = await publicApi.get(`/anamneses/publica/${idPublico}`)
       const responseData = response.data?.data || response.data
 
       // Verificar se já está concluída (verificar primeiro)
@@ -60,7 +61,7 @@ const AnamneseEntrada = () => {
   }
 
   const handleIniciar = () => {
-    navigate(`/responder-anamnese/${id}/iniciar`)
+    navigate(`/responder-anamnese/${idPublico}/iniciar`)
   }
 
   // Cores: da API quando há data, senão padrão (para loading/erro já terem tema)

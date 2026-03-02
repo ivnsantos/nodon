@@ -156,8 +156,12 @@ function App() {
                 <Route path="/agendamento-publico/:id" element={<AgendamentoPublico />} />
                 <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
                 <Route path="/responder-anamnese/:token" element={<ResponderAnamnese />} />
+                <Route path="/responder-anamnese/:token/iniciar" element={<ResponderAnamnese />} />
                 <Route path="/anamnese-entrada/:token" element={<AnamneseEntrada />} />
+                <Route path="/anamneses/publica/:id" element={<AnamneseEntrada />} />
                 <Route path="/feedback/novo/:token" element={<FeedbackNovo />} />
+                <Route path="/responder-questionario/:token" element={<ResponderQuestionario />} />
+                <Route path="/responder-questionario/:token/form" element={<ResponderQuestionarioForm />} />
                 <Route path="/questionario/:token" element={<ResponderQuestionario />} />
                 <Route path="/questionario/:token/form" element={<ResponderQuestionarioForm />} />
                 
