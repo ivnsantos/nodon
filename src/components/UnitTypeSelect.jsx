@@ -1,10 +1,20 @@
 import React from 'react'
 
-const DEFAULT_UNIT_TYPES = ['Unidade']
+const DEFAULT_UNIT_TYPES = [
+  'Grama',
+  'Quilograma',
+  'Miligrama',
+  'Litro',
+  'Mililitro',
+  'Centímetro',
+  'Milímetro',
+  'Unitário'
+]
 
 const normalizeUnitType = (val) => {
-  if (!val) return 'Unidade'
-  if (val === 'Unitário') return 'Unidade'
+  if (!val) return 'Unitário'
+  if (val === 'Unidade') return 'Unitário'
+  if (val === 'Metro') return 'Centímetro'
   return val
 }
 

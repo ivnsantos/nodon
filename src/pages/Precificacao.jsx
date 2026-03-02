@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPlus, faEdit, faTrash, faDollarSign, faTags, faBox,
   faSpinner, faTimes, faClock, faLayerGroup, faShoppingCart,
-  faChevronDown, faChevronUp, faCoins, faChartLine, faPercent,
+  faCoins, faChartLine, faPercent,
   faExclamationTriangle, faCheckCircle, faSearch, faBuilding,
   faChartBar, faChartPie, faWrench, faSave
 } from '@fortawesome/free-solid-svg-icons'
@@ -36,9 +36,6 @@ const Precificacao = () => {
   // Estados para Produtos
   const [produtos, setProdutos] = useState([])
   
-  // Estado para produtos expandidos
-  const [expandedProducts, setExpandedProducts] = useState(new Set())
-  
   // Estado para categorias indiretas expandidas
   const [expandedCategorias, setExpandedCategorias] = useState(new Set())
   
@@ -51,9 +48,11 @@ const Precificacao = () => {
   // Estados para Valor Mão de Obra
   const [showValorHoraModal, setShowValorHoraModal] = useState(false)
   const [valorHora, setValorHora] = useState(null)
-  const [loadingValorHora, setLoadingValorHora] = useState(false)
   const [valorHoraInput, setValorHoraInput] = useState('')
+  const [loadingValorHora, setLoadingValorHora] = useState(false)
   const [valorHoraLoaded, setValorHoraLoaded] = useState(false)
+
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -150,6 +149,7 @@ const Precificacao = () => {
 
   const confirmDeleteTratamento = async () => {
     try {
+      setDeleting(true)
       await api.delete(`/treatments/${itemToDelete.id}`)
       showSuccess('Tratamento excluído com sucesso!')
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
@@ -159,6 +159,8 @@ const Precificacao = () => {
     } catch (error) {
       console.error('Erro ao excluir tratamento:', error)
       showError(error.response?.data?.message || 'Erro ao excluir tratamento')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -178,6 +180,7 @@ const Precificacao = () => {
 
   const confirmDeleteCategoria = async () => {
     try {
+      setDeleting(true)
       await api.delete(`/cost-categories/${itemToDelete.id}`)
       showSuccess('Categoria excluída com sucesso!')
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
@@ -190,6 +193,8 @@ const Precificacao = () => {
     } catch (error) {
       console.error('Erro ao excluir categoria:', error)
       showError(error.response?.data?.message || 'Erro ao excluir categoria')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -209,6 +214,7 @@ const Precificacao = () => {
 
   const confirmDeleteProduto = async () => {
     try {
+      setDeleting(true)
       await api.delete(`/products/${itemToDelete.id}`)
       showSuccess('Produto excluído com sucesso!')
       const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
@@ -218,6 +224,8 @@ const Precificacao = () => {
     } catch (error) {
       console.error('Erro ao excluir produto:', error)
       showError(error.response?.data?.message || 'Erro ao excluir produto')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -670,41 +678,6 @@ const Precificacao = () => {
                       </div>
                     </div>
 
-                    {tratamento.treatmentProducts && tratamento.treatmentProducts.length > 0 && (
-                      <div className="card-products">
-                        <button
-                          className="products-header-btn"
-                          onClick={() => {
-                            const newExpanded = new Set(expandedProducts)
-                            if (newExpanded.has(tratamento.id)) {
-                              newExpanded.delete(tratamento.id)
-                            } else {
-                              newExpanded.add(tratamento.id)
-                            }
-                            setExpandedProducts(newExpanded)
-                          }}
-                        >
-                          <div className="products-header">
-                            <FontAwesomeIcon icon={faLayerGroup} />
-                            <strong>Produtos utilizados ({tratamento.treatmentProducts.length})</strong>
-                          </div>
-                          <FontAwesomeIcon 
-                            icon={expandedProducts.has(tratamento.id) ? faChevronUp : faChevronDown}
-                            className="expand-icon"
-                          />
-                        </button>
-                        {expandedProducts.has(tratamento.id) && (
-                          <div className="products-list">
-                            {tratamento.treatmentProducts.map((tp) => (
-                              <div key={tp.id} className="product-tag">
-                                <span className="product-name">{tp.product?.name || 'Produto'}</span>
-                                <span className="product-quantity">Qtd: {tp.quantityUsed}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                   )
                   })}
@@ -1116,6 +1089,7 @@ const Precificacao = () => {
       {/* Modal de Confirmação de Exclusão de Tratamento */}
       {showDeleteTratamentoModal && (
         <div className="modal-overlay" onClick={() => {
+          if (deleting) return
           setShowDeleteTratamentoModal(false)
           setItemToDelete({ type: null, id: null, name: null })
         }}>
@@ -1133,7 +1107,9 @@ const Precificacao = () => {
             <div className="modal-actions">
               <button 
                 className="btn-modal-cancel"
+                disabled={deleting}
                 onClick={() => {
+                  if (deleting) return
                   setShowDeleteTratamentoModal(false)
                   setItemToDelete({ type: null, id: null, name: null })
                 }}
@@ -1143,9 +1119,19 @@ const Precificacao = () => {
               <button 
                 className="btn-modal-delete"
                 onClick={confirmDeleteTratamento}
+                disabled={deleting}
               >
-                <FontAwesomeIcon icon={faTrash} />
-                Excluir
+                {deleting ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faTrash} />
+                    Excluir
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1155,6 +1141,7 @@ const Precificacao = () => {
       {/* Modal de Confirmação de Exclusão de Categoria */}
       {showDeleteCategoriaModal && (
         <div className="modal-overlay" onClick={() => {
+          if (deleting) return
           setShowDeleteCategoriaModal(false)
           setItemToDelete({ type: null, id: null, name: null })
         }}>
@@ -1172,7 +1159,9 @@ const Precificacao = () => {
             <div className="modal-actions">
               <button 
                 className="btn-modal-cancel"
+                disabled={deleting}
                 onClick={() => {
+                  if (deleting) return
                   setShowDeleteCategoriaModal(false)
                   setItemToDelete({ type: null, id: null, name: null })
                 }}
@@ -1182,9 +1171,19 @@ const Precificacao = () => {
               <button 
                 className="btn-modal-delete"
                 onClick={confirmDeleteCategoria}
+                disabled={deleting}
               >
-                <FontAwesomeIcon icon={faTrash} />
-                Excluir
+                {deleting ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faTrash} />
+                    Excluir
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1194,6 +1193,7 @@ const Precificacao = () => {
       {/* Modal de Confirmação de Exclusão de Produto */}
       {showDeleteProdutoModal && (
         <div className="modal-overlay" onClick={() => {
+          if (deleting) return
           setShowDeleteProdutoModal(false)
           setItemToDelete({ type: null, id: null, name: null })
         }}>
@@ -1211,7 +1211,9 @@ const Precificacao = () => {
             <div className="modal-actions">
               <button 
                 className="btn-modal-cancel"
+                disabled={deleting}
                 onClick={() => {
+                  if (deleting) return
                   setShowDeleteProdutoModal(false)
                   setItemToDelete({ type: null, id: null, name: null })
                 }}
@@ -1221,9 +1223,19 @@ const Precificacao = () => {
               <button 
                 className="btn-modal-delete"
                 onClick={confirmDeleteProduto}
+                disabled={deleting}
               >
-                <FontAwesomeIcon icon={faTrash} />
-                Excluir
+                {deleting ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faTrash} />
+                    Excluir
+                  </>
+                )}
               </button>
             </div>
           </div>

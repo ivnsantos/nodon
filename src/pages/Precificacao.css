@@ -1269,17 +1269,8 @@
   background: transparent;
   border: none;
   padding: 0.5rem 0;
-  cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 0;
-}
-
-.products-header-btn:hover {
-  opacity: 0.8;
-}
-
-.products-header-btn:hover .products-header {
-  color: #0ea5e9;
 }
 
 .products-header {
@@ -3170,5 +3161,3 @@
   .info-card-title {
     font-size: 1rem;
   }
-}
-

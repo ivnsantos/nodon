@@ -16,6 +16,13 @@ const PrecificacaoProduto = () => {
   const navigate = useNavigate()
   const { selectedClinicData } = useAuth()
   const { alertConfig, showSuccess, showError, hideAlert } = useAlert()
+
+  const normalizeUnitType = (val) => {
+    if (!val) return 'Unitário'
+    if (val === 'Unidade') return 'Unitário'
+    if (val === 'Metro') return 'Centímetro'
+    return val
+  }
   
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(!!id)
@@ -25,7 +32,7 @@ const PrecificacaoProduto = () => {
     name: '',
     categoryId: '',
     unitCost: 0,
-    unitType: 'Unidade',
+    unitType: 'Unitário',
     stockQuantity: null
   })
 
@@ -59,7 +66,7 @@ const PrecificacaoProduto = () => {
             name: produto.name,
             categoryId: produto.categoryId,
             unitCost: produto.unitCost || '',
-            unitType: produto.unitType || 'Unidade',
+            unitType: normalizeUnitType(produto.unitType) || 'Unitário',
             stockQuantity: produto.stockQuantity || null
           })
         } catch (error) {
@@ -90,7 +97,7 @@ const PrecificacaoProduto = () => {
         name: formData.name,
         categoryId: formData.categoryId,
         unitCost: parseFloat(formData.unitCost) || 0,
-        unitType: formData.unitType || null,
+        unitType: normalizeUnitType(formData.unitType) || null,
         stockQuantity: formData.stockQuantity !== null && formData.stockQuantity !== '' ? parseFloat(formData.stockQuantity) : null
       }
 

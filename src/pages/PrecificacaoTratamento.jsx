@@ -27,10 +27,19 @@ const PrecificacaoTratamento = () => {
   const [showCategoriaModal, setShowCategoriaModal] = useState(false)
   const [showProdutoModal, setShowProdutoModal] = useState(false)
   const [novaCategoria, setNovaCategoria] = useState({ name: '', type: 'DIRECT' })
-  const [novoProduto, setNovoProduto] = useState({ name: '', categoryId: '', unitCost: '', unitType: 'Unidade', stockQuantity: null })
+  const [novoProduto, setNovoProduto] = useState({ name: '', categoryId: '', unitCost: '', unitType: 'Unitário', stockQuantity: null })
   
   // Opções para tipo de unidade
-  const unitTypes = ['Unidade']
+  const unitTypes = [
+    'Grama',
+    'Quilograma',
+    'Miligrama',
+    'Litro',
+    'Mililitro',
+    'Centímetro',
+    'Milímetro',
+    'Unitário'
+  ]
   
   const [formData, setFormData] = useState({
     name: '',
@@ -44,6 +53,13 @@ const PrecificacaoTratamento = () => {
   const [converterData, setConverterData] = useState({ fromUnit: '', toUnit: '', value: '', result: '' })
   const [valorHora, setValorHora] = useState(null)
   const [autoCalculatePrice, setAutoCalculatePrice] = useState(true)
+
+  const normalizeUnitType = (val) => {
+    if (!val) return 'Unitário'
+    if (val === 'Unidade') return 'Unitário'
+    if (val === 'Metro') return 'Centímetro'
+    return val
+  }
 
   // Função para carregar produtos com busca
   const loadProducts = useCallback(async (clienteMasterId, nome = '') => {
@@ -346,87 +362,35 @@ const PrecificacaoTratamento = () => {
       'Grama': {
         'Grama': 1,
         'Quilograma': 0.001,
-        'Miligrama': 1000,
-        'Tonelada': 0.000001
+        'Miligrama': 1000
       },
       'Quilograma': {
         'Grama': 1000,
         'Quilograma': 1,
-        'Miligrama': 1000000,
-        'Tonelada': 0.001
+        'Miligrama': 1000000
       },
       'Miligrama': {
         'Grama': 0.001,
         'Quilograma': 0.000001,
-        'Miligrama': 1,
-        'Tonelada': 0.000000001
-      },
-      'Tonelada': {
-        'Grama': 1000000,
-        'Quilograma': 1000,
-        'Miligrama': 1000000000,
-        'Tonelada': 1
+        'Miligrama': 1
       },
       // Volume (Litro)
       'Litro': {
         'Litro': 1,
-        'Mililitro': 1000,
-        'Centilitro': 100,
-        'Decilitro': 10
+        'Mililitro': 1000
       },
       'Mililitro': {
         'Litro': 0.001,
-        'Mililitro': 1,
-        'Centilitro': 0.1,
-        'Decilitro': 0.01
-      },
-      'Centilitro': {
-        'Litro': 0.01,
-        'Mililitro': 10,
-        'Centilitro': 1,
-        'Decilitro': 0.1
-      },
-      'Decilitro': {
-        'Litro': 0.1,
-        'Mililitro': 100,
-        'Centilitro': 10,
-        'Decilitro': 1
+        'Mililitro': 1
       },
       // Comprimento (Metro)
-      'Metro': {
-        'Metro': 1,
-        'Centímetro': 100,
-        'Milímetro': 1000,
-        'Quilômetro': 0.001,
-        'Decímetro': 10
-      },
       'Centímetro': {
-        'Metro': 0.01,
         'Centímetro': 1,
-        'Milímetro': 10,
-        'Quilômetro': 0.00001,
-        'Decímetro': 0.1
+        'Milímetro': 10
       },
       'Milímetro': {
-        'Metro': 0.001,
         'Centímetro': 0.1,
-        'Milímetro': 1,
-        'Quilômetro': 0.000001,
-        'Decímetro': 0.01
-      },
-      'Quilômetro': {
-        'Metro': 1000,
-        'Centímetro': 100000,
-        'Milímetro': 1000000,
-        'Quilômetro': 1,
-        'Decímetro': 10000
-      },
-      'Decímetro': {
-        'Metro': 0.1,
-        'Centímetro': 10,
-        'Milímetro': 100,
-        'Quilômetro': 0.0001,
-        'Decímetro': 1
+        'Milímetro': 1
       },
       // Unitário (sem conversão)
       'Unitário': {
@@ -447,19 +411,13 @@ const PrecificacaoTratamento = () => {
 
     // Tentar encontrar conversão através de unidade base
     const baseUnits = {
-      'Grama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Quilograma': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Miligrama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Tonelada': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Litro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Mililitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Centilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Decilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Metro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Centímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Milímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Quilômetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Decímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Grama': ['Grama', 'Quilograma', 'Miligrama'],
+      'Quilograma': ['Grama', 'Quilograma', 'Miligrama'],
+      'Miligrama': ['Grama', 'Quilograma', 'Miligrama'],
+      'Litro': ['Litro', 'Mililitro'],
+      'Mililitro': ['Litro', 'Mililitro'],
+      'Centímetro': ['Centímetro', 'Milímetro'],
+      'Milímetro': ['Centímetro', 'Milímetro'],
       'Unitário': ['Unitário']
     }
 
@@ -481,19 +439,13 @@ const PrecificacaoTratamento = () => {
   // Obter unidades relacionadas para conversão
   const getRelatedUnits = (unit) => {
     const unitGroups = {
-      'Grama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Quilograma': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Miligrama': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Tonelada': ['Grama', 'Quilograma', 'Miligrama', 'Tonelada'],
-      'Litro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Mililitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Centilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Decilitro': ['Litro', 'Mililitro', 'Centilitro', 'Decilitro'],
-      'Metro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Centímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Milímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Quilômetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
-      'Decímetro': ['Metro', 'Centímetro', 'Milímetro', 'Quilômetro', 'Decímetro'],
+      'Grama': ['Grama', 'Quilograma', 'Miligrama'],
+      'Quilograma': ['Grama', 'Quilograma', 'Miligrama'],
+      'Miligrama': ['Grama', 'Quilograma', 'Miligrama'],
+      'Litro': ['Litro', 'Mililitro'],
+      'Mililitro': ['Litro', 'Mililitro'],
+      'Centímetro': ['Centímetro', 'Milímetro'],
+      'Milímetro': ['Centímetro', 'Milímetro'],
       'Unitário': ['Unitário']
     }
 
@@ -504,6 +456,23 @@ const PrecificacaoTratamento = () => {
       }
     }
     return [unit]
+  }
+
+  const getRelatedUnitGroups = (unit) => {
+    const groupByUnit = {
+      'Grama': { label: 'Massa', units: ['Grama', 'Quilograma', 'Miligrama'] },
+      'Quilograma': { label: 'Massa', units: ['Grama', 'Quilograma', 'Miligrama'] },
+      'Miligrama': { label: 'Massa', units: ['Grama', 'Quilograma', 'Miligrama'] },
+      'Litro': { label: 'Volume', units: ['Litro', 'Mililitro'] },
+      'Mililitro': { label: 'Volume', units: ['Litro', 'Mililitro'] },
+      'Centímetro': { label: 'Comprimento', units: ['Centímetro', 'Milímetro'] },
+      'Milímetro': { label: 'Comprimento', units: ['Centímetro', 'Milímetro'] },
+      'Unitário': { label: 'Unitário', units: ['Unitário'] }
+    }
+
+    const group = groupByUnit[unit]
+    if (!group) return [{ label: 'Outros', units: [unit] }]
+    return [group]
   }
 
   // Debounce para busca de produtos
@@ -1004,13 +973,15 @@ const PrecificacaoTratamento = () => {
                         />
                         {product.productId && (() => {
                           const selectedProduct = produtos.find(p => p.id === product.productId)
-                          return selectedProduct?.unitType ? (
-                            <span className="unit-type-badge">{selectedProduct.unitType}</span>
+                          const unitType = normalizeUnitType(selectedProduct?.unitType)
+                          return unitType ? (
+                            <span className="unit-type-badge">{unitType}</span>
                           ) : null
                         })()}
                         {product.productId && (() => {
                           const selectedProduct = produtos.find(p => p.id === product.productId)
-                          if (selectedProduct?.unitType && selectedProduct.unitType !== 'Unitário') {
+                          const unitType = normalizeUnitType(selectedProduct?.unitType)
+                          if (unitType && unitType !== 'Unitário') {
                             return (
                               <button
                                 type="button"
@@ -1018,10 +989,11 @@ const PrecificacaoTratamento = () => {
                                 onClick={() => {
                                   const selectedProduct = produtos.find(p => p.id === product.productId)
                                   if (selectedProduct) {
+                                    const unitType = normalizeUnitType(selectedProduct.unitType)
                                     setShowConverter(showConverter === index ? null : index)
                                     setConverterData({
-                                      fromUnit: selectedProduct.unitType,
-                                      toUnit: selectedProduct.unitType, // Sempre converte para a unidade do produto
+                                      fromUnit: unitType,
+                                      toUnit: unitType, // Sempre converte para a unidade do produto
                                       value: '',
                                       result: ''
                                     })
@@ -1039,7 +1011,8 @@ const PrecificacaoTratamento = () => {
                       {showConverter === index && (() => {
                         const selectedProduct = produtos.find(p => p.id === product.productId)
                         if (!selectedProduct) return null
-                        const relatedUnits = getRelatedUnits(selectedProduct.unitType)
+                        const unitType = normalizeUnitType(selectedProduct.unitType)
+                        const relatedUnitGroups = getRelatedUnitGroups(unitType)
                         return (
                           <div className="unit-converter">
                             <div className="converter-header">
@@ -1062,7 +1035,7 @@ const PrecificacaoTratamento = () => {
                                     value={converterData.value}
                                     onChange={(e) => {
                                       const value = e.target.value
-                                      const toUnit = selectedProduct.unitType // Sempre converte para a unidade do produto
+                                      const toUnit = normalizeUnitType(selectedProduct.unitType) // Sempre converte para a unidade do produto
                                       setConverterData({
                                         ...converterData,
                                         value,
@@ -1077,7 +1050,7 @@ const PrecificacaoTratamento = () => {
                                   <select
                                     value={converterData.fromUnit}
                                     onChange={(e) => {
-                                      const toUnit = selectedProduct.unitType // Sempre converte para a unidade do produto
+                                      const toUnit = normalizeUnitType(selectedProduct.unitType) // Sempre converte para a unidade do produto
                                       setConverterData({
                                         ...converterData,
                                         fromUnit: e.target.value,
@@ -1088,8 +1061,12 @@ const PrecificacaoTratamento = () => {
                                       })
                                     }}
                                   >
-                                    {relatedUnits.map(unit => (
-                                      <option key={unit} value={unit}>{unit}</option>
+                                    {relatedUnitGroups.map((group) => (
+                                      <optgroup key={group.label} label={group.label}>
+                                        {group.units.map((unit) => (
+                                          <option key={unit} value={unit}>{unit}</option>
+                                        ))}
+                                      </optgroup>
                                     ))}
                                   </select>
                                 </div>
