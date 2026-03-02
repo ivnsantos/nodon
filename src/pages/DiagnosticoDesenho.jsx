@@ -151,6 +151,8 @@ const DiagnosticoDesenho = () => {
   const [drawingHistory, setDrawingHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageLoadError, setImageLoadError] = useState(null)
+  const [failedImageSrc, setFailedImageSrc] = useState(null)
 
   // Cores disponíveis
   const colors = [
@@ -275,6 +277,38 @@ const DiagnosticoDesenho = () => {
     if (!imageUrl || imageUrl.startsWith('data:') || imageUrl.startsWith('/') || !imageUrl.startsWith('http')) {
       return imageUrl
     }
+
+    // IMPORTANT: para URLs externas (ex: R2), NÃO fazer fetch com Authorization.
+    // Isso dispara preflight CORS e pode ser bloqueado.
+    // Vamos usar o proxy /api/proxy-image para baixar sem CORS.
+    const isExternalUrl = (() => {
+      try {
+        const u = new URL(imageUrl)
+        return u.origin !== window.location.origin
+      } catch {
+        return true
+      }
+    })()
+
+    // Se a URL NÃO for externa (mesma origem), pode exigir autenticação. Tentar buscar com Authorization.
+    if (!isExternalUrl) {
+      try {
+        const token = sessionStorage.getItem('token')
+        if (token) {
+          const authResponse = await fetch(imageUrl, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+          if (authResponse.ok) {
+            const blob = await authResponse.blob()
+            return URL.createObjectURL(blob)
+          }
+        }
+      } catch (error) {
+        // Se falhar, segue para tentativas abaixo
+      }
+    }
     
     // Tentar usar um endpoint de proxy no backend (se existir)
     // Exemplo: /api/proxy-image?url=...
@@ -308,8 +342,17 @@ const DiagnosticoDesenho = () => {
     const imageSrc = selectedImageUrl || radiografia?.imagem || radiografia?.imagens?.[0] || exameImage
     if (!imageSrc) return
 
+    // Se essa imagem já falhou, não tentar carregar novamente em loop
+    if (failedImageSrc && failedImageSrc === imageSrc) {
+      return
+    }
+
+    setImageLoaded(false)
+    setImageLoadError(null)
+
     const ctx = canvas.getContext('2d')
     const img = new Image()
+    img.crossOrigin = 'anonymous'
     
     // Para URLs externas, tentar usar proxy do backend se disponível
     // Caso contrário, usar a URL original diretamente (canvas pode ficar "tainted")
@@ -365,14 +408,17 @@ const DiagnosticoDesenho = () => {
       // O saveState será chamado quando o usuário começar a desenhar
     }
     
-    img.onerror = (error) => {
-      console.error('Erro ao carregar imagem:', error)
-      // Tentar usar imagem padrão
-      img.src = exameImage
+    img.onerror = () => {
+      // Não tentar carregar outra imagem automaticamente.
+      // Se a imagem falhou, o usuário precisa resolver a URL/arquivo.
+      setFailedImageSrc(imageSrc)
+      setImageLoaded(false)
+      setImageLoadError('Não foi possível carregar a imagem selecionada.')
+      showError('Não foi possível carregar a imagem selecionada. Verifique se a URL está acessível.')
     }
     
     img.src = finalImageSrc
-  }, [radiografia, selectedImageUrl])
+  }, [radiografia, selectedImageUrl, failedImageSrc, showError])
 
   // Carregar imagem quando radiografia ou imagem selecionada mudar
   useEffect(() => {
@@ -391,18 +437,19 @@ const DiagnosticoDesenho = () => {
   // useEffect adicional para quando os elementos DOM estiverem prontos
   useEffect(() => {
     if (!selectedImageUrl) return
-    
+    if (failedImageSrc && failedImageSrc === selectedImageUrl) return
+
     const checkElements = () => {
       if (canvasRef.current && boardRef.current) {
         drawImageOnCanvas()
         clearInterval(intervalId)
       }
     }
-    
+
     const intervalId = setInterval(checkElements, 100)
-    
+
     return () => clearInterval(intervalId)
-  }, [selectedImageUrl, radiografia])
+  }, [selectedImageUrl, radiografia, failedImageSrc, drawImageOnCanvas])
 
   // Redesenhar quando board mudar de tamanho
   useEffect(() => {
