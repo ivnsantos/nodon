@@ -14,7 +14,10 @@ const AlertModal = ({
   onClose, 
   title, 
   message, 
-  type = 'info' // 'success', 'error', 'warning', 'info'
+  type = 'info', // 'success', 'error', 'warning', 'info'
+  isConfirm = false,
+  onConfirm,
+  onCancel
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -81,9 +84,32 @@ const AlertModal = ({
         
         <p className="alert-modal-message">{message}</p>
         
-        <button className="alert-modal-button" onClick={onClose}>
-          OK
-        </button>
+        {isConfirm ? (
+          <div className="alert-modal-buttons">
+            <button 
+              className="alert-modal-button alert-modal-cancel" 
+              onClick={() => {
+                if (onCancel) onCancel()
+                onClose()
+              }}
+            >
+              Cancelar
+            </button>
+            <button 
+              className="alert-modal-button alert-modal-confirm" 
+              onClick={() => {
+                if (onConfirm) onConfirm()
+                onClose()
+              }}
+            >
+              Confirmar
+            </button>
+          </div>
+        ) : (
+          <button className="alert-modal-button" onClick={onClose}>
+            OK
+          </button>
+        )}
       </div>
     </div>
   )

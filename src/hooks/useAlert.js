@@ -41,6 +41,18 @@ export const useAlert = () => {
     showAlert(message, 'info', title)
   }, [showAlert])
 
+  const showConfirm = useCallback((message, title = '', onConfirm = null, onCancel = null) => {
+    setAlertConfig({
+      isOpen: true,
+      title: title || 'Confirmar',
+      message,
+      type: 'warning',
+      isConfirm: true,
+      onConfirm,
+      onCancel
+    })
+  }, [])
+
   return {
     alertConfig,
     showAlert,
@@ -48,7 +60,8 @@ export const useAlert = () => {
     showSuccess,
     showError,
     showWarning,
-    showInfo
+    showInfo,
+    showConfirm
   }
 }
 

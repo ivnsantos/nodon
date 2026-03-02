@@ -48,6 +48,7 @@ import ResponderQuestionarioForm from './pages/ResponderQuestionarioForm'
 import Precificacao from './pages/Precificacao'
 import PrecificacaoTratamento from './pages/PrecificacaoTratamento'
 import PrecificacaoCategoria from './pages/PrecificacaoCategoria'
+import AdminDashboard from './pages/AdminDashboard'
 import PrecificacaoProduto from './pages/PrecificacaoProduto'
 import Anotacoes from './pages/Anotacoes'
 import AgendamentoPublico from './pages/AgendamentoPublico'
@@ -55,191 +56,158 @@ import ConfirmarAgendamento from './pages/ConfirmarAgendamento'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ChatHeaderProvider } from './context/ChatHeaderContext'
 
-function AppRoutes() {
+function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
+        {/* Admin - Primeira rota, sem AuthProvider */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/*" element={<AdminDashboard />} />
+        
+        {/* Sistema normal com AuthProvider */}
+        <Route path="/*" element={
+          <AuthProvider>
+            <ChatHeaderProvider>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                } />
+                <Route path="/register" element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                } />
+                <Route path="/checkout" element={
+                  <PublicRoute>
+                    <Checkout />
+                  </PublicRoute>
+                } />
+                <Route path="/add-clinic" element={
+                  <ProtectedRoute>
+                    <AddClinic />
+                  </ProtectedRoute>
+                } />
+                <Route path="/verify-email" element={
+                  <PublicRoute>
+                    <VerifyEmail />
+                  </PublicRoute>
+                } />
+                <Route path="/forgot-password" element={
+                  <PublicRoute>
+                    <ForgotPassword />
+                  </PublicRoute>
+                } />
+                <Route path="/forgot-password-phone" element={
+                  <PublicRoute>
+                    <ForgotPasswordPhone />
+                  </PublicRoute>
+                } />
+                <Route path="/reset-password" element={
+                  <PublicRoute>
+                    <ResetPassword />
+                  </PublicRoute>
+                } />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                <Route path="/auth/facebook/callback" element={<GoogleCallback />} />
+                <Route path="/select-clinic" element={
+                  <ProtectedRoute>
+                    <SelectClinic />
+                  </ProtectedRoute>
+                } />
+                <Route path="/assinatura-pendente" element={
+                  <ProtectedRoute>
+                    <AssinaturaPendente />
+                  </ProtectedRoute>
+                } />
+                <Route path="/usuario-inativo" element={
+                  <ProtectedRoute>
+                    <UsuarioInativo />
+                  </ProtectedRoute>
+                } />
+                <Route path="/register/:hash" element={
+                  <PublicRoute>
+                    <RegisterByHash />
+                  </PublicRoute>
+                } />
+                <Route path="/lp/dentista" element={
+                  <PublicRoute>
+                    <LPDentista />
+                  </PublicRoute>
+                } />
+                <Route path="/lp/dentista-pro" element={
+                  <PublicRoute>
+                    <LPDentistaPRO />
+                  </PublicRoute>
+                } />
+                <Route path="/lp/dentista-pro-v2" element={
+                  <PublicRoute>
+                    <LPDentistaPROv2 />
+                  </PublicRoute>
+                } />
+                <Route path="/lp/estudante" element={
+                  <PublicRoute>
+                    <LPEstudante />
+                  </PublicRoute>
+                } />
+                <Route path="/agendamento-publico" element={<AgendamentoPublico />} />
+                <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
+                <Route path="/responder-anamnese/:token" element={<ResponderAnamnese />} />
+                <Route path="/anamnese-entrada/:token" element={<AnamneseEntrada />} />
+                <Route path="/feedback/novo/:token" element={<FeedbackNovo />} />
+                <Route path="/questionario/:token" element={<ResponderQuestionario />} />
+                <Route path="/questionario/:token/form" element={<ResponderQuestionarioForm />} />
+                
+                {/* Rotas Protegidas com Layout */}
+                <Route path="/app" element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Dashboard />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="dentistas" element={<Dentistas />} />
+                  <Route path="diagnosticos" element={<Diagnosticos />} />
+                  <Route path="diagnosticos/:id" element={<DiagnosticoDetalhes />} />
+                  <Route path="diagnosticos/:id/desenho" element={<DiagnosticoDesenho />} />
+                  <Route path="diagnosticos/:id/detalhamento-profissional" element={<DetalhamentoProfissional />} />
+                  <Route path="calendario" element={<Calendario />} />
+                  <Route path="feedback" element={<Feedback />} />
+                  <Route path="feedback/novo" element={<FeedbackNovo />} />
+                  <Route path="feedback/:id/editar" element={<FeedbackNovo />} />
+                  <Route path="feedback/:id/respostas" element={<FeedbackRespostas />} />
+                  <Route path="precificacao" element={<Precificacao />} />
+                  <Route path="precificacao/tratamento/novo" element={<PrecificacaoTratamento />} />
+                  <Route path="precificacao/tratamento/:id/editar" element={<PrecificacaoTratamento />} />
+                  <Route path="precificacao/categoria/novo" element={<PrecificacaoCategoria />} />
+                  <Route path="precificacao/categoria/:id/editar" element={<PrecificacaoCategoria />} />
+                  <Route path="precificacao/produto/novo" element={<PrecificacaoProduto />} />
+                  <Route path="precificacao/produto/:id/editar" element={<PrecificacaoProduto />} />
+                  <Route path="anotacoes" element={<Anotacoes />} />
+                  <Route path="chat" element={<Chat />} />
+                  <Route path="perfil" element={<Perfil />} />
+                  <Route path="clientes" element={<Clientes />} />
+                  <Route path="clientes/novo" element={<ClienteNovo />} />
+                  <Route path="clientes/:id" element={<ClienteDetalhes />} />
+                  <Route path="clientes/:id/editar" element={<ClienteNovo />} />
+                  <Route path="orcamentos" element={<Orcamentos />} />
+                  <Route path="orcamentos/novo" element={<OrcamentoNovo />} />
+                  <Route path="orcamentos/:id" element={<OrcamentoDetalhes />} />
+                  <Route path="orcamentos/:id/editar" element={<OrcamentoNovo />} />
+                  <Route path="anamneses" element={<Anamneses />} />
+                  <Route path="anamneses/novo" element={<AnamneseNovo />} />
+                  <Route path="anamneses/:id" element={<AnamneseDetalhes />} />
+                  <Route path="anamneses/:id/editar" element={<AnamneseNovo />} />
+                </Route>
+              </Routes>
+            </ChatHeaderProvider>
+          </AuthProvider>
         } />
-        <Route path="/register" element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        } />
-        <Route path="/checkout" element={
-          <PublicRoute>
-            <Checkout />
-          </PublicRoute>
-        } />
-        <Route path="/add-clinic" element={
-          <ProtectedRoute>
-            <AddClinic />
-          </ProtectedRoute>
-        } />
-        <Route path="/verify-email" element={
-          <PublicRoute>
-            <VerifyEmail />
-          </PublicRoute>
-        } />
-        <Route path="/forgot-password" element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        } />
-        <Route path="/forgot-password-phone" element={
-          <PublicRoute>
-            <ForgotPasswordPhone />
-          </PublicRoute>
-        } />
-        <Route path="/reset-password" element={
-          <PublicRoute>
-            <ResetPassword />
-          </PublicRoute>
-        } />
-        <Route path="/auth/google/callback" element={<GoogleCallback />} />
-        <Route path="/auth/facebook/callback" element={<GoogleCallback />} />
-        <Route path="/select-clinic" element={
-          <ProtectedRoute>
-            <SelectClinic />
-          </ProtectedRoute>
-        } />
-        <Route path="/assinatura-pendente" element={
-          <ProtectedRoute>
-            <AssinaturaPendente />
-          </ProtectedRoute>
-        } />
-        <Route path="/usuario-inativo" element={
-          <ProtectedRoute>
-            <UsuarioInativo />
-          </ProtectedRoute>
-        } />
-        <Route path="/profissional/:hash" element={
-          <PublicRoute>
-            <RegisterByHash />
-          </PublicRoute>
-        } />
-        <Route path="/lp/dentista" element={
-          <PublicRoute>
-            <LPDentista />
-          </PublicRoute>
-        } />
-        <Route path="/lp/dentista-pro" element={
-          <PublicRoute>
-            <LPDentistaPRO />
-          </PublicRoute>
-        } />
-        <Route path="/lp/dentista-pro-v2" element={
-          <PublicRoute>
-            <LPDentistaPROv2 />
-          </PublicRoute>
-        } />
-        <Route path="/lp/estudante" element={
-          <PublicRoute>
-            <LPEstudante />
-          </PublicRoute>
-        } />
-        <Route path="/responder-anamnese/:id" element={
-          <PublicRoute>
-            <AnamneseEntrada />
-          </PublicRoute>
-        } />
-        <Route path="/anamneses/publica/:id" element={
-          <PublicRoute>
-            <AnamneseEntrada />
-          </PublicRoute>
-        } />
-        <Route path="/responder-anamnese/:id/iniciar" element={
-          <PublicRoute>
-            <ResponderAnamnese />
-          </PublicRoute>
-        } />
-        <Route path="/responder-questionario/:id" element={
-          <PublicRoute>
-            <ResponderQuestionario />
-          </PublicRoute>
-        } />
-        <Route path="/responder-questionario/:id/iniciar" element={
-          <PublicRoute>
-            <ResponderQuestionarioForm />
-          </PublicRoute>
-        } />
-        <Route path="/questionarios/resposta/:id" element={
-          <PublicRoute>
-            <ResponderQuestionario />
-          </PublicRoute>
-        } />
-        <Route path="/questionarios/resposta/:id/iniciar" element={
-          <PublicRoute>
-            <ResponderQuestionarioForm />
-          </PublicRoute>
-        } />
-        <Route path="/agendamento/:id" element={
-          <PublicRoute>
-            <AgendamentoPublico />
-          </PublicRoute>
-        } />
-        <Route path="/confirmar-agendamento/:consultaId" element={
-          <PublicRoute>
-            <ConfirmarAgendamento />
-          </PublicRoute>
-        } />
-        <Route path="/app" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="dentistas" element={<Dentistas />} />
-          <Route path="diagnosticos" element={<Diagnosticos />} />
-          <Route path="diagnosticos/:id" element={<DiagnosticoDetalhes />} />
-          <Route path="diagnosticos/:id/desenho" element={<DiagnosticoDesenho />} />
-          <Route path="diagnosticos/:id/detalhamento-profissional" element={<DetalhamentoProfissional />} />
-          <Route path="calendario" element={<Calendario />} />
-          <Route path="feedback" element={<Feedback />} />
-          <Route path="feedback/novo" element={<FeedbackNovo />} />
-          <Route path="feedback/:id/editar" element={<FeedbackNovo />} />
-          <Route path="feedback/:id/respostas" element={<FeedbackRespostas />} />
-          <Route path="precificacao" element={<Precificacao />} />
-          <Route path="precificacao/tratamento/novo" element={<PrecificacaoTratamento />} />
-          <Route path="precificacao/tratamento/:id/editar" element={<PrecificacaoTratamento />} />
-          <Route path="precificacao/categoria/novo" element={<PrecificacaoCategoria />} />
-          <Route path="precificacao/categoria/:id/editar" element={<PrecificacaoCategoria />} />
-          <Route path="precificacao/produto/novo" element={<PrecificacaoProduto />} />
-          <Route path="precificacao/produto/:id/editar" element={<PrecificacaoProduto />} />
-          <Route path="anotacoes" element={<Anotacoes />} />
-          <Route path="chat" element={<Chat />} />
-          <Route path="perfil" element={<Perfil />} />
-          <Route path="clientes" element={<Clientes />} />
-          <Route path="clientes/novo" element={<ClienteNovo />} />
-          <Route path="clientes/:id" element={<ClienteDetalhes />} />
-          <Route path="clientes/:id/editar" element={<ClienteNovo />} />
-          <Route path="orcamentos" element={<Orcamentos />} />
-          <Route path="orcamentos/novo" element={<OrcamentoNovo />} />
-          <Route path="orcamentos/:id" element={<OrcamentoDetalhes />} />
-          <Route path="orcamentos/:id/editar" element={<OrcamentoNovo />} />
-          <Route path="anamneses" element={<Anamneses />} />
-          <Route path="anamneses/novo" element={<AnamneseNovo />} />
-          <Route path="anamneses/:id" element={<AnamneseDetalhes />} />
-          <Route path="anamneses/:id/editar" element={<AnamneseNovo />} />
-        </Route>
       </Routes>
     </Router>
   )
 }
 
-function App() {
-  return (
-    <AuthProvider>
-      <ChatHeaderProvider>
-        <AppRoutes />
-      </ChatHeaderProvider>
-    </AuthProvider>
-  )
-}
-
 export default App
-

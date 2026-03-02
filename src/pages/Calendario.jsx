@@ -15,7 +15,7 @@ const Calendario = () => {
   const { user, selectedClinicId, isClienteMaster, isUsuario, userComumId, selectedClinicData } = useAuth()
   
   // Hook para modal de alerta
-  const { alertConfig, showError, showWarning, showSuccess, hideAlert } = useAlert()
+  const { alertConfig, showError, showWarning, showSuccess, showConfirm, hideAlert } = useAlert()
   
   // Verificar se as funções existem (fallback caso não estejam disponíveis)
   const checkIsClienteMaster = () => {
@@ -621,26 +621,28 @@ const Calendario = () => {
   }
 
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta consulta?')) {
-      return
-    }
-
-    try {
-      const response = await api.delete(`/calendario/consultas/${eventId}`)
-      if (response.data.statusCode === 200) {
-        // Recarregar consultas após deletar
-        await fetchConsultas()
-        setShowEventModal(false)
-        setEditingEvent(null)
+    showConfirm(
+      'Tem certeza que deseja excluir esta consulta?',
+      'Excluir Consulta',
+      async () => {
+        try {
+          const response = await api.delete(`/calendario/consultas/${eventId}`)
+          if (response.data.statusCode === 200) {
+            // Recarregar consultas após deletar
+            await fetchConsultas()
+            setShowEventModal(false)
+            setEditingEvent(null)
+          }
+        } catch (error) {
+          console.error('Erro ao excluir consulta:', error)
+          if (error.response?.data?.message) {
+            showError(error.response.data.message)
+          } else {
+            showError('Erro ao excluir consulta. Tente novamente.')
+          }
+        }
       }
-    } catch (error) {
-      console.error('Erro ao excluir consulta:', error)
-      if (error.response?.data?.message) {
-        showError(error.response.data.message)
-      } else {
-        showError('Erro ao excluir consulta. Tente novamente.')
-      }
-    }
+    )
   }
 
   // Função para formatar telefone para envio (apenas números com 55, sem +)
@@ -1228,6 +1230,9 @@ const Calendario = () => {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
+        isConfirm={alertConfig.isConfirm}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
       />
 
       {/* Modal de Link Gerado */}
@@ -2421,9 +2426,11 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, setEdit
                 type="button" 
                 className="btn-delete-event" 
                 onClick={() => {
-                  if (window.confirm('Tem certeza que deseja excluir esta consulta?')) {
-                    onDelete(editingEvent.id)
-                  }
+                  showConfirm(
+                    'Tem certeza que deseja excluir esta consulta?',
+                    'Excluir Consulta',
+                    () => onDelete(editingEvent.id)
+                  )
                 }}
               >
                 <FontAwesomeIcon icon={faTrash} />
@@ -2793,7 +2800,7 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, setEdit
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Deixe em branco para gerar automaticamente"
+              placeholder="Coloque um Titulo"
               className="form-input"
             />
           </div>
@@ -2869,9 +2876,11 @@ const NewEventModal = ({ eventTypes, selectedDate, events, editingEvent, setEdit
                   type="button" 
                   className="btn-delete-event" 
                   onClick={() => {
-                    if (window.confirm('Tem certeza que deseja excluir esta consulta?')) {
-                      onDelete(editingEvent.id)
-                    }
+                    showConfirm(
+                      'Tem certeza que deseja excluir esta consulta?',
+                      'Excluir Consulta',
+                      () => onDelete(editingEvent.id)
+                    )
                   }}
                 >
                   <FontAwesomeIcon icon={faTrash} />

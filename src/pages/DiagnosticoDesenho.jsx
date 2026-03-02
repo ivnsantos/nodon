@@ -184,8 +184,13 @@ const DiagnosticoDesenho = () => {
   // Não precisamos mais do estado dentesSVGContent, vamos usar dentesSVGs diretamente
 
   useEffect(() => {
+    // Se já temos imagem selecionada via state, não precisa carregar da API
+    if (selectedImageUrl) {
+      setLoading(false)
+      return
+    }
     loadRadiografia()
-  }, [id])
+  }, [id, selectedImageUrl])
 
   const loadRadiografia = async () => {
     setLoading(true)
@@ -279,7 +284,8 @@ const DiagnosticoDesenho = () => {
       
       if (response.ok) {
         const blob = await response.blob()
-        return URL.createObjectURL(blob)
+        const blobUrl = URL.createObjectURL(blob)
+        return blobUrl
       }
     } catch (error) {
       // Proxy não disponível, retornar URL original
@@ -296,13 +302,14 @@ const DiagnosticoDesenho = () => {
    */
   const drawImageOnCanvas = useCallback(async () => {
     const canvas = canvasRef.current
-    if (!canvas || !radiografia) return
+    if (!canvas) return
+
+    // Verificar se temos imagem (do state ou da radiografia)
+    const imageSrc = selectedImageUrl || radiografia?.imagem || radiografia?.imagens?.[0] || exameImage
+    if (!imageSrc) return
 
     const ctx = canvas.getContext('2d')
     const img = new Image()
-    
-    // Usar imagem selecionada do state, depois imagem da radiografia, depois padrão
-    const imageSrc = selectedImageUrl || radiografia?.imagem || radiografia?.imagens?.[0] || exameImage
     
     // Para URLs externas, tentar usar proxy do backend se disponível
     // Caso contrário, usar a URL original diretamente (canvas pode ficar "tainted")
@@ -369,13 +376,33 @@ const DiagnosticoDesenho = () => {
 
   // Carregar imagem quando radiografia ou imagem selecionada mudar
   useEffect(() => {
-    if (radiografia && canvasRef.current && boardRef.current) {
+    if (!canvasRef.current || !boardRef.current) {
+      return
+    }
+    
+    if (radiografia || selectedImageUrl) {
       const timer = setTimeout(() => {
         drawImageOnCanvas()
       }, 200)
       return () => clearTimeout(timer)
     }
   }, [radiografia, selectedImageUrl, drawImageOnCanvas])
+
+  // useEffect adicional para quando os elementos DOM estiverem prontos
+  useEffect(() => {
+    if (!selectedImageUrl) return
+    
+    const checkElements = () => {
+      if (canvasRef.current && boardRef.current) {
+        drawImageOnCanvas()
+        clearInterval(intervalId)
+      }
+    }
+    
+    const intervalId = setInterval(checkElements, 100)
+    
+    return () => clearInterval(intervalId)
+  }, [selectedImageUrl, radiografia])
 
   // Redesenhar quando board mudar de tamanho
   useEffect(() => {

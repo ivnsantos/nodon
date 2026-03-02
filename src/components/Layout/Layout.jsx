@@ -75,7 +75,7 @@ const Layout = () => {
   
 
   const allMenuItems = [
-    { path: '/app', label: 'Dashboard', icon: faChartBar },
+    { path: '/app/dashboard', label: 'Dashboard', icon: faChartBar },
     { path: '/app/clientes', label: 'Clientes', icon: faUsers },
     { path: '/app/anamneses', label: 'Anamnese', icon: faClipboardQuestion },
     { path: '/app/diagnosticos', label: 'Diagnósticos', icon: faFileAlt },
@@ -271,7 +271,7 @@ const Layout = () => {
             const hasSubmenu = item.submenu && item.submenu.length > 0
             const isSubmenuExpanded = expandedSubmenu === item.path
             const isActive = location.pathname === item.path || 
-                           (item.path === '/app' && location.pathname.startsWith('/app') && location.pathname === '/app') ||
+                           (item.path === '/app/dashboard' && location.pathname === '/app') ||
                            (hasSubmenu && item.submenu.some(subItem => location.pathname === subItem.path))
             
             return (

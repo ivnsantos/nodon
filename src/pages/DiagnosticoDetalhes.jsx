@@ -880,7 +880,7 @@ const DiagnosticoDetalhes = () => {
                 } else {
                   // Mesma imagem exibida nos detalhes: primeira da lista ou imagem principal
                   const first = diagnostico?.imagens?.[0]
-                  const imagemUrl = (typeof first === 'string' ? first : first?.url) || diagnostico?.imagem || ''
+                  const imagemUrl = typeof first === 'string' ? first : first?.url || diagnostico?.imagem || ''
                   navigate(`/app/diagnosticos/${id}/desenho`, { state: { imagemUrl } })
                 }
               }}
@@ -904,7 +904,7 @@ const DiagnosticoDetalhes = () => {
                   {diagnostico.imagens.map((img, index) => (
                     <div key={index} className="detalhes-imagem-item">
                       <img 
-                        src={img || exameImage}
+                        src={(typeof img === 'string' ? img : img?.url) || exameImage}
                         alt={`${diagnostico.paciente} - Imagem ${index + 1}`}
                         className="detalhes-imagem"
                       />
@@ -1475,7 +1475,7 @@ const DiagnosticoDetalhes = () => {
                     setShowImageSelector(false)
                   }}
                 >
-                  <img src={img || exameImage} alt={`Imagem ${index + 1}`} />
+                  <img src={(typeof img === 'string' ? img : img?.url) || exameImage} alt={`Imagem ${index + 1}`} />
                   <div className="modal-image-selector-overlay">
                     <span>Selecionar</span>
                   </div>
