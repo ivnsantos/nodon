@@ -99,7 +99,7 @@ const Login = () => {
             <img src={nodoLogo} alt="NODON" className="auth-logo-animated" />
           </div>
           <div className="auth-header-modern">
-            <h2>Bem-vindo de volta</h2>
+            <h2>Bem-vindo</h2>
             <p>Entre na sua conta para continuar</p>
           </div>
 
