@@ -92,7 +92,7 @@ const PrecificacaoTratamento = () => {
       if (!clienteMasterId) return
 
       // Carregar produtos inicialmente (sem busca)
-      await loadProducts(clienteMasterId, '')
+      loadProducts(clienteMasterId, '')
 
       // Carregar valor hora
       try {
@@ -111,7 +111,8 @@ const PrecificacaoTratamento = () => {
           
           const produtosDoTratamento = tratamento.treatmentProducts?.map(tp => ({
             productId: tp.productId,
-            quantityUsed: tp.quantityUsed || ''
+            quantityUsed: tp.quantityUsed || '',
+            costInReais: tp.costInReais || ''
           })) || []
           
           setFormData({
@@ -228,14 +229,11 @@ const PrecificacaoTratamento = () => {
     const total = formData.products.reduce((acc, product, index) => {
       // Calcular se o produto tem ID e quantidade válidos
       if (product.productId && product.quantityUsed) {
-        const selectedProduct = produtos.find(p => p.id === product.productId)
-        if (selectedProduct) {
-          const quantityUsed = parseFloat(product.quantityUsed) || 0
-          const stockQuantity = parseFloat(selectedProduct.stockQuantity) || 1
-          const totalCost = parseFloat(selectedProduct.unitCost) || 0
-          const unitPrice = stockQuantity > 0 ? totalCost / stockQuantity : 0
-          const calculatedCost = quantityUsed * unitPrice
-          return acc + calculatedCost
+        const produto = produtos.find(p => p.id === product.productId)
+        if (produto) {
+          const quantidade = parseFloat(product.quantityUsed) || 0
+          const custoUnitario = parseFloat(produto.unitCost) || 0
+          return acc + (quantidade * custoUnitario)
         }
       }
       return acc
@@ -288,20 +286,11 @@ const PrecificacaoTratamento = () => {
         averageDurationMinutes: parseInt(formData.averageDurationMinutes) || 0,
         price: parseFloat(formData.price) || 0,
         custo: custoFinal,
-        products: formData.products.map(p => {
-          const selectedProduct = produtos.find(prod => prod.id === p.productId)
-          const quantityUsed = parseFloat(p.quantityUsed) || 0
-          const stockQuantity = selectedProduct ? parseFloat(selectedProduct.stockQuantity) || 1 : 1
-          const totalCost = selectedProduct ? parseFloat(selectedProduct.unitCost) || 0 : 0
-          const unitPrice = stockQuantity > 0 ? totalCost / stockQuantity : 0
-          const calculatedCost = quantityUsed * unitPrice
-          
-          return {
-            productId: p.productId,
-            quantityUsed: quantityUsed,
-            costInReais: calculatedCost
-          }
-        })
+        products: formData.products.map(p => ({
+          productId: p.productId,
+          quantityUsed: parseFloat(p.quantityUsed) || 0,
+          costInReais: parseFloat(p.costInReais) || 0
+        }))
       }
 
       if (id) {
@@ -341,7 +330,7 @@ const PrecificacaoTratamento = () => {
   const handleAddProduct = () => {
     setFormData({
       ...formData,
-      products: [...formData.products, { productId: '', quantityUsed: '' }]
+      products: [...formData.products, { productId: '', quantityUsed: '', costInReais: '' }]
     })
   }
 
@@ -388,7 +377,7 @@ const PrecificacaoTratamento = () => {
 
     setFormData({
       ...formData,
-      products: [...formData.products, { productId, quantityUsed: '' }]
+      products: [...formData.products, { productId, quantityUsed: '', costInReais: '' }]
     })
   }
 
@@ -479,7 +468,8 @@ const PrecificacaoTratamento = () => {
       // Adicionar o produto recém-criado automaticamente ao tratamento
       const novoProdutoNoTratamento = {
         productId: produtoCriado.id,
-        quantityUsed: ''
+        quantityUsed: '',
+        costInReais: ''
       }
       setFormData({
         ...formData,
@@ -652,12 +642,7 @@ const PrecificacaoTratamento = () => {
             </div>
           </div>
           
-          {loadingProducts && produtos.length === 0 ? (
-            <div className="loading-products">
-              <FontAwesomeIcon icon={faSpinner} spin />
-              <p>Carregando produtos...</p>
-            </div>
-          ) : produtos.length > 0 ? (
+          {produtos.length > 0 ? (
             <div className="available-products-grid">
               {produtos.filter(p => searchTerm ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : !isProductAdded(p.id)).map((produto) => (
                 <div key={produto.id} className="available-product-card">
@@ -800,33 +785,18 @@ const PrecificacaoTratamento = () => {
                   </div>
                   <div className="form-group cost-field">
                     <label>Custo em Reais (R$) *</label>
-                    <div className="cost-calculated-display">
-                      {(() => {
-                        const selectedProduct = produtos.find(p => p.id === product.productId)
-                        const quantityUsed = parseFloat(product.quantityUsed) || 0
-                        const stockQuantity = selectedProduct ? parseFloat(selectedProduct.stockQuantity) || 1 : 1
-                        const totalCost = selectedProduct ? parseFloat(selectedProduct.unitCost) || 0 : 0
-                        const unitPrice = stockQuantity > 0 ? totalCost / stockQuantity : 0
-                        const calculatedCost = quantityUsed * unitPrice
-                        
-                        return (
-                          <>
-                            <input
-                              type="text"
-                              value={formatCurrency(calculatedCost)}
-                              readOnly
-                              className="cost-calculated"
-                              placeholder="R$ 0,00"
-                            />
-                            <small className="form-help">
-                              Cálculo: {quantityUsed} {normalizeUnitType(selectedProduct?.unitType)} × {formatCurrency(unitPrice)} = {formatCurrency(calculatedCost)}
-                              <br />
-                              <small>({totalCost > 0 ? `Preço total: ${formatCurrency(totalCost)} ÷ ${stockQuantity} ${normalizeUnitType(selectedProduct?.unitType)} = ${formatCurrency(unitPrice)} por unidade` : ''})</small>
-                            </small>
-                          </>
-                        )
-                      })()}
-                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={product.costInReais || ''}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                        handleUpdateProduct(index, 'costInReais', value)
+                      }}
+                      min="0.01"
+                      required
+                      placeholder="Ex: 50.00"
+                    />
                   </div>
                 </div>
                 {showConverter === index && (() => {

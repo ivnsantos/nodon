@@ -26,6 +26,12 @@ const Precificacao = () => {
   const [activeTab, setActiveTab] = useState('tratamentos') // 'tratamentos', 'categorias', 'produtos', 'custos-indiretos', 'graficos'
   const [loading, setLoading] = useState(true)
   
+  // Estados para loading individual por aba
+  const [loadingTratamentos, setLoadingTratamentos] = useState(false)
+  const [loadingCategorias, setLoadingCategorias] = useState(false)
+  const [loadingProdutos, setLoadingProdutos] = useState(false)
+  const [loadingCustosIndiretos, setLoadingCustosIndiretos] = useState(false)
+  
   // Estados para Tratamentos
   const [tratamentos, setTratamentos] = useState([])
   const [searchTratamento, setSearchTratamento] = useState('')
@@ -494,6 +500,18 @@ const Precificacao = () => {
         {/* Tab Tratamentos */}
         {activeTab === 'tratamentos' && (
           <div className="tab-content">
+            {loadingTratamentos && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                padding: '40px',
+                color: '#666'
+              }}>
+                <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                <p style={{ marginLeft: '15px', margin: 0 }}>Carregando tratamentos...</p>
+              </div>
+            )}
             <div className="content-header">
               <h2>Tratamentos</h2>
               <button className="btn-primary" onClick={handleCreateTratamento}>
