@@ -20,9 +20,12 @@ import api from '../utils/api'
 import './RegisterByHash.css'
 
 const RegisterByHash = () => {
-  const { hash } = useParams()
+  const { hash, id } = useParams()
   const navigate = useNavigate()
   const { user, login } = useAuth()
+  
+  // Usar hash ou id (qualquer um que estiver disponível)
+  const identifier = hash || id
   
   const [loading, setLoading] = useState(true)
   const [clinicData, setClinicData] = useState(null)
@@ -53,27 +56,45 @@ const RegisterByHash = () => {
   const [formErrors, setFormErrors] = useState({})
   const [loadingCep, setLoadingCep] = useState(false)
 
-  // Buscar dados do cliente master pelo hash
+  // Buscar dados do cliente master pelo hash ou id
   useEffect(() => {
     const fetchClinicData = async () => {
-      if (!hash) {
-        setError('Hash inválido')
+      if (!identifier) {
+        setError('Código inválido')
         setLoading(false)
         return
       }
 
       try {
-        // Buscar dados completos do cliente master usando o hash
-        const response = await api.get(`/clientes-master/hash/${hash}`)
+        // Buscar dados completos do cliente master usando o hash ou id
+        let response
+        
+        // Usar endpoint correto para buscar dados
+        response = await api.get(`/clientes-master/hash/${identifier}`)
+         
+        // Debug: Mostrar resposta completa da API
+        console.log('=== RESPOSTA DA API ===')
+        console.log('Endpoint:', `/clientes-master/hash/${identifier}`)
+        console.log('Status:', response.status)
+        console.log('Data:', response.data)
+        console.log('Headers:', response.headers)
+        console.log('========================')
         
         if (response.data.statusCode === 200) {
           const data = response.data.data || response.data
           setClinicData(data)
+          console.log('✅ Dados carregados com sucesso:', data)
         } else {
+          console.log('❌ Status diferente de 200:', response.data)
           setError('Consultório não encontrado ou link inválido.')
         }
       } catch (error) {
-        console.error('Erro ao buscar dados do consultório:', error)
+        console.error('=== ERRO NA API ===')
+        console.error('Erro:', error)
+        console.error('Response:', error.response)
+        console.error('Status:', error.response?.status)
+        console.error('Data:', error.response?.data)
+        console.error('==================')
         setError('Erro ao carregar dados do consultório. Verifique se o link está correto.')
       } finally {
         setLoading(false)
@@ -81,7 +102,7 @@ const RegisterByHash = () => {
     }
 
     fetchClinicData()
-  }, [hash])
+  }, [identifier])
 
   // Preencher dados do usuário se estiver logado
   useEffect(() => {
@@ -371,7 +392,17 @@ const RegisterByHash = () => {
         payload.password = formData.password
       }
 
-      const response = await api.post(`/clientes-master/register-by-hash/${hash}`, payload)
+      const response = await api.post(`/clientes-master/register-by-hash/${identifier}`, payload)
+
+      // Debug: Mostrar resposta do cadastro
+      console.log('=== RESPOSTA DO CADASTRO ===')
+      console.log('Endpoint:', `/clientes-master/register-by-hash/${identifier}`)
+      console.log('Método:', 'POST')
+      console.log('Payload:', payload)
+      console.log('Status:', response.status)
+      console.log('Data:', response.data)
+      console.log('Headers:', response.headers)
+      console.log('==========================')
 
       if (response.data.statusCode === 200 || response.status === 200 || response.status === 201) {
         // Limpar erros e mostrar sucesso
@@ -393,7 +424,8 @@ const RegisterByHash = () => {
                 clearInterval(countdownIntervalRef.current)
                 countdownIntervalRef.current = null
               }
-              navigate('/login')
+              // Comentado: Não redirecionar automaticamente após cadastro
+              // navigate('/login')
               return 0
             }
             return prev - 1
@@ -453,6 +485,8 @@ const RegisterByHash = () => {
     </footer>
   )
 
+  const clienteMaster = clinicData?.clienteMaster || clinicData
+
   if (loading) {
     return (
       <div className="register-by-hash-page">
@@ -480,8 +514,6 @@ const RegisterByHash = () => {
       </div>
     )
   }
-
-  const clienteMaster = clinicData?.clienteMaster || clinicData
 
   return (
     <div className="register-by-hash-page">
@@ -673,7 +705,7 @@ const RegisterByHash = () => {
             <div className="form-group">
               <label htmlFor="cro">
                 <FontAwesomeIcon icon={faIdCard} />
-                CRO (Conselho Regional de Odontologia)
+                CRO (Opcional)
               </label>
               <input
                 type="text"

@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   const pathname = location.pathname
-  const phoneVerified = user.phoneVerified || user.emailVerified || false
+  const phoneVerified = user.isEmailVerified || user.phoneVerified || user.emailVerified || false
   const allowedPathsWithoutVerification = ['/verify-email', '/select-clinic', '/assinatura-pendente', '/usuario-inativo']
   
   // 1. PRIMEIRO: Verificar se o telefone está validado

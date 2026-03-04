@@ -132,6 +132,11 @@ function App() {
                     <RegisterByHash />
                   </PublicRoute>
                 } />
+                <Route path="/profissional/:id" element={
+                  <PublicRoute>
+                    <RegisterByHash />
+                  </PublicRoute>
+                } />
                 <Route path="/lp/dentista" element={
                   <PublicRoute>
                     <LPDentista />

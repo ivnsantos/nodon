@@ -40,30 +40,40 @@ api.interceptors.request.use(
       const relacionamentoStr = sessionStorage.getItem('relacionamento')
       const selectedClinicId = sessionStorage.getItem('selectedClinicId')
       
+      // Debug: Mostrar o que está no sessionStorage
+      console.log('=== DEBUG API HEADERS ===')
+      console.log('Pathname:', window.location.pathname)
+      console.log('RelacionamentoStr:', relacionamentoStr)
+      console.log('SelectedClinicId:', selectedClinicId)
+      
       if (relacionamentoStr) {
         try {
           const relacionamento = JSON.parse(relacionamentoStr)
+          console.log('Relacionamento parseado:', relacionamento)
           
           // Se o relacionamento for do tipo "clienteMaster", usar X-Cliente-Master-Id
           if (relacionamento.tipo === 'clienteMaster' && relacionamento.id) {
             config.headers['X-Cliente-Master-Id'] = relacionamento.id
             // Remover X-User-Comum-Id se existir
             delete config.headers['X-User-Comum-Id']
+            console.log('✅ Adicionado X-Cliente-Master-Id:', relacionamento.id)
           } else if (relacionamento.tipo === 'usuario' && relacionamento.id) {
             // Se for do tipo "usuario", usar X-User-Comum-Id
             config.headers['X-User-Comum-Id'] = relacionamento.id
-            // Remover X-Cliente-Master-Id apenas se não foi passado explicitamente
-            if (!hasExplicitClienteMasterId) {
-              delete config.headers['X-Cliente-Master-Id']
-            }
+            // SEMPRE remover X-Cliente-Master-Id para usuários comuns
+            delete config.headers['X-Cliente-Master-Id']
+            console.log('✅ Adicionado X-User-Comum-Id:', relacionamento.id)
+            console.log('❌ Removido X-Cliente-Master-Id')
           } else {
             // Se não tiver tipo válido, usar X-Cliente-Master-Id com selectedClinicId como fallback
             if (selectedClinicId && !hasExplicitClienteMasterId) {
               config.headers['X-Cliente-Master-Id'] = selectedClinicId
             }
             delete config.headers['X-User-Comum-Id']
+            console.log('⚠️ Usando fallback - Tipo inválido:', relacionamento.tipo)
           }
         } catch (error) {
+          console.error('❌ Erro ao parsear relacionamento:', error)
           // Se houver erro ao parsear, usar X-Cliente-Master-Id como fallback
           if (selectedClinicId && !hasExplicitClienteMasterId) {
             config.headers['X-Cliente-Master-Id'] = selectedClinicId
@@ -71,12 +81,16 @@ api.interceptors.request.use(
           delete config.headers['X-User-Comum-Id']
         }
       } else {
+        console.log('❌ Nenhum relacionamento encontrado no sessionStorage')
         // Se não houver relacionamento, usar X-Cliente-Master-Id com selectedClinicId
         if (selectedClinicId && !hasExplicitClienteMasterId) {
           config.headers['X-Cliente-Master-Id'] = selectedClinicId
         }
         delete config.headers['X-User-Comum-Id']
       }
+      
+      console.log('Headers finais:', config.headers)
+      console.log('========================')
     } else {
       // Se não estiver dentro de /app, manter X-Cliente-Master-Id se foi passado explicitamente
       // (ex: na chamada /complete que acontece antes de entrar em /app)
@@ -103,7 +117,25 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const currentPath = window.location.pathname
-      if (currentPath !== '/login' && currentPath !== '/register' && !redirectingToLogin) {
+      
+      // Rotas públicas que não devem redirecionar para login
+      const publicPaths = [
+        '/login',
+        '/register',
+        '/profissional',
+        '/lp/',
+        '/agendamento-publico',
+        '/responder-anamnese',
+        '/responder-questionario',
+        '/verify-email',
+        '/forgot-password',
+        '/reset-password'
+      ]
+      
+      // Verificar se a rota atual é pública
+      const isPublicPath = publicPaths.some(path => currentPath.startsWith(path))
+      
+      if (!isPublicPath && currentPath !== '/login' && currentPath !== '/register' && !redirectingToLogin) {
         redirectingToLogin = true
         sessionStorage.removeItem('token')
         sessionStorage.removeItem('user')

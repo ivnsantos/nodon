@@ -186,6 +186,18 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.setItem('user', JSON.stringify(normalizedUser))
       setUser(normalizedUser)
 
+      // Para usuários comuns, criar relacionamento básico se não existir
+      if (userData.tipo === 'usuario' && userData.id) {
+        const relacionamento = {
+          tipo: 'usuario',
+          id: userData.id,
+          status: 'ativo'
+        }
+        sessionStorage.setItem('relacionamento', JSON.stringify(relacionamento))
+        console.log('✅ Relacionamento de usuário comum salvo:', relacionamento)
+        console.log('✅ Verificando se foi salvo:', sessionStorage.getItem('relacionamento'))
+      }
+
       return { 
         success: true,
         user: normalizedUser
@@ -412,7 +424,25 @@ export const AuthProvider = ({ children }) => {
     setUserComumId(null)
     setPlanoAcesso(null)
     sessionStorage.removeItem('selectedClinicData')
-    sessionStorage.removeItem('relacionamento')
+    
+    // NÃO remover relacionamento se for usuário comum
+    const currentRelacionamento = sessionStorage.getItem('relacionamento')
+    if (currentRelacionamento) {
+      try {
+        const relacionamento = JSON.parse(currentRelacionamento)
+        if (relacionamento.tipo === 'usuario') {
+          console.log('🔒 Mantendo relacionamento de usuário comum:', relacionamento)
+        } else {
+          // Remover apenas se não for usuário comum
+          sessionStorage.removeItem('relacionamento')
+          console.log('🗑️ Removendo relacionamento de cliente master')
+        }
+      } catch (error) {
+        // Se houver erro ao parsear, remover
+        sessionStorage.removeItem('relacionamento')
+      }
+    }
+    
     sessionStorage.removeItem('userComumId')
     sessionStorage.removeItem('planoAcesso')
     
