@@ -549,7 +549,8 @@ const LPDentista = () => {
           <div className="hero-content">
             <div className="hero-text">
               <h1 className="hero-title">
-              Dentista! Tenha mais organização e clareza no seu trabalho.
+               Comece a ser mais Independente!.
+               A Nodon entrega toda a liberdade que você precisa.
               </h1>
               <p className="hero-description">
                 Aumente sua receita, economize tempo e alcance a liberdade financeira. Tudo em uma plataforma completa feita para dentistas.
