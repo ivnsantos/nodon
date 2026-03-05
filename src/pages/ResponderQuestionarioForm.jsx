@@ -20,6 +20,8 @@ const ResponderQuestionarioForm = () => {
   const [currentStep, setCurrentStep] = useState(0)
   const [direction, setDirection] = useState('next')
 
+  console.log('ResponderQuestionarioForm montado com ID:', id) // Debug
+
   const publicApi = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
     headers: {
@@ -28,18 +30,27 @@ const ResponderQuestionarioForm = () => {
   })
 
   useEffect(() => {
+    console.log('useEffect disparado com ID:', id) // Debug
     if (id) {
       loadQuestionario()
+    } else {
+      console.log('ID não encontrado') // Debug
+      setError('ID do questionário não encontrado na URL.')
+      setLoading(false)
     }
   }, [id])
 
   const loadQuestionario = async () => {
     try {
+      console.log('Carregando questionário form com ID:', id) // Debug
       setLoading(true)
       setError('')
       const response = await publicApi.get(`/questionarios/resposta/${id}`)
+      console.log('Resposta da API (form):', response.data) // Debug
+      
       // API pode retornar data, data.data ou data.data.data (duplo aninhamento)
       const data = response.data?.data?.data || response.data?.data || response.data
+      console.log('Dados processados (form):', data) // Debug
 
       if (data.concluida === true) {
         setError('Este questionário já foi respondido.')
@@ -70,7 +81,9 @@ const ResponderQuestionarioForm = () => {
       }
       setRespostas(respostasIniciais)
     } catch (err) {
-      console.error('Erro ao carregar questionário:', err)
+      console.error('Erro ao carregar questionário (form):', err)
+      console.error('Status:', err.response?.status)
+      console.error('Response data:', err.response?.data)
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Erro ao carregar o questionário. Verifique se o link está correto.'
       setError(errorMessage)
     } finally {

@@ -167,8 +167,13 @@ function App() {
                 <Route path="/feedback/novo/:token" element={<FeedbackNovo />} />
                 <Route path="/responder-questionario/:token" element={<ResponderQuestionario />} />
                 <Route path="/responder-questionario/:token/form" element={<ResponderQuestionarioForm />} />
+                <Route path="/responder-questionario/:token/iniciar" element={<ResponderQuestionarioForm />} />
                 <Route path="/questionario/:token" element={<ResponderQuestionario />} />
                 <Route path="/questionario/:token/form" element={<ResponderQuestionarioForm />} />
+                <Route path="/questionario/:token/iniciar" element={<ResponderQuestionarioForm />} />
+                <Route path="/questionarios/resposta/:id" element={<ResponderQuestionario />} />
+                <Route path="/questionarios/resposta/:id/form" element={<ResponderQuestionarioForm />} />
+                <Route path="/questionarios/resposta/:id/iniciar" element={<ResponderQuestionarioForm />} />
                 
                 {/* Rotas Protegidas com Layout */}
                 <Route path="/app" element={

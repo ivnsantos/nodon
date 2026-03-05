@@ -22,6 +22,7 @@ import xldentistaImg from '../img/xldentista.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import julia20Img from '../img/JULIA20.jpeg'
 import milafazodontoDentistaImg from '../img/MILAFAZODONTO_DENTISTA.jpeg'
+import muniz20Img from '../img/muniz20.jpeg'
 import './LPDentista.css'
 
 // Componente individual para cada card de plano - gerencia seu próprio estado
@@ -424,6 +425,9 @@ const LPDentista = () => {
     if (cupomUpper === 'MILAFAZODONTO' && cupomValido) {
       return milafazodontoDentistaImg
     }
+    if (cupomUpper === 'MUNIZ20' && cupomValido) {
+      return muniz20Img
+    }
     return dentistaImg
   }
 
@@ -441,6 +445,9 @@ const LPDentista = () => {
     }
      if (cupomUpper === 'MILAFAZODONTO' && cupomValido) {
       return "Cupom MILAFAZODONTO"
+    }
+    if (cupomUpper === 'MUNIZ20' && cupomValido) {
+      return "Cupom MUNIZ20"
     }
     return "Dentistas"
   }
@@ -477,6 +484,12 @@ const LPDentista = () => {
             )}
             {(cupomCode?.toUpperCase() === 'XL20' || cupomCode?.toUpperCase() === 'XLDENTISTA') && cupomValido && (
               <img src={xldentistaImg} alt={`Cupom ${cupomCode}`} className="cupom-image" />
+            )}
+            {cupomCode?.toUpperCase() === 'MILAFAZODONTO' && cupomValido && (
+              <img src={milafazodontoDentistaImg} alt="Cupom MILAFAZODONTO" className="cupom-image" />
+            )}
+            {cupomCode?.toUpperCase() === 'MUNIZ20' && cupomValido && (
+              <img src={muniz20Img} alt="Cupom MUNIZ20" className="cupom-image" />
             )}
             <FontAwesomeIcon icon={faTag} />
             {validandoCupom ? (

@@ -18,6 +18,8 @@ const ResponderQuestionario = () => {
   const [error, setError] = useState('')
   const [concluida, setConcluida] = useState(false)
 
+  console.log('ResponderQuestionario montado com ID:', idPublico) // Debug
+
   const publicApi = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
     headers: {
@@ -26,18 +28,27 @@ const ResponderQuestionario = () => {
   })
 
   useEffect(() => {
+    console.log('useEffect disparado com idPublico:', idPublico) // Debug
     if (idPublico) {
       loadQuestionario()
+    } else {
+      console.log('ID público não encontrado') // Debug
+      setError('ID do questionário não encontrado na URL.')
+      setLoading(false)
     }
   }, [idPublico])
 
   const loadQuestionario = async () => {
     try {
+      console.log('Carregando questionário com ID:', idPublico) // Debug
       setLoading(true)
       setError('')
       const response = await publicApi.get(`/questionarios/resposta/${idPublico}`)
+      console.log('Resposta da API:', response.data) // Debug
+      
       // API pode retornar data, data.data ou data.data.data (duplo aninhamento)
       const responseData = response.data?.data?.data || response.data?.data || response.data
+      console.log('Dados processados:', responseData) // Debug
 
       if (responseData.concluida === true) {
         setConcluida(true)
@@ -55,6 +66,8 @@ const ResponderQuestionario = () => {
       setData(responseData)
     } catch (err) {
       console.error('Erro ao carregar questionário:', err)
+      console.error('Status:', err.response?.status)
+      console.error('Response data:', err.response?.data)
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Erro ao carregar o questionário. Verifique se o link está correto.'
       setError(errorMessage)
     } finally {
@@ -69,6 +82,7 @@ const ResponderQuestionario = () => {
 
   const defaultCores = { '--cor-empresa': '#0ea5e9', '--cor-empresa-secundaria': '#06b6d4' }
 
+  // Fallback de segurança - sempre renderiza algo
   if (loading) {
     return (
       <div className="questionario-entrada-container" style={defaultCores}>
@@ -101,6 +115,9 @@ const ResponderQuestionario = () => {
       </div>
     )
   }
+
+  // Se chegou aqui, temos dados - renderiza normalmente
+  console.log('Renderizando componente com dados:', data) // Debug
 
   const empresa = data.paciente?.masterClient || data.questionario?.clienteMaster || data.clienteMaster
   const paciente = data.paciente || null

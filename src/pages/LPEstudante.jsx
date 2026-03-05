@@ -21,6 +21,7 @@ import xl20Img from '../img/xl20.jpeg'
 import julia20Img from '../img/JULIA20.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import milafazodontoEstudanteImg from '../img/MILAFAZODONTO_ESTU.jpeg'
+import muniz20Img from '../img/muniz20.jpeg'
 import './LPEstudante.css'
 
 const LPEstudante = () => {
@@ -240,6 +241,9 @@ const LPEstudante = () => {
     if (cupomCode === 'MILAFAZODONTO' && cupomValido) {
       return milafazodontoEstudanteImg
     }
+    if (cupomCode === 'MUNIZ20' && cupomValido) {
+      return muniz20Img
+    }
     return estudanteImg
   }
 
@@ -255,6 +259,9 @@ const LPEstudante = () => {
     }
     if (cupomCode === 'MILAFAZODONTO' && cupomValido) {
       return "Cupom MILAFAZODONTO"
+    }
+    if (cupomCode === 'MUNIZ20' && cupomValido) {
+      return "Cupom MUNIZ20"
     }
     return "Estudantes de Odontologia"
   }
@@ -291,6 +298,12 @@ const LPEstudante = () => {
             )}
             {cupomCode === 'XL20' && cupomValido && (
               <img src={xl20Img} alt="Cupom XL20" className="cupom-image" />
+            )}
+            {cupomCode === 'MILAFAZODONTO' && cupomValido && (
+              <img src={milafazodontoEstudanteImg} alt="Cupom MILAFAZODONTO" className="cupom-image" />
+            )}
+            {cupomCode === 'MUNIZ20' && cupomValido && (
+              <img src={muniz20Img} alt="Cupom MUNIZ20" className="cupom-image" />
             )}
             <FontAwesomeIcon icon={faTag} />
             {validandoCupom ? (
