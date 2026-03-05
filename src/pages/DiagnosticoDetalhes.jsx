@@ -757,6 +757,8 @@ const DiagnosticoDetalhes = () => {
       const response = await api.get(`/desenhos-profissionais/${desenhoId}`)
       const desenho = response.data?.data || response.data
       
+      console.log('Dados do desenho:', desenho) // Debug
+      
       if (desenho) {
         // Navegar para a tela de detalhamento profissional com os dados do desenho
         navigate(`/app/diagnosticos/${id}/detalhamento-profissional`, { 
@@ -770,6 +772,8 @@ const DiagnosticoDetalhes = () => {
             }
           } 
         })
+      } else {
+        showError('Dados do desenho não encontrados')
       }
     } catch (error) {
       console.error('Erro ao carregar desenho:', error)

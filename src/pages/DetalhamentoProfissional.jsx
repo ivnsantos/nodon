@@ -111,6 +111,8 @@ const DetalhamentoProfissional = () => {
       // Verificar se há dados do desenho no state da navegação
       const desenhoData = location.state?.desenhoData
       
+      console.log('Dados recebidos no DetalhamentoProfissional:', desenhoData) // Debug
+      
       if (desenhoData) {
         // Usar dados do desenho da API
         const data = {
@@ -125,6 +127,8 @@ const DetalhamentoProfissional = () => {
           necessidades: desenhoData.necessidades || [],
           tituloDesenho: desenhoData.tituloDesenho || ''
         }
+        
+        console.log('Dados processados para detalhamento:', data) // Debug
         setDetalhamento(data)
         setLoading(false)
         return

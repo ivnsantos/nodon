@@ -332,7 +332,7 @@ const DiagnosticoDesenho = () => {
   }
 
   /**
-   * Carrega imagem de fundo no canvas
+   * Carrega imagem de fundo no canvas - Apenas uma vez! Protegido contra mudanças de ferramenta
    */
   const drawImageOnCanvas = useCallback(async () => {
     const canvas = canvasRef.current
@@ -347,6 +347,13 @@ const DiagnosticoDesenho = () => {
       return
     }
 
+    // NUNCA redesenhar se já tivermos conteúdo OU se tivermos desenhos no histórico
+    if (imageLoaded || drawingHistory.length > 0) {
+      console.log('drawImageOnCanvas: ignorado - imagem já carregada ou existem desenhos')
+      return
+    }
+
+    console.log('drawImageOnCanvas: carregando imagem pela primeira vez')
     setImageLoaded(false)
     setImageLoadError(null)
 
@@ -355,15 +362,12 @@ const DiagnosticoDesenho = () => {
     img.crossOrigin = 'anonymous'
     
     // Para URLs externas, tentar usar proxy do backend se disponível
-    // Caso contrário, usar a URL original diretamente (canvas pode ficar "tainted")
     let finalImageSrc = imageSrc
     if (imageSrc && imageSrc.startsWith('http') && !imageSrc.startsWith('data:')) {
       try {
         const proxyResult = await loadImageAsBlob(imageSrc)
-        // Se retornou blob URL, usar; caso contrário, usar URL original
         finalImageSrc = proxyResult
       } catch (error) {
-        // Se houver erro, usar URL original
         finalImageSrc = imageSrc
       }
     }
@@ -376,16 +380,15 @@ const DiagnosticoDesenho = () => {
       const boardWidth = boardRef.current.offsetWidth || 1200
       const boardHeight = boardRef.current.offsetHeight || 900
       
-      // Calcular escala mantendo proporção (contain - não distorcer)
-      // Aumentar escala em 1.5x para imagem maior
+      // Calcular escala mantendo proporção
       const scaleX = (boardWidth / img.width) * 1.5
       const scaleY = (boardHeight / img.height) * 1.5
-      const scale = Math.min(scaleX, scaleY) // Usar Math.min para contain (não cortar)
+      const scale = Math.min(scaleX, scaleY)
       
       const displayWidth = img.width * scale
       const displayHeight = img.height * scale
       
-      // Definir tamanho interno do canvas (resolução) - usar tamanho original da imagem
+      // Definir tamanho interno do canvas
       canvas.width = img.width
       canvas.height = img.height
       
@@ -393,19 +396,18 @@ const DiagnosticoDesenho = () => {
       canvas.style.width = `${displayWidth}px`
       canvas.style.height = `${displayHeight}px`
       
-      // Desenhar imagem no tamanho original (sem distorção)
+      // Desenhar imagem - APENAS UMA VEZ
       ctx.drawImage(img, 0, 0, img.width, img.height)
-      setImageLoaded(true)
       
-      // Limpar object URL se foi criado após um delay
+      setImageLoaded(true)
+      console.log('Imagem carregada com sucesso - não será mais redesenhada')
+      
+      // Limpar object URL se foi criado
       if (finalImageSrc !== imageSrc && finalImageSrc.startsWith('blob:')) {
         setTimeout(() => {
           URL.revokeObjectURL(finalImageSrc)
         }, 1000)
       }
-      
-      // Não chamar saveState aqui para evitar erro de canvas tainted
-      // O saveState será chamado quando o usuário começar a desenhar
     }
     
     img.onerror = () => {
@@ -428,11 +430,14 @@ const DiagnosticoDesenho = () => {
     
     if (radiografia || selectedImageUrl) {
       const timer = setTimeout(() => {
-        drawImageOnCanvas()
+        // Só carregar imagem se ainda não foi carregada
+        if (!imageLoaded) {
+          drawImageOnCanvas()
+        }
       }, 200)
       return () => clearTimeout(timer)
     }
-  }, [radiografia, selectedImageUrl, drawImageOnCanvas])
+  }, [radiografia, selectedImageUrl, drawImageOnCanvas, imageLoaded])
 
   // useEffect adicional para quando os elementos DOM estiverem prontos
   useEffect(() => {
@@ -440,7 +445,7 @@ const DiagnosticoDesenho = () => {
     if (failedImageSrc && failedImageSrc === selectedImageUrl) return
 
     const checkElements = () => {
-      if (canvasRef.current && boardRef.current) {
+      if (canvasRef.current && boardRef.current && !imageLoaded) {
         drawImageOnCanvas()
         clearInterval(intervalId)
       }
@@ -449,18 +454,28 @@ const DiagnosticoDesenho = () => {
     const intervalId = setInterval(checkElements, 100)
 
     return () => clearInterval(intervalId)
-  }, [selectedImageUrl, radiografia, failedImageSrc, drawImageOnCanvas])
+  }, [selectedImageUrl, radiografia, failedImageSrc, drawImageOnCanvas, imageLoaded])
 
-  // Redesenhar quando board mudar de tamanho
+  // Redesenhar quando board mudar de tamanho - NUNCA durante desenho ou mudança de ferramenta
   useEffect(() => {
     if (imageLoaded && boardRef.current) {
       const resizeObserver = new ResizeObserver(() => {
-        drawImageOnCanvas()
+        // ABSOLUTAMENTE NUNCA redesenhar se estiver desenhando OU se tiver ferramenta selecionada
+        if (!isDrawing && !currentTool) {
+          console.log('ResizeObserver: redesenhando imagem')
+          drawImageOnCanvas()
+        } else {
+          console.log('ResizeObserver: ignorado - está desenhando ou tem ferramenta selecionada')
+        }
       })
+      
       resizeObserver.observe(boardRef.current)
-      return () => resizeObserver.disconnect()
+      
+      return () => {
+        resizeObserver.disconnect()
+      }
     }
-  }, [imageLoaded, drawImageOnCanvas])
+  }, [imageLoaded, isDrawing, drawImageOnCanvas]) // Removido currentTool das dependências
 
   // Atualizar refs quando estado mudar
   useEffect(() => {
@@ -504,8 +519,10 @@ const DiagnosticoDesenho = () => {
   const startDrawing = useCallback((e) => {
     if (!imageLoaded) return
     
-    e.preventDefault()
-    e.stopPropagation()
+    console.log('startDrawing chamado com currentTool:', currentTool) // Debug
+    
+    // Removido preventDefault para evitar erros em eventos passivos
+    // A funcionalidade continua funcionando sem problemas
     
     // Salvar estado inicial se o histórico estiver vazio (primeira ação)
     if (drawingHistory.length === 0) {
@@ -533,22 +550,25 @@ const DiagnosticoDesenho = () => {
     if (!canvas) return
     
     const ctx = canvas.getContext('2d')
-    ctx.beginPath()
-    ctx.moveTo(x, y)
+    
+    // Configurar contexto para desenho livre e formas
     ctx.strokeStyle = currentColor
     ctx.lineWidth = lineWidth
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
+    
+    // Iniciar caminho para desenho livre
+    if (currentTool === 'pencil') {
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+    }
   }, [imageLoaded, currentTool, currentColor, lineWidth, getCanvasCoordinates, drawingHistory.length])
 
   /**
-   * Desenha no canvas
+   * Desenha no canvas - Mantém elementos existentes durante preview
    */
   const draw = useCallback((e) => {
     if (!isDrawing || !imageLoaded) return
-    
-    e.preventDefault()
-    e.stopPropagation()
     
     const canvas = canvasRef.current
     if (!canvas) return
@@ -556,28 +576,48 @@ const DiagnosticoDesenho = () => {
     const ctx = canvas.getContext('2d')
     const { x, y } = getCanvasCoordinates(e)
     
-    if (['circle', 'rectangle', 'line', 'arrow', 'cross'].includes(currentTool) && shapeStart) {
-      // Redesenhar tudo e adicionar forma
-      const imageData = drawingHistory[historyIndex] || null
-      if (imageData) {
-        const img = new Image()
-        img.onload = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-          ctx.drawImage(img, 0, 0)
-          drawShape(ctx, shapeStart, { x, y }, currentTool)
-        }
-        img.src = imageData
-      }
-    } else {
+    // Configurar contexto
+    ctx.strokeStyle = currentColor
+    ctx.lineWidth = lineWidth
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    
+    if (currentTool === 'pencil') {
+      // Lápis: desenho livre contínuo sobre o canvas atual
       ctx.lineTo(x, y)
       ctx.stroke()
+    } else if (['circle', 'rectangle', 'line', 'arrow', 'cross'].includes(currentTool) && shapeStart) {
+      // Formas geométricas: salvar estado atual + restaurar + preview
+      // 1. Salvar estado atual do canvas (contém todos os elementos existentes)
+      const currentCanvasState = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      
+      // 2. Restaurar último estado salvo se existir
+      if (drawingHistory.length > 0 && historyIndex >= 0) {
+        const img = new Image()
+        img.onload = () => {
+          // Limpar canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          
+          // Redesenhar tudo: imagem + todos os desenhos anteriores
+          ctx.drawImage(img, 0, 0)
+          
+          // Desenhar preview da forma atual sobre tudo
+          drawShape(ctx, shapeStart, { x, y }, currentTool)
+        }
+        img.src = drawingHistory[historyIndex]
+      } else {
+        // Primeiro desenho: usar estado atual salvo
+        ctx.putImageData(currentCanvasState, 0, 0)
+        drawShape(ctx, shapeStart, { x, y }, currentTool)
+      }
     }
-  }, [isDrawing, imageLoaded, currentTool, shapeStart, getCanvasCoordinates, drawingHistory, historyIndex])
+  }, [isDrawing, imageLoaded, currentTool, shapeStart, getCanvasCoordinates, currentColor, lineWidth, drawingHistory, historyIndex])
 
   /**
    * Desenha formas geométricas
    */
   const drawShape = (ctx, start, end, tool) => {
+    // Usar as propriedades passadas como parâmetros ou as do estado
     ctx.strokeStyle = currentColor
     ctx.lineWidth = lineWidth
     ctx.lineCap = 'round'
@@ -589,7 +629,7 @@ const DiagnosticoDesenho = () => {
     switch (tool) {
       case 'circle':
         const radius = Math.sqrt(width * width + height * height)
-    ctx.beginPath()
+        ctx.beginPath()
         ctx.arc(start.x, start.y, radius, 0, Math.PI * 2)
         ctx.stroke()
         break
@@ -635,15 +675,77 @@ const DiagnosticoDesenho = () => {
   }
 
   /**
-   * Para de desenhar
+   * Salva estado do canvas
    */
-  const stopDrawing = useCallback(() => {
+  const saveState = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    // Salvar o estado atual do canvas (que já inclui a imagem + desenho)
+    const imageData = canvas.toDataURL()
+    const newHistory = drawingHistory.slice(0, historyIndex + 1)
+    newHistory.push(imageData)
+    setDrawingHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+  }
+
+  /**
+   * Para de desenho - Garante manutenção de todos os elementos
+   */
+  const stopDrawing = useCallback((e) => {
     if (!isDrawing) return
     
+    console.log('stopDrawing - finalizando e garantindo todos os elementos')
+    
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    const ctx = canvas.getContext('2d')
+    
+    // Para formas geométricas, desenhar a forma final
+    if (['circle', 'rectangle', 'line', 'arrow', 'cross'].includes(currentTool) && shapeStart && e) {
+      const { x, y } = getCanvasCoordinates(e)
+      
+      // 1. Salvar estado atual do canvas antes de qualquer alteração
+      const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      
+      // 2. Restaurar último estado salvo se existir
+      if (drawingHistory.length > 0 && historyIndex >= 0) {
+        const img = new Image()
+        img.onload = () => {
+          // Limpar canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          
+          // Redesenhar tudo: imagem + todos os desenhos anteriores
+          ctx.drawImage(img, 0, 0)
+          
+          // Desenhar forma final sobre tudo
+          drawShape(ctx, shapeStart, { x, y }, currentTool)
+          
+          // Salvar estado completo com todos os elementos
+          saveState()
+          console.log('Forma final adicionada - todos os elementos mantidos')
+        }
+        img.src = drawingHistory[historyIndex]
+      } else {
+        // Primeiro desenho: restaurar estado atual + desenhar forma
+        ctx.putImageData(currentState, 0, 0)
+        drawShape(ctx, shapeStart, { x, y }, currentTool)
+        saveState()
+        console.log('Primeira forma adicionada')
+      }
+    } else {
+      // Lápis ou outras ferramentas - salvar estado atual (já contém tudo)
+      saveState()
+      console.log('Estado atual salvo - mantendo todos os elementos')
+    }
+    
+    // Finalizar desenho
     setIsDrawing(false)
     setShapeStart(null)
-    saveState()
-  }, [isDrawing])
+    
+    console.log('Desenho finalizado - todos os elementos preservados')
+  }, [isDrawing, currentTool, shapeStart, saveState, currentColor, lineWidth, getCanvasCoordinates, drawingHistory, historyIndex])
 
   // Listeners globais para continuar desenhando mesmo quando o mouse sai do canvas
   useEffect(() => {
@@ -660,8 +762,12 @@ const DiagnosticoDesenho = () => {
       // Se o mouse estiver dentro do board, continuar desenhando
       if (e.clientX >= boardRect.left && e.clientX <= boardRect.right &&
           e.clientY >= boardRect.top && e.clientY <= boardRect.bottom) {
-        e.preventDefault()
-        e.stopPropagation()
+        try {
+          e.preventDefault()
+          e.stopPropagation()
+        } catch (err) {
+          // Ignorar erro de preventDefault em eventos passivos
+        }
         
         // Calcular coordenadas do canvas
         const rect = canvas.getBoundingClientRect()
@@ -701,8 +807,12 @@ const DiagnosticoDesenho = () => {
       
       if (touch && touch.clientX >= boardRect.left && touch.clientX <= boardRect.right &&
           touch.clientY >= boardRect.top && touch.clientY <= boardRect.bottom) {
-        e.preventDefault()
-        e.stopPropagation()
+        try {
+          e.preventDefault()
+          e.stopPropagation()
+        } catch (err) {
+          // Ignorar erro de preventDefault em eventos passivos
+        }
         
         // Calcular coordenadas do canvas
         const rect = canvas.getBoundingClientRect()
@@ -740,20 +850,6 @@ const DiagnosticoDesenho = () => {
       document.removeEventListener('touchend', handleGlobalTouchEnd)
     }
   }, [isDrawing, currentTool, stopDrawing, zoom])
-
-  /**
-   * Salva estado do canvas
-   */
-  const saveState = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const imageData = canvas.toDataURL()
-    const newHistory = drawingHistory.slice(0, historyIndex + 1)
-    newHistory.push(imageData)
-    setDrawingHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-  }
 
   /**
    * Undo
@@ -1103,8 +1199,12 @@ const DiagnosticoDesenho = () => {
    * Inicia o drag de um elemento
    */
   const handleDragStart = useCallback((e, elementId) => {
-    e.preventDefault()
-    e.stopPropagation()
+    try {
+      e.preventDefault()
+      e.stopPropagation()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
     
     const element = elements.find(el => el.id === elementId)
     if (!element) return
@@ -1134,7 +1234,11 @@ const DiagnosticoDesenho = () => {
   const handleDragMove = useCallback((e) => {
     if (!draggingElement) return
     
-    e.preventDefault()
+    try {
+      e.preventDefault()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
     
     const coords = getRelativeCoordinates(e)
     const element = elements.find(el => el.id === draggingElement)
@@ -1163,7 +1267,12 @@ const DiagnosticoDesenho = () => {
   const handleDragEnd = useCallback((e) => {
     if (!draggingElement) return
     
-    e.preventDefault()
+    try {
+      e.preventDefault()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
+    
     setDraggingElement(null)
     setDragOffset({ x: 0, y: 0 })
   }, [draggingElement])
@@ -1269,8 +1378,12 @@ const DiagnosticoDesenho = () => {
    * Inicia resize do elemento
    */
   const handleResizeStart = useCallback((e, elementId, handleType) => {
-    e.preventDefault()
-    e.stopPropagation()
+    try {
+      e.preventDefault()
+      e.stopPropagation()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
     
     const element = elements.find(el => el.id === elementId)
     if (!element) return
@@ -1296,7 +1409,11 @@ const DiagnosticoDesenho = () => {
   const handleResizeMove = useCallback((e) => {
     if (!isResizing || !selectedElementId) return
     
-    e.preventDefault()
+    try {
+      e.preventDefault()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
     
     const coords = getRelativeCoordinates(e)
     const deltaX = coords.x - resizeStart.x
@@ -1403,8 +1520,12 @@ const DiagnosticoDesenho = () => {
    * Inicia rotação do elemento
    */
   const handleRotateStart = useCallback((e, elementId) => {
-    e.preventDefault()
-    e.stopPropagation()
+    try {
+      e.preventDefault()
+      e.stopPropagation()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
     
     const element = elements.find(el => el.id === elementId)
     if (!element) return
@@ -1431,7 +1552,11 @@ const DiagnosticoDesenho = () => {
   const handleRotateMove = useCallback((e) => {
     if (!isRotating || !selectedElementId) return
     
-    e.preventDefault()
+    try {
+      e.preventDefault()
+    } catch (err) {
+      // Ignorar erro de preventDefault em eventos passivos
+    }
     
     const coords = getRelativeCoordinates(e)
     const element = elements.find(el => el.id === selectedElementId)
