@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faArrowLeft, faSave, faTrash, faPlus, faSpinner, faTimes, faCheck, faSearch, faLink, faCalculator, faExchangeAlt
+  faArrowLeft, faSave, faTrash, faPlus, faSpinner, faTimes, faCheck, faSearch, faLink, faCalculator, faExchangeAlt, faBox, faDollarSign
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import { useAuth } from '../context/useAuth'
 import './PrecificacaoForm.css'
+import './PrecificacaoTratamento.css'
 
 const PrecificacaoTratamento = () => {
   const { id } = useParams()
@@ -545,16 +546,58 @@ const PrecificacaoTratamento = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="precificacao-form">
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Nome do Tratamento *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ex: Clareamento Dental"
-              required
-            />
+        {/* Informações Básicas */}
+        <div className="form-section">
+          <h3 className="section-title">
+            <FontAwesomeIcon icon={faBox} />
+            Informações Básicas
+          </h3>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label>Nome do Tratamento *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Clareamento Dental"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Duração Média (minutos) *</label>
+              <input
+                type="number"
+                value={formData.averageDurationMinutes}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setFormData({ ...formData, averageDurationMinutes: value })
+                  setAutoCalculatePrice(true) // Reativar cálculo automático ao mudar tempo
+                }}
+                placeholder="Ex: 60"
+                min="1"
+                required
+              />
+              {valorHora > 0 && (
+                <small className="form-help">
+                  {autoCalculatePrice ? (
+                    <>
+                      <strong>Valor calculado automaticamente:</strong> {formatCurrency((valorHora / 60) * (Number(formData.averageDurationMinutes) || 0))}
+                    </>
+                  ) : (
+                    <>
+                      Valor sugerido: {formatCurrency((valorHora / 60) * (Number(formData.averageDurationMinutes) || 0))}
+                    </>
+                  )}
+                </small>
+              )}
+              {!valorHora && (
+                <small className="form-help" style={{ color: '#f59e0b' }}>
+                  Configure o valor da mão de obra na página de precificação para cálculo automático
+                </small>
+              )}
+            </div>
           </div>
 
           <div className="form-group">
@@ -566,91 +609,74 @@ const PrecificacaoTratamento = () => {
               rows={3}
             />
           </div>
-
-          <div className="form-group">
-            <label>Duração Média (minutos) *</label>
-            <input
-              type="number"
-              value={formData.averageDurationMinutes}
-              onChange={(e) => {
-                const value = e.target.value
-                setFormData({ ...formData, averageDurationMinutes: value })
-                setAutoCalculatePrice(true) // Reativar cálculo automático ao mudar tempo
-              }}
-              placeholder="Ex: 60"
-              min="1"
-              required
-            />
-            {valorHora > 0 && (
-              <small className="form-help">
-                {autoCalculatePrice ? (
-                  <>
-                    <strong>Valor calculado automaticamente:</strong> {formatCurrency((valorHora / 60) * (Number(formData.averageDurationMinutes) || 0))}
-                  </>
-                ) : (
-                  <>
-                    Valor sugerido: {formatCurrency((valorHora / 60) * (Number(formData.averageDurationMinutes) || 0))}
-                  </>
-                )}
-              </small>
-            )}
-            {!valorHora && (
-              <small className="form-help" style={{ color: '#f59e0b' }}>
-                Configure o valor da mão de obra na página de precificação para cálculo automático
-              </small>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Preço que você cobra (R$) *</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.price || ''}
-              onChange={(e) => {
-                const value = e.target.value === '' ? '' : parseFloat(e.target.value) || 0
-                setFormData({ ...formData, price: value })
-                // Desativa cálculo automático quando usuário edita manualmente
-                setAutoCalculatePrice(false)
-              }}
-              onWheel={(e) => e.target.blur()}
-              placeholder="Ex: 500.00"
-              min="0.01"
-              required
-            />
-          </div>
         </div>
 
-        {/* Custo Total do Tratamento */}
-        {formData.products.length > 0 && (
-          <div className="cost-summary">
-            <div className="cost-summary-content">
-              <span className="cost-label">Custo Total dos Produtos:</span>
-              <span className="cost-value">{formatCurrency(calcularCustoTotal())}</span>
+        {/* Informações de Preço */}
+        <div className="form-section">
+          <h3 className="section-title">
+            <FontAwesomeIcon icon={faDollarSign} />
+            Informações de Preço
+          </h3>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label>Preço que você cobra (R$) *</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.price || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                  setFormData({ ...formData, price: value })
+                  // Desativa cálculo automático quando usuário edita manualmente
+                  setAutoCalculatePrice(false)
+                }}
+                onWheel={(e) => e.target.blur()}
+                placeholder="Ex: 500.00"
+                min="0.01"
+                required
+              />
             </div>
           </div>
-        )}
 
-        {/* Lista de Produtos Disponíveis */}
-        <div className="available-products-section">
-          <div className="products-section-header">
-            <h3>Produtos Disponíveis</h3>
-            <div className="search-products-wrapper">
-              <div className="search-input-wrapper">
-                <FontAwesomeIcon icon={faSearch} className="search-icon" />
-                <input
-                  type="text"
-                  className="search-products-input"
-                  placeholder="Buscar produtos por nome..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {loadingProducts && (
-                  <FontAwesomeIcon icon={faSpinner} spin className="search-loading-icon" />
-                )}
+          {/* Custo Total do Tratamento */}
+          {formData.products.length > 0 && (
+            <div className="cost-summary">
+              <div className="cost-summary-content">
+                <span className="cost-label">Custo Total dos Produtos:</span>
+                <span className="cost-value">{formatCurrency(calcularCustoTotal())}</span>
               </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* Produtos do Tratamento */}
+        <div className="form-section">
+          <h3 className="section-title">
+            <FontAwesomeIcon icon={faBox} />
+            Produtos do Tratamento
+          </h3>
+          
+          {/* Lista de Produtos Disponíveis */}
+          <div className="available-products-section">
+            <div className="products-section-header">
+              <h4>Produtos Disponíveis</h4>
+              <div className="search-products-wrapper">
+                <div className="search-input-wrapper">
+                  <FontAwesomeIcon icon={faSearch} className="search-icon" />
+                  <input
+                    type="text"
+                    className="search-products-input"
+                    placeholder="Buscar produtos por nome..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {loadingProducts && (
+                    <FontAwesomeIcon icon={faSpinner} spin className="search-loading-icon" />
+                  )}
+                </div>
+              </div>
+            </div>
           
           {loadingProducts && produtos.length === 0 ? (
             <div className="loading-products">
@@ -953,7 +979,7 @@ const PrecificacaoTratamento = () => {
           </div>
         )}
 
-        {/* Ações do Formulário */}
+        {/* Botões de Ação */}
         <div className="form-actions">
           <button
             type="button"
@@ -980,6 +1006,7 @@ const PrecificacaoTratamento = () => {
               </>
             )}
           </button>
+        </div>
         </div>
       </form>
 

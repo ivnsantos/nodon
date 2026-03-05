@@ -6,7 +6,7 @@ import {
   faSpinner, faTimes, faClock, faLayerGroup, faShoppingCart,
   faCoins, faChartLine, faPercent,
   faExclamationTriangle, faCheckCircle, faSearch, faBuilding,
-  faChartBar, faChartPie, faWrench, faSave
+  faChartBar, faChartPie, faWrench, faSave, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
