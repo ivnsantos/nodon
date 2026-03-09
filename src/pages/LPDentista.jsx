@@ -10,7 +10,7 @@ import {
   faFileMedical, faCalendarAlt, faClipboardList, faChevronDown, faChevronUp,
   faCalendarCheck, faQuestionCircle, faComments as faCommentsAlt, faPercent,
   faChartBar, faExclamationTriangle, faDollarSign, faFileInvoiceDollar, faClock,
-  faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat, faGift
+  faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat, faGift, faPlay
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
@@ -23,6 +23,12 @@ import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import julia20Img from '../img/JULIA20.jpeg'
 import milafazodontoDentistaImg from '../img/MILAFAZODONTO_DENTISTA.jpeg'
 import muniz20Img from '../img/muniz20.jpeg'
+import agendaImg from '../img/agenda.jpeg'
+import exameImg from '../img/exame.jpg'
+import preci from '../img/preci.jpeg'
+import videoExplicativo from '../video/explicatico.mp4'
+import headerVideo from '../video/header.mp4'
+import didaticaVideo from '../video/didatica.mp4'
 import './LPDentista.css'
 
 // Componente individual para cada card de plano - gerencia seu próprio estado
@@ -117,7 +123,7 @@ const PricingCard = ({
         )}
         <div className="plan-free-trial">
           <FontAwesomeIcon icon={faGift} />
-          <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
+          <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '5 dias de teste grátis para você'}</span>
         </div>
       </div>
       <div className="plan-features-wrapper">
@@ -158,6 +164,7 @@ const LPDentista = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const [planos, setPlanos] = useState([])
   const [loadingPlanos, setLoadingPlanos] = useState(true)
   const [cupomCode, setCupomCode] = useState(null)
@@ -165,6 +172,19 @@ const LPDentista = () => {
   const [validandoCupom, setValidandoCupom] = useState(false)
   const [cupomData, setCupomData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [currentVideo, setCurrentVideo] = useState('')
+
+  // Efeito de scroll no header
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 50
+      setScrolled(isScrolled)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     // Verificar se há cupom na URL
@@ -360,9 +380,17 @@ const LPDentista = () => {
     }
   }
 
+
   const handleCtaClick = () => {
-    trackButtonClick('cta_header', 'lp_dentista_header')
-    document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' })
+    // Enviar mensagem para WhatsApp
+    const message = encodeURIComponent("Gostaria de entender melhor a NODON.")
+    const whatsappNumber = "5511932589622" // Substitua pelo número real
+    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank')
+  }
+
+  const handleVideoClick = (videoSrc) => {
+    setCurrentVideo(videoSrc)
+    setVideoModalOpen(true)
   }
 
   const handlePlanSelect = (planoNome, planoId) => {
@@ -374,6 +402,28 @@ const LPDentista = () => {
     })
     const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
     navigate(`/checkout?plano=${encodeURIComponent(planoNome)}&planoId=${planoId}&origem=dentista${cupomParam}`)
+  }
+
+  const scrollToForm = () => {
+    console.log('scrollToForm chamado')
+    console.log('Elementos disponíveis:', document.querySelectorAll('section'))
+    const formElement = document.getElementById('contato')
+    console.log('formElement encontrado:', formElement)
+    if (formElement) {
+      console.log('Fazendo scroll para o formulário')
+      formElement.scrollIntoView({ behavior: 'smooth' })
+      // Pequeno delay para garantir que o formulário esteja visível
+      setTimeout(() => {
+        const firstInput = formElement.querySelector('input, textarea, select')
+        console.log('Primeiro input encontrado:', firstInput)
+        if (firstInput) {
+          console.log('Fazendo focus no primeiro input')
+          firstInput.focus()
+        }
+      }, 500)
+    } else {
+      console.log('Elemento com id="contato" não encontrado')
+    }
   }
 
   const scrollToSection = (id) => {
@@ -514,8 +564,8 @@ const LPDentista = () => {
         </div>
       )}
       
-      {/* Header Minimalista */}
-      <header className="lp-header">
+      {/* Header Ultra Elegante */}
+      <header className={`lp-header ${scrolled ? 'scrolled' : ''}`}>
         <div className="lp-container">
           <div className="header-content">
             <div className="logo-wrapper">
@@ -526,6 +576,7 @@ const LPDentista = () => {
             <nav className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
               <div className="nav-links">
                 <a href="#sobre" onClick={(e) => { e.preventDefault(); scrollToSection('sobre') }}>Sobre</a>
+                <a href="#demonstracao" onClick={(e) => { e.preventDefault(); scrollToSection('demonstracao') }}>Demonstração</a>
                 <a href="#como-funciona" onClick={(e) => { e.preventDefault(); scrollToSection('como-funciona') }}>Como Funciona</a>
                 <a href="#exemplos" onClick={(e) => { e.preventDefault(); scrollToSection('exemplos') }}>Exemplos</a>
                 <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>
@@ -543,43 +594,55 @@ const LPDentista = () => {
         </div>
       </header>
 
-      {/* Hero - Layout Minimalista */}
+      {/* Hero - Layout Impactante */}
       <section className="hero-section">
         <div className="lp-container">
           <div className="hero-content">
             <div className="hero-text">
-              <h1 className="hero-title">
-               Comece a ser mais Independente!.
-               A Nodon entrega toda a liberdade que você precisa.
-              </h1>
-              <p className="hero-description">
-                Aumente sua receita, economize tempo e alcance a liberdade financeira. Tudo em uma plataforma completa feita para dentistas.
-              </p>
-              <div className="hero-features">
-                <div className="hero-feature">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Diagnósticos em segundos</span>
+              <div className="hero-badge">
+                <FontAwesomeIcon icon={faRocket} />
+                <span>#1 EM GERAR VALOR PARA DENTISTAS</span>
+              </div>
+              <div className="hero-content-main">
+                <h1 className="hero-title">
+                  <br />
+                  <span className="hero-highlight">Domine</span> sua carreira
+                  <br />
+                  <span className="hero-highlight">Conquiste</span> seu espaço
+                </h1>
+                <p className="hero-description">
+                  A IA que <strong>coloca você no comando</strong>. 
+                  <br />
+                  <strong>Domine a concorrência</strong> com diagnósticos precisos
+                  <br />
+                  <strong>Conquiste seu espaço</strong> com gestão automatizada
+                  <br />
+                  <strong>Torne-se imbatível</strong> na odontologia.
+                </p>
+              </div>
+              <div className="hero-stats">
+                <div className="stat-item">
+                  <div className="stat-number">#1</div>
+                  <div className="stat-label">Dominação</div>
                 </div>
-                <div className="hero-feature">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>+30% na receita</span>
+                <div className="stat-item">
+                  <div className="stat-number">∞</div>
+                  <div className="stat-label">Potencial</div>
                 </div>
-                <div className="hero-feature">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Assistente IA 24/7</span>
+                <div className="stat-item">
+                  <div className="stat-number">100%</div>
+                  <div className="stat-label">Mercado</div>
                 </div>
               </div>
-              <div className="hero-actions">
-                <button className="btn-hero-main" onClick={handleCtaClick}>
-                  Começar Agora
+              <div className="hero-cta">
+                <button className="hero-cta-btn" onClick={scrollToForm}>
+                  <span>Começar Agora</span>
                   <FontAwesomeIcon icon={faArrowRight} />
                 </button>
-                <button className="btn-hero-secondary" onClick={() => {
-                  trackButtonClick('ver_planos', 'lp_dentista_hero')
-                  scrollToSection('planos')
-                }}>
-                  Ver Planos
-                </button>
+                <div className="hero-trust">
+                  <FontAwesomeIcon icon={faShieldAlt} />
+                  <span>7 dias garantia • Cancelamento a qualquer momento</span>
+                </div>
               </div>
             </div>
             <div className="hero-image-container">
@@ -615,10 +678,6 @@ const LPDentista = () => {
             <span>EXEMPLOS REAIS</span>
           </div>
           <h2 className="section-title">Veja tudo o que você cria com a NODON</h2>
-          <p className="section-subtitle">
-            Assim como o PipClip mostra vídeos prontos, aqui você mostra resultados prontos: laudos, planos de tratamento,
-            orçamentos e relatórios que saem da NODON em poucos minutos.
-          </p>
           <div className="products-grid">
             <div className="product-card">
               <div className="product-icon">
@@ -646,7 +705,7 @@ const LPDentista = () => {
               <div className="product-icon">
                 <FontAwesomeIcon icon={faFileInvoiceDollar} />
               </div>
-              <h3>Planos de Tratamento e Orçamentos</h3>
+              <h3>Precificação e Orçamentos</h3>
               <p>Combine diagnósticos, procedimentos e valores em propostas que realmente convertem.</p>
               <ul className="product-features">
                 <li>
@@ -734,6 +793,125 @@ const LPDentista = () => {
                   <p>A NODON analisa, organiza e gera laudos, planos e relatórios — você foca no atendimento e no crescimento.</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Seção: Demonstração do Sistema */}
+      <section className="demo-section" id="demonstracao">
+        <div className="lp-container">
+          <div className="section-label">
+            <span>DEMONSTRAÇÃO AO VIVO</span>
+          </div>
+          <h2 className="section-title">Veja a NODON em Ação</h2>
+          <p className="section-subtitle">
+            Transforme sua clínica com IA que realmente funciona. Assista aos vídeos e descubra o poder da automação odontológica.
+          </p>
+          
+          <div className="demo-grid">
+            <div className="demo-card">
+              <div className="demo-video-container" onClick={() => handleVideoClick(headerVideo)}>
+                <video 
+                  autoPlay 
+                  muted 
+                  loop 
+                  playsInline
+                  className="demo-video"
+                  poster={agendaImg}
+                >
+                  <source src={headerVideo} type="video/mp4" />
+                  Seu navegador não suporta vídeo.
+                </video>
+                <div className="demo-overlay">
+                  <FontAwesomeIcon icon={faPlay} className="play-icon" />
+                </div>
+              </div>
+              <div className="demo-content">
+                <h3>Dashboard Principal</h3>
+                <p>Interface completa com todos os recursos em um só lugar. Controle total da sua clínica.</p>
+                <ul className="demo-features">
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Visão geral em tempo real</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Métricas e analytics</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Acesso rápido aos pacientes</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="demo-card">
+              <div className="demo-video-container">
+                <img 
+                  src={agendaImg}
+                  className="demo-video"
+                  alt="Agendamento Inteligente"
+                />
+              </div>
+              <div className="demo-content">
+                <h3>Agendamento Inteligente</h3>
+                <p>Gestão de consultas automatizada com IA que otimiza seu tempo e maximiza agenda.</p>
+                <ul className="demo-features">
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Agendamento automático</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Lembretes inteligentes</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Otimização de horários</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="demo-card">
+              <div className="demo-video-container" onClick={() => handleVideoClick(didaticaVideo)}>
+                <video 
+                  autoPlay 
+                  muted 
+                  loop 
+                  playsInline
+                  className="demo-video"
+                >
+                  <source src={didaticaVideo} type="video/mp4" />
+                  Seu navegador não suporta vídeo.
+                </video>
+                <div className="demo-overlay">
+                  <FontAwesomeIcon icon={faPlay} className="play-icon" />
+                </div>
+              </div>
+              <div className="demo-content">
+                <h3>Aumente a aceitação dos tratamentos pelos clientes</h3>
+                <p>Transforme a experiência dos pacientes com comunicação clara e profissional. Mostre o valor dos seus tratamentos de forma transparente.</p>
+                <ul className="demo-features">
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Comunicação clara</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Transparência nos valores</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Confiança aumentada</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="demo-card">
+              <div className="demo-video-container">
+                <img 
+                  src={preci}
+                  className="demo-video"
+                  alt="Precificação"
+                />
+              </div>
+              <div className="demo-content">
+                <h3>Precificação Automática</h3>
+                <p>Cálculo inteligente de valores com base em procedimentos, materiais e mercado.</p>
+                <ul className="demo-features">
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Preços dinâmicos</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Relatórios financeiros</li>
+                  <li><FontAwesomeIcon icon={faCheckCircle} /> Integração com planos</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="demo-cta">
+            <button className="demo-cta-btn" onClick={() => scrollToSection('contato')}>
+              <span>Experimente Agora</span>
+              <FontAwesomeIcon icon={faArrowRight} />
+            </button>
+            <div className="demo-trust">
+              <FontAwesomeIcon icon={faShieldAlt} />
+              <span>Teste grátis por 7 dias • Sem compromisso</span>
             </div>
           </div>
         </div>
@@ -1158,7 +1336,7 @@ const LPDentista = () => {
                 <FontAwesomeIcon icon={faPercent} />
               </div>
               <h3>Tem fidelidade ou multa para cancelar?</h3>
-              <p>Não. Assim como o PipClip, você pode cancelar quando quiser. Você paga mês a mês e pode ajustar o plano conforme a fase da sua carreira.</p>
+              <p>Não. pode cancelar quando quiser. Você paga mês a mês e pode ajustar o plano conforme a fase da sua carreira.</p>
             </div>
           </div>
         </div>
@@ -1273,6 +1451,25 @@ const LPDentista = () => {
         </div>
       </footer>
       <FloatingWhatsApp />
+
+      {/* Modal de Vídeo */}
+      {videoModalOpen && (
+        <div className="video-modal" onClick={() => setVideoModalOpen(false)}>
+          <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="video-modal-close" onClick={() => setVideoModalOpen(false)}>
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <video
+              src={currentVideo}
+              controls
+              autoPlay
+              className="video-modal-player"
+            >
+              Seu navegador não suporta vídeo.
+            </video>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -636,7 +636,7 @@ const Home = () => {
                       </div>
                       <div className="home-plan-free-trial">
                         <FontAwesomeIcon icon={faGift} />
-                        <span>{nomePlano.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
+                        <span>{nomePlano.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '5 dias de teste grátis para você'}</span>
                       </div>
                     </div>
                     <button 

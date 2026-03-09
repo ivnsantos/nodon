@@ -807,7 +807,7 @@ const LPEstudante = () => {
                       )}
                       <div className="plan-free-trial">
                         <FontAwesomeIcon icon={faGift} />
-                        <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
+                        <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '5 dias de teste grátis para você'}</span>
                       </div>
                     </div>
                     <div className="plan-features-list">

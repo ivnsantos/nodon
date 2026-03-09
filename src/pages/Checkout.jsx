@@ -1243,7 +1243,7 @@ const Checkout = () => {
                         <div className="plan-feature-count">{plan.patients}</div>
                         <div className="plan-free-trial-checkout">
                           <FontAwesomeIcon icon={faGift} />
-                          <span>{plan.name?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '7 dias de teste grátis para você'}</span>
+                          <span>{plan.name?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '5 dias de teste grátis para você'}</span>
                         </div>
                       </div>
                       <button 
@@ -1566,7 +1566,7 @@ const Checkout = () => {
                         
                         <div className="summary-free-trial">
                           <FontAwesomeIcon icon={faGift} />
-                          <span>7 dias de teste grátis para você</span>
+                          <span>5 dias de teste grátis para você</span>
                         </div>
                         
                         <div className="summary-plan-details">
