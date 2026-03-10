@@ -48,6 +48,12 @@ const ProtectedRoute = ({ children }) => {
     }
   }
 
+  // 2. SEGUNDO: Verificar se assinatura é null (usuário sem assinatura ativa)
+  // Bloquear TODAS as rotas exceto /assinatura-pendente
+  if (phoneVerified && user.assinatura === null && pathname !== '/assinatura-pendente') {
+    return <Navigate to="/assinatura-pendente" replace />
+  }
+
   // 3. TERCEIRO: Verificar se precisa selecionar consultório
   // EXCEÇÃO: Usuários com plano estudante vão direto para /app/chat
   const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'

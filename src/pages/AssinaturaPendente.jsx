@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
 import nodoLogo from '../img/nodo.png'
+import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import './AssinaturaPendente.css'
 
 const AssinaturaPendente = () => {
@@ -53,8 +54,16 @@ const AssinaturaPendente = () => {
       return
     }
 
-    // Verificar se realmente está pendente
-    if (!selectedClinicId) {
+    // Se assinatura for null (usuário sem assinatura), não redirecionar para select-clinic
+    // Apenas mostrar a mensagem de assinatura inativa
+    if (user?.assinatura === null) {
+      hasCheckedRef.current = true
+      setStatusMessage('Você não possui uma assinatura ativa.')
+      return
+    }
+
+    // Verificar se realmente está pendente (apenas para usuários com assinatura)
+    if (!selectedClinicId && user?.assinatura !== null) {
       // Se não tiver cliente master selecionado, redirecionar para seleção
       hasNavigatedRef.current = true
       navigate('/select-clinic', { replace: true })
@@ -79,7 +88,7 @@ const AssinaturaPendente = () => {
       checkPaymentStatus()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClinicId])
+  }, [selectedClinicId, user?.assinatura])
 
   const checkPaymentStatus = async () => {
     setIsChecking(true)
@@ -151,39 +160,42 @@ const AssinaturaPendente = () => {
 
   return (
     <div className="assinatura-pendente-page">
-      <button
-        onClick={() => {
-          clearUserComumId()
-          navigate('/select-clinic')
-        }}
-        style={{
-          position: 'absolute',
-          top: '1.5rem',
-          left: '1.5rem',
-          background: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '0.5rem',
-          padding: '0.75rem 1rem',
-          color: '#ffffff',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          transition: 'all 0.2s',
-          zIndex: 10
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-        }}
-      >
-        <FontAwesomeIcon icon={faArrowLeft} />
-        Voltar
-      </button>
+      {/* Só mostrar botão voltar se não for assinatura null */}
+      {user?.assinatura !== null && (
+        <button
+          onClick={() => {
+            clearUserComumId()
+            navigate('/select-clinic')
+          }}
+          style={{
+            position: 'absolute',
+            top: '1.5rem',
+            left: '1.5rem',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '0.5rem',
+            padding: '0.75rem 1rem',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.2s',
+            zIndex: 10
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <FontAwesomeIcon icon={faArrowLeft} />
+          Voltar
+        </button>
+      )}
       <div className="assinatura-pendente-container">
         <div className="assinatura-pendente-header">
           <img src={nodoLogo} alt="NODON" className="assinatura-pendente-logo" />
@@ -274,6 +286,9 @@ const AssinaturaPendente = () => {
           </div>
         </div>
       </div>
+      
+      {/* WhatsApp flutuante para contato */}
+      <FloatingWhatsApp />
     </div>
   )
 }
