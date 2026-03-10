@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faClock, faCheckCircle, faSpinner, faCreditCard,
-  faExclamationTriangle, faArrowRight, faArrowLeft
+  faExclamationTriangle, faArrowRight, faArrowLeft, faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
@@ -12,7 +12,7 @@ import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import './AssinaturaPendente.css'
 
 const AssinaturaPendente = () => {
-  const { user, refreshUser, loading: authLoading, selectedClinicId, selectedClinicData, clearUserComumId } = useAuth()
+  const { user, refreshUser, loading: authLoading, selectedClinicId, selectedClinicData, clearUserComumId, logout } = useAuth()
   const navigate = useNavigate()
   const [isChecking, setIsChecking] = useState(false)
   const [checkAttempt, setCheckAttempt] = useState(0)
@@ -157,6 +157,10 @@ const AssinaturaPendente = () => {
     checkPaymentStatus()
   }
 
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   return (
     <div className="assinatura-pendente-page">
@@ -196,6 +200,38 @@ const AssinaturaPendente = () => {
           Voltar
         </button>
       )}
+      
+      {/* Botão de logout */}
+      <button
+        onClick={handleLogout}
+        style={{
+          position: 'absolute',
+          top: '1.5rem',
+          right: '1.5rem',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '0.5rem',
+          padding: '0.75rem 1rem',
+          color: '#ef4444',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          transition: 'all 0.2s',
+          zIndex: 10
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'
+        }}
+      >
+        <FontAwesomeIcon icon={faSignOutAlt} />
+        Sair
+      </button>
       <div className="assinatura-pendente-container">
         <div className="assinatura-pendente-header">
           <img src={nodoLogo} alt="NODON" className="assinatura-pendente-logo" />
