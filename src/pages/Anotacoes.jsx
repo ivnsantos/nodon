@@ -47,7 +47,14 @@ const Anotacoes = () => {
 
   // Carregar anotações ao montar o componente
   useEffect(() => {
-    if (selectedClinicData) {
+    // Verificar se há token antes de carregar
+    const token = localStorage.getItem('token')
+    const planoAcesso = localStorage.getItem('planoAcesso')
+    
+    // Para plano estudante (planoAcesso = 'chat'), carregar sem selectedClinicData
+    if (planoAcesso === 'chat' && token) {
+      loadAnotacoes()
+    } else if (selectedClinicData) {
       loadAnotacoes()
     }
   }, [selectedClinicData])

@@ -49,10 +49,24 @@ const ProtectedRoute = ({ children }) => {
   }
 
   // 3. TERCEIRO: Verificar se precisa selecionar consultório
-  const needsClinicSelection = phoneVerified && !selectedClinicId && pathname !== '/verify-email' && pathname !== '/select-clinic' && pathname !== '/assinatura-pendente'
+  // EXCEÇÃO: Usuários com plano estudante vão direto para /app/chat
+  const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+  const isPlanoEstudante = user?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
+                           user?.planoId === PLANO_ESTUDANTE_ID ||
+                           user?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
   
-  if (needsClinicSelection && pathname.startsWith('/app')) {
-    return <Navigate to="/select-clinic" replace />
+  // Se for plano estudante e estiver em /app (sem rota específica), redirecionar para /app/chat
+  if (isPlanoEstudante && phoneVerified && pathname === '/app') {
+    return <Navigate to="/app/chat" replace />
+  }
+  
+  // Plano estudante não precisa de consultório, então pular toda a verificação
+  if (!isPlanoEstudante) {
+    const needsClinicSelection = phoneVerified && !selectedClinicId && pathname !== '/verify-email' && pathname !== '/select-clinic' && pathname !== '/assinatura-pendente'
+    
+    if (needsClinicSelection && pathname.startsWith('/app')) {
+      return <Navigate to="/select-clinic" replace />
+    }
   }
 
   // 4. QUARTO: Verificar se o relacionamento está inativo (para usuários comuns)
@@ -67,7 +81,8 @@ const ProtectedRoute = ({ children }) => {
   }
 
   // 5. QUINTO: Verificar assinatura pendente (após selecionar consultório)
-  if (selectedClinicId && selectedClinicData && pathname !== '/assinatura-pendente' && pathname !== '/select-clinic' && pathname !== '/usuario-inativo') {
+  // EXCEÇÃO: Usuários com plano estudante não precisam de consultório, então não verificar assinatura de consultório
+  if (selectedClinicId && selectedClinicData && pathname !== '/assinatura-pendente' && pathname !== '/select-clinic' && pathname !== '/usuario-inativo' && !isPlanoEstudante) {
     const clienteMaster = selectedClinicData.clienteMaster || selectedClinicData
     const assinatura = selectedClinicData.assinatura
     

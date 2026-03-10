@@ -120,18 +120,16 @@
   /* Mensagens com scroll fluido - espaço para o form fixo */
   .chat-messages-modern {
     flex: 1 !important;
-    overflow-y: auto !important;
+    overflow-y: scroll !important;
     overflow-x: hidden !important;
     padding: 1rem !important;
-    padding-bottom: 150px !important; /* Espaço suficiente para o form fixo */
+    padding-bottom: 200px !important; /* Espaço extra para garantir scroll completo */
     min-height: 0 !important;
-    max-height: calc(100vh - 200px) !important; /* Limitar altura para não passar do form */
-    overscroll-behavior-y: none !important;
+    max-height: none !important; /* Remover limitação de altura */
+    overscroll-behavior-y: auto !important; /* Permitir scroll natural */
     -webkit-overflow-scrolling: touch !important;
     scroll-behavior: smooth !important;
     touch-action: pan-y !important;
-    /* Prevenir pull-to-refresh */
-    overscroll-behavior: contain !important;
     /* Garantir que o conteúdo sempre fique acima do form */
     margin-bottom: 0 !important;
   }

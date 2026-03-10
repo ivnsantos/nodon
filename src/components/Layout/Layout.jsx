@@ -30,6 +30,17 @@ const Layout = () => {
     let isMounted = true
     
     const loadClinicData = async () => {
+      // Verificar se é plano estudante - se for, não precisa carregar dados de consultório
+      const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+      const isPlanoEstudante = user?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
+                               user?.planoId === PLANO_ESTUDANTE_ID ||
+                               user?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+      
+      // Se for plano estudante, não carregar dados de consultório
+      if (isPlanoEstudante) {
+        return
+      }
+      
       // Carregar dados quando:
       // 1. Tiver selectedClinicId
       // 2. Estiver na rota /app
@@ -56,7 +67,7 @@ const Layout = () => {
       isMounted = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClinicId, location.pathname])
+  }, [selectedClinicId, location.pathname, user])
   
   // Usar APENAS os atributos: nomeEmpresa, logo, cor, documento
   const clinicLogo = (selectedClinicData?.logo && selectedClinicData.logo !== null) ? selectedClinicData.logo : nodoLogo
@@ -124,9 +135,10 @@ const Layout = () => {
     
     // Filtrar baseado no acesso do plano
     if (planoAcesso === 'chat') {
-      // Se acesso for "chat", mostrar apenas Chat e Perfil
+      // Se acesso for "chat", mostrar Chat, Anotações e Perfil
       menuItems = menuItems.filter(item => 
         item.path === '/app/chat' || 
+        item.path === '/app/anotacoes' ||
         item.path === '/app/perfil'
       )
     } else if (planoAcesso === 'all') {
@@ -325,23 +337,25 @@ const Layout = () => {
             )
           })}
           
-          {/* Botão no final do menu */}
-          <div className="nav-menu-footer">
-            <button 
-              className="nav-item clinic-btn-nav" 
-              onClick={() => {
-                clearUserComumId()
-                navigate('/select-clinic')
-                closeSidebar()
-              }}
-              title={sidebarMinimized ? 'Voltar para o Inicio' : ''}
-            >
-              <span className="nav-icon">
-                <FontAwesomeIcon icon={faBuilding} />
-              </span>
-              {!sidebarMinimized && <span className="nav-label">Voltar para o Inicio</span>}
-            </button>
-          </div>
+          {/* Botão no final do menu - Não mostrar para plano estudante */}
+          {planoAcesso !== 'chat' && (
+            <div className="nav-menu-footer">
+              <button 
+                className="nav-item clinic-btn-nav" 
+                onClick={() => {
+                  clearUserComumId()
+                  navigate('/select-clinic')
+                  closeSidebar()
+                }}
+                title={sidebarMinimized ? 'Voltar para o Inicio' : ''}
+              >
+                <span className="nav-icon">
+                  <FontAwesomeIcon icon={faBuilding} />
+                </span>
+                {!sidebarMinimized && <span className="nav-label">Voltar para o Inicio</span>}
+              </button>
+            </div>
+          )}
         </nav>
 
         <div className="sidebar-footer">

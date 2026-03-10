@@ -67,6 +67,12 @@ const Chat = () => {
   // Agora o scroll só acontece quando necessário (durante streaming, se o usuário estiver no final)
 
   useEffect(() => {
+    // Verificar se há token antes de fazer requisições
+    const token = localStorage.getItem('token')
+    if (!token) {
+      return
+    }
+    
     loadConversations()
     checkTokens()
   }, [selectedClinicData])
@@ -74,7 +80,10 @@ const Chat = () => {
   // Verificar tokens periodicamente
   useEffect(() => {
     const interval = setInterval(() => {
-      checkTokens()
+      const token = localStorage.getItem('token')
+      if (token) {
+        checkTokens()
+      }
     }, 30000) // Verificar a cada 30 segundos
 
     return () => clearInterval(interval)
@@ -607,7 +616,21 @@ const Chat = () => {
       }))
 
       // Obter clienteMasterId do contexto (pode estar em diferentes lugares dependendo do tipo de usuário)
-      const clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      // Para plano estudante, usar user.id como clienteMasterId
+      const planoAcessoCheck = localStorage.getItem('planoAcesso')
+      const userStrCheck = localStorage.getItem('user')
+      let clienteMasterId = selectedClinicData?.clienteMasterId || selectedClinicData?.clienteMaster?.id || selectedClinicData?.id
+      
+      if (planoAcessoCheck === 'chat' && userStrCheck) {
+        try {
+          const userCheck = JSON.parse(userStrCheck)
+          if (userCheck.id) {
+            clienteMasterId = userCheck.id
+          }
+        } catch (error) {
+          console.error('Erro ao parsear user para clienteMasterId:', error)
+        }
+      }
 
       // Montar payload da API
       const payload = {
@@ -639,9 +662,33 @@ const Chat = () => {
         payload.conversationId = currentConversationId
       }
 
-      // Obter token de autenticação
-      const token = sessionStorage.getItem('token')
+      // Obter token de autenticação e dados do usuário
+      const token = localStorage.getItem('token')
+      const userStr = localStorage.getItem('user')
+      const planoAcesso = localStorage.getItem('planoAcesso')
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+      
+      if (!token) {
+        throw new Error('Token não encontrado. Faça login novamente.')
+      }
+      
+      // Para plano estudante, adicionar X-Cliente-Master-Id com user.id
+      let headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+      
+      if (planoAcesso === 'chat' && userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          if (user.id) {
+            headers['X-Cliente-Master-Id'] = user.id
+          }
+        } catch (error) {
+          console.error('Erro ao parsear user:', error)
+        }
+      }
+      
       setIsThinking(true)
       
       // Criar AbortController para permitir cancelar a requisição
@@ -650,10 +697,7 @@ const Chat = () => {
       // Fazer requisição POST com streaming (única chamada)
       const streamResponse = await fetch(`${baseURL}/chat/stream`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(payload),
         signal: abortControllerRef.current.signal
       })
@@ -1244,6 +1288,8 @@ const Chat = () => {
             </div>
           )}
           <div ref={messagesEndRef} />
+          {/* Spacer para garantir scroll completo no mobile */}
+          <div style={{ height: '200px', flexShrink: 0 }} />
           </div>
 
         </div>

@@ -16,7 +16,7 @@ const api = axios.create({
 // Interceptor para adicionar token automaticamente e userComumId ou clienteMasterId
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('token')
+    const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -36,44 +36,45 @@ api.interceptors.request.use(
     
     // Adicionar headers apropriados apenas em rotas dentro de /app para segurança
     if (window.location.pathname.startsWith('/app')) {
-      // Verificar se existe relacionamento no sessionStorage
-      const relacionamentoStr = sessionStorage.getItem('relacionamento')
-      const selectedClinicId = sessionStorage.getItem('selectedClinicId')
+      // Verificar se é plano estudante
+      const planoAcesso = localStorage.getItem('planoAcesso')
+      const userStr = localStorage.getItem('user')
+      const relacionamentoStr = localStorage.getItem('relacionamento')
+      const selectedClinicId = localStorage.getItem('selectedClinicId')
       
-      // Debug: Mostrar o que está no sessionStorage
-      console.log('=== DEBUG API HEADERS ===')
-      console.log('Pathname:', window.location.pathname)
-      console.log('RelacionamentoStr:', relacionamentoStr)
-      console.log('SelectedClinicId:', selectedClinicId)
-      
-      if (relacionamentoStr) {
+      // Se for plano estudante (planoAcesso = 'chat'), usar o ID do usuário como cliente master
+      if (planoAcesso === 'chat' && userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          if (user.id) {
+            config.headers['X-Cliente-Master-Id'] = user.id
+            delete config.headers['X-User-Comum-Id']
+          }
+        } catch (error) {
+          // Ignorar erro de parse
+        }
+      } else if (relacionamentoStr) {
         try {
           const relacionamento = JSON.parse(relacionamentoStr)
-          console.log('Relacionamento parseado:', relacionamento)
           
           // Se o relacionamento for do tipo "clienteMaster", usar X-Cliente-Master-Id
           if (relacionamento.tipo === 'clienteMaster' && relacionamento.id) {
             config.headers['X-Cliente-Master-Id'] = relacionamento.id
             // Remover X-User-Comum-Id se existir
             delete config.headers['X-User-Comum-Id']
-            console.log('✅ Adicionado X-Cliente-Master-Id:', relacionamento.id)
           } else if (relacionamento.tipo === 'usuario' && relacionamento.id) {
             // Se for do tipo "usuario", usar X-User-Comum-Id
             config.headers['X-User-Comum-Id'] = relacionamento.id
             // SEMPRE remover X-Cliente-Master-Id para usuários comuns
             delete config.headers['X-Cliente-Master-Id']
-            console.log('✅ Adicionado X-User-Comum-Id:', relacionamento.id)
-            console.log('❌ Removido X-Cliente-Master-Id')
           } else {
             // Se não tiver tipo válido, usar X-Cliente-Master-Id com selectedClinicId como fallback
             if (selectedClinicId && !hasExplicitClienteMasterId) {
               config.headers['X-Cliente-Master-Id'] = selectedClinicId
             }
             delete config.headers['X-User-Comum-Id']
-            console.log('⚠️ Usando fallback - Tipo inválido:', relacionamento.tipo)
           }
         } catch (error) {
-          console.error('❌ Erro ao parsear relacionamento:', error)
           // Se houver erro ao parsear, usar X-Cliente-Master-Id como fallback
           if (selectedClinicId && !hasExplicitClienteMasterId) {
             config.headers['X-Cliente-Master-Id'] = selectedClinicId
@@ -81,16 +82,12 @@ api.interceptors.request.use(
           delete config.headers['X-User-Comum-Id']
         }
       } else {
-        console.log('❌ Nenhum relacionamento encontrado no sessionStorage')
         // Se não houver relacionamento, usar X-Cliente-Master-Id com selectedClinicId
         if (selectedClinicId && !hasExplicitClienteMasterId) {
           config.headers['X-Cliente-Master-Id'] = selectedClinicId
         }
         delete config.headers['X-User-Comum-Id']
       }
-      
-      console.log('Headers finais:', config.headers)
-      console.log('========================')
     } else {
       // Se não estiver dentro de /app, manter X-Cliente-Master-Id se foi passado explicitamente
       // (ex: na chamada /complete que acontece antes de entrar em /app)
@@ -137,8 +134,13 @@ api.interceptors.response.use(
       
       if (!isPublicPath && currentPath !== '/login' && currentPath !== '/register' && !redirectingToLogin) {
         redirectingToLogin = true
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('user')
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('selectedClinicId')
+        localStorage.removeItem('selectedClinicData')
+        localStorage.removeItem('relacionamento')
+        localStorage.removeItem('userComumId')
+        localStorage.removeItem('planoAcesso')
         window.location.replace('/login')
       }
     }

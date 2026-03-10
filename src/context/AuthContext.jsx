@@ -60,76 +60,88 @@ export const AuthProvider = ({ children }) => {
     const loadingTimeout = setTimeout(() => setLoading(false), 1200)
 
     try {
-      if (typeof sessionStorage === 'undefined') {
+      if (typeof localStorage === 'undefined') {
         setLoading(false)
         return
       }
-      const token = sessionStorage.getItem('token')
-      const savedUser = sessionStorage.getItem('user')
-      const savedClinicId = sessionStorage.getItem('selectedClinicId')
+      const token = localStorage.getItem('token')
+      const savedUser = localStorage.getItem('user')
+      const savedClinicId = localStorage.getItem('selectedClinicId')
 
       if (token && savedUser) {
         try {
-          setUser(JSON.parse(savedUser))
+          const userData = JSON.parse(savedUser)
+          setUser(userData)
+          
+          // Verificar se é plano estudante e definir acesso como 'chat'
+          const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+          const isPlanoEstudante = userData?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
+                                   userData?.planoId === PLANO_ESTUDANTE_ID ||
+                                   userData?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+          
+          if (isPlanoEstudante) {
+            setPlanoAcesso('chat')
+            localStorage.setItem('planoAcesso', 'chat')
+          }
         } catch (error) {
           console.error('Erro ao restaurar usuário:', error)
-          sessionStorage.removeItem('token')
-          sessionStorage.removeItem('user')
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
         }
       }
 
       if (savedClinicId) {
         setSelectedClinicIdState(savedClinicId)
-        const savedClinicData = sessionStorage.getItem('selectedClinicData')
+        const savedClinicData = localStorage.getItem('selectedClinicData')
         if (savedClinicData) {
           try {
             const clinicData = JSON.parse(savedClinicData)
             setSelectedClinicData(clinicData)
-            const savedAcesso = sessionStorage.getItem('planoAcesso')
+            const savedAcesso = localStorage.getItem('planoAcesso')
             if (savedAcesso) {
               setPlanoAcesso(savedAcesso)
             } else {
               const acesso = clinicData.relacionamento?.acesso || clinicData.plano?.acesso || 'all'
               setPlanoAcesso(acesso)
-              sessionStorage.setItem('planoAcesso', acesso)
+              localStorage.setItem('planoAcesso', acesso)
             }
             if (clinicData.relacionamento) {
-              sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+              localStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
               const relacionamento = clinicData.relacionamento
               if (relacionamento.tipo === 'usuario' && relacionamento.id) {
                 setUserComumId(relacionamento.id)
-                sessionStorage.setItem('userComumId', relacionamento.id)
+                localStorage.setItem('userComumId', relacionamento.id)
               } else {
                 setUserComumId(null)
-                sessionStorage.removeItem('userComumId')
+                localStorage.removeItem('userComumId')
               }
             } else {
               setUserComumId(null)
-              sessionStorage.removeItem('userComumId')
+              localStorage.removeItem('userComumId')
             }
           } catch (error) {
             console.error('Erro ao restaurar dados do cliente master:', error)
           }
         }
-        const savedAcesso = sessionStorage.getItem('planoAcesso')
+        const savedAcesso = localStorage.getItem('planoAcesso')
         if (savedAcesso) setPlanoAcesso(savedAcesso)
-        const relacionamentoStr = sessionStorage.getItem('relacionamento')
+        const relacionamentoStr = localStorage.getItem('relacionamento')
         if (relacionamentoStr) {
           try {
             const relacionamento = JSON.parse(relacionamentoStr)
             if (relacionamento.tipo === 'usuario' && relacionamento.id) {
-              const savedUserComumId = sessionStorage.getItem('userComumId')
+              const savedUserComumId = localStorage.getItem('userComumId')
               if (savedUserComumId) setUserComumId(savedUserComumId)
             } else {
               setUserComumId(null)
-              sessionStorage.removeItem('userComumId')
+              localStorage.removeItem('userComumId')
             }
           } catch (error) {
             console.error('Erro ao parsear relacionamento:', error)
           }
         } else {
           setUserComumId(null)
-          sessionStorage.removeItem('userComumId')
+          localStorage.removeItem('userComumId')
         }
       }
     } catch (err) {
@@ -181,10 +193,21 @@ export const AuthProvider = ({ children }) => {
         telefone: userData.telefone || userData.phone || userData.telefoneCelular || ''
       }
 
-      // Salvar token e usuário no sessionStorage (mais seguro que localStorage)
-      sessionStorage.setItem('token', access_token)
-      sessionStorage.setItem('user', JSON.stringify(normalizedUser))
+      // Salvar token e usuário no localStorage para persistir sessão
+      localStorage.setItem('token', access_token)
+      localStorage.setItem('user', JSON.stringify(normalizedUser))
       setUser(normalizedUser)
+
+      // Verificar se é plano estudante e definir acesso como 'chat'
+      const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+      const isPlanoEstudante = normalizedUser?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
+                               normalizedUser?.planoId === PLANO_ESTUDANTE_ID ||
+                               normalizedUser?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+      
+      if (isPlanoEstudante) {
+        setPlanoAcesso('chat')
+        localStorage.setItem('planoAcesso', 'chat')
+      }
 
       // Para usuários comuns, criar relacionamento básico se não existir
       if (userData.tipo === 'usuario' && userData.id) {
@@ -193,9 +216,7 @@ export const AuthProvider = ({ children }) => {
           id: userData.id,
           status: 'ativo'
         }
-        sessionStorage.setItem('relacionamento', JSON.stringify(relacionamento))
-        console.log('✅ Relacionamento de usuário comum salvo:', relacionamento)
-        console.log('✅ Verificando se foi salvo:', sessionStorage.getItem('relacionamento'))
+        localStorage.setItem('relacionamento', JSON.stringify(relacionamento))
       }
 
       return { 
@@ -215,7 +236,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Chamar API de logout antes de limpar o sessionStorage
+      // Chamar API de logout antes de limpar o localStorage
       await api.post('/auth/logout')
     } catch (error) {
       // Mesmo se a API falhar, continuar com o logout local
@@ -226,12 +247,13 @@ export const AuthProvider = ({ children }) => {
       setSelectedClinicIdState(null)
       setSelectedClinicData(null)
       setUserComumId(null)
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('user')
-      sessionStorage.removeItem('selectedClinicId')
-      sessionStorage.removeItem('selectedClinicData')
-      sessionStorage.removeItem('relacionamento')
-      sessionStorage.removeItem('userComumId')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('selectedClinicId')
+      localStorage.removeItem('selectedClinicData')
+      localStorage.removeItem('relacionamento')
+      localStorage.removeItem('userComumId')
+      localStorage.removeItem('planoAcesso')
     }
   }
 
@@ -275,9 +297,9 @@ export const AuthProvider = ({ children }) => {
         emailVerified: newUser.isEmailVerified || newUser.emailVerified || newUser.email_verified || false
       }
 
-      // Salvar token e usuário no sessionStorage (mais seguro que localStorage)
-      sessionStorage.setItem('token', access_token)
-      sessionStorage.setItem('user', JSON.stringify(normalizedUser))
+      // Salvar token e usuário no localStorage (mais seguro que localStorage)
+      localStorage.setItem('token', access_token)
+      localStorage.setItem('user', JSON.stringify(normalizedUser))
       setUser(normalizedUser)
 
       return { 
@@ -302,10 +324,10 @@ export const AuthProvider = ({ children }) => {
       const assinatura = response.data
       
       // Atualizar usuário com nova assinatura
-      const savedUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}')
       if (savedUser && assinatura) {
         savedUser.assinatura = assinatura
-        sessionStorage.setItem('user', JSON.stringify(savedUser))
+        localStorage.setItem('user', JSON.stringify(savedUser))
         setUser({ ...savedUser })
       }
     } catch (error) {
@@ -329,11 +351,11 @@ export const AuthProvider = ({ children }) => {
       // A API pode retornar statusCode 200 ou 201 para sucesso
       if (response.data.statusCode === 200 || response.data.statusCode === 201) {
         // Atualizar status de verificação do usuário
-        const savedUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+        const savedUser = JSON.parse(localStorage.getItem('user') || '{}')
         if (savedUser) {
           savedUser.phoneVerified = true
           savedUser.emailVerified = true // Manter compatibilidade
-          sessionStorage.setItem('user', JSON.stringify(savedUser))
+          localStorage.setItem('user', JSON.stringify(savedUser))
           setUser({ ...savedUser })
         }
         return { success: true }
@@ -419,45 +441,50 @@ export const AuthProvider = ({ children }) => {
   }
 
   const setSelectedClinicId = async (clinicId, clinicData = null) => {
+    // Verificar se é plano estudante - se for, não fazer nada
+    const planoAcessoAtual = localStorage.getItem('planoAcesso')
+    if (planoAcessoAtual === 'chat') {
+      return
+    }
+    
     // Limpar dados antigos antes de buscar novos
     setSelectedClinicData(null)
     setUserComumId(null)
     setPlanoAcesso(null)
-    sessionStorage.removeItem('selectedClinicData')
+    localStorage.removeItem('selectedClinicData')
     
     // NÃO remover relacionamento se for usuário comum
-    const currentRelacionamento = sessionStorage.getItem('relacionamento')
+    const currentRelacionamento = localStorage.getItem('relacionamento')
     if (currentRelacionamento) {
       try {
         const relacionamento = JSON.parse(currentRelacionamento)
         if (relacionamento.tipo === 'usuario') {
-          console.log('🔒 Mantendo relacionamento de usuário comum:', relacionamento)
+          // Manter relacionamento de usuário comum
         } else {
           // Remover apenas se não for usuário comum
-          sessionStorage.removeItem('relacionamento')
-          console.log('🗑️ Removendo relacionamento de cliente master')
+          localStorage.removeItem('relacionamento')
         }
       } catch (error) {
         // Se houver erro ao parsear, remover
-        sessionStorage.removeItem('relacionamento')
+        localStorage.removeItem('relacionamento')
       }
     }
     
-    sessionStorage.removeItem('userComumId')
-    sessionStorage.removeItem('planoAcesso')
+    localStorage.removeItem('userComumId')
+    localStorage.removeItem('planoAcesso')
     
     // Atualizar o ID do consultório selecionado
     setSelectedClinicIdState(clinicId)
-    sessionStorage.setItem('selectedClinicId', clinicId)
+    localStorage.setItem('selectedClinicId', clinicId)
     
     // Se os dados já foram fornecidos, usar eles diretamente sem chamar a API
     if (clinicData) {
       setSelectedClinicData(clinicData)
-      sessionStorage.setItem('selectedClinicData', JSON.stringify(clinicData))
+      localStorage.setItem('selectedClinicData', JSON.stringify(clinicData))
       
       // Salvar também o relacionamento separadamente para fácil acesso
       if (clinicData.relacionamento) {
-        sessionStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
+        localStorage.setItem('relacionamento', JSON.stringify(clinicData.relacionamento))
         
         // Extrair e salvar userComumId do relacionamento apenas se for tipo "usuario"
         // Se for clienteMaster, o ID é do cliente master, não do userComum
@@ -465,24 +492,24 @@ export const AuthProvider = ({ children }) => {
         const relacionamento = clinicData.relacionamento
         if (relacionamento.tipo === 'usuario' && relacionamento.id) {
           setUserComumId(relacionamento.id)
-          sessionStorage.setItem('userComumId', relacionamento.id)
+          localStorage.setItem('userComumId', relacionamento.id)
         } else {
           // Se for clienteMaster ou outro tipo, limpar userComumId
           setUserComumId(null)
-          sessionStorage.removeItem('userComumId')
+          localStorage.removeItem('userComumId')
         }
         
         // Extrair e salvar acesso do plano
         const acesso = relacionamento.acesso || clinicData.plano?.acesso || 'all'
         setPlanoAcesso(acesso)
-        sessionStorage.setItem('planoAcesso', acesso)
+        localStorage.setItem('planoAcesso', acesso)
       } else {
         // Se não houver relacionamento, limpar userComumId
         setUserComumId(null)
-        sessionStorage.removeItem('userComumId')
+        localStorage.removeItem('userComumId')
         // Definir acesso padrão como 'all'
         setPlanoAcesso('all')
-        sessionStorage.setItem('planoAcesso', 'all')
+        localStorage.setItem('planoAcesso', 'all')
       }
       return
     }
@@ -503,17 +530,17 @@ export const AuthProvider = ({ children }) => {
         // Garantir que o relacionamento seja salvo
         // A estrutura já vem com relacionamento: { tipo: "clienteMaster", id: "...", acesso: "all" ou "chat" }
         setSelectedClinicData(data)
-        sessionStorage.setItem('selectedClinicData', JSON.stringify(data))
+        localStorage.setItem('selectedClinicData', JSON.stringify(data))
         
         // Extrair e salvar o acesso do plano
         // O acesso pode vir de: data.relacionamento.acesso ou data.plano.acesso
         const acesso = data.relacionamento?.acesso || data.plano?.acesso || 'all'
         setPlanoAcesso(acesso)
-        sessionStorage.setItem('planoAcesso', acesso)
+        localStorage.setItem('planoAcesso', acesso)
         
         // Salvar também o relacionamento separadamente para fácil acesso
         if (data.relacionamento) {
-          sessionStorage.setItem('relacionamento', JSON.stringify(data.relacionamento))
+          localStorage.setItem('relacionamento', JSON.stringify(data.relacionamento))
           
           // Extrair e salvar userComumId do relacionamento apenas se for tipo "usuario"
           // Se for clienteMaster, o ID é do cliente master, não do userComum
@@ -521,16 +548,16 @@ export const AuthProvider = ({ children }) => {
           const relacionamento = data.relacionamento
           if (relacionamento.tipo === 'usuario' && relacionamento.id) {
             setUserComumId(relacionamento.id)
-            sessionStorage.setItem('userComumId', relacionamento.id)
+            localStorage.setItem('userComumId', relacionamento.id)
           } else {
             // Se for clienteMaster ou outro tipo, limpar userComumId
             setUserComumId(null)
-            sessionStorage.removeItem('userComumId')
+            localStorage.removeItem('userComumId')
           }
         } else {
           // Se não houver relacionamento, limpar userComumId
           setUserComumId(null)
-          sessionStorage.removeItem('userComumId')
+          localStorage.removeItem('userComumId')
         }
       }
     } catch (error) {
@@ -544,7 +571,7 @@ export const AuthProvider = ({ children }) => {
             const clinic = result.clinics.find(c => c.id === clinicId)
             if (clinic) {
               setSelectedClinicData(clinic)
-              sessionStorage.setItem('selectedClinicData', JSON.stringify(clinic))
+              localStorage.setItem('selectedClinicData', JSON.stringify(clinic))
             }
           }
         }
@@ -557,7 +584,7 @@ export const AuthProvider = ({ children }) => {
   // Função para limpar userComumId quando voltar para clínicas
   const clearUserComumId = useCallback(() => {
     setUserComumId(null)
-    sessionStorage.removeItem('userComumId')
+    localStorage.removeItem('userComumId')
   }, [])
 
   // Função helper para verificar se o usuário é ClienteMaster

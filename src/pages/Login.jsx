@@ -47,10 +47,19 @@ const Login = () => {
       const result = await login(email, password)
       
       if (result.success) {
-        // Após login bem-sucedido, deixar o ProtectedRoute cuidar do redirecionamento
-        // Ele vai verificar se precisa verificar telefone, selecionar consultório, etc.
-        // Por padrão, redirecionar para /app que será protegido pelo ProtectedRoute
-        navigate('/app')
+        // Verificar se é plano estudante para redirecionar direto ao chat
+        const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+        const isPlanoEstudante = result.user?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
+                                 result.user?.planoId === PLANO_ESTUDANTE_ID ||
+                                 result.user?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+        
+        if (isPlanoEstudante) {
+          // Plano estudante vai direto para o chat
+          navigate('/app/chat')
+        } else {
+          // Outros planos vão para /app e o ProtectedRoute cuida do resto
+          navigate('/app')
+        }
       } else {
         setError(result.message || 'Erro ao fazer login. Verifique suas credenciais.')
       }
