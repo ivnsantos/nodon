@@ -392,11 +392,12 @@ const Checkout = () => {
   }, [searchParams])
 
   useEffect(() => {
-    // Verificar se há plano na query (usando o nome do plano)
+    // Verificar se há plano na query (usando o ID ou nome do plano)
     if (plans.length > 0) {
-      const planName = searchParams.get('plano')
-      if (planName) {
-        const plan = plans.find(p => p.name === planName)
+      const planParam = searchParams.get('plano')
+      if (planParam) {
+        // Tentar encontrar por ID primeiro, depois por nome
+        const plan = plans.find(p => p.id === planParam || p.name === planParam)
         if (plan) {
           setSelectedPlan(plan)
           // Não pular o passo 1, deixar o usuário confirmar
@@ -1196,10 +1197,13 @@ const Checkout = () => {
                       return priceA - priceB
                     })
                     
-                    // Se há plano selecionado e não está mostrando todos, mostrar apenas o selecionado
-                    const plansToShow = selectedPlan && !showAllPlans 
-                      ? sortedPlans.filter(plan => plan.id === selectedPlan.id)
-                      : sortedPlans
+                    // Se há plano na URL, mostrar apenas esse plano (a menos que o usuário clique para ver todos)
+                    const planParam = searchParams.get('plano')
+                    const plansToShow = planParam && !showAllPlans
+                      ? sortedPlans.filter(plan => plan.id === planParam || plan.name === planParam)
+                      : selectedPlan && !showAllPlans 
+                        ? sortedPlans.filter(plan => plan.id === selectedPlan.id)
+                        : sortedPlans
                     
                     return (
                       <>

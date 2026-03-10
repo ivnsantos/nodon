@@ -34,6 +34,7 @@ import LPDentista from './pages/LPDentista'
 import LPDentistaPRO from './pages/LPDentistaPRO'
 import LPDentistaPROv2 from './pages/LPDentistaPROv2'
 import LPEstudante from './pages/LPEstudante'
+import LPEstudantePRO from './pages/LPEstudantePRO'
 import GoogleCallback from './pages/GoogleCallback'
 import ForgotPassword from './pages/ForgotPassword'
 import ForgotPasswordPhone from './pages/ForgotPasswordPhone'
@@ -155,6 +156,11 @@ function App() {
                 <Route path="/lp/estudante" element={
                   <PublicRoute>
                     <LPEstudante />
+                  </PublicRoute>
+                } />
+                <Route path="/lp/estudante-pro" element={
+                  <PublicRoute>
+                    <LPEstudantePRO />
                   </PublicRoute>
                 } />
                 <Route path="/agendamento-publico" element={<AgendamentoPublico />} />
