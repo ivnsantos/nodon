@@ -634,10 +634,12 @@ const Home = () => {
                       <div className="home-plan-feature-count">
                         {plano.descricao || (limiteAnalises > 0 ? `Até ${limiteAnalises} análises por mês` : 'Análises ilimitadas')}
                       </div>
-                      <div className="home-plan-free-trial">
-                        <FontAwesomeIcon icon={faGift} />
-                        <span>{nomePlano.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '5 dias de teste grátis para você'}</span>
-                      </div>
+                      {!nomePlano.toLowerCase().includes('estudante') && (
+                        <div className="home-plan-free-trial">
+                          <FontAwesomeIcon icon={faGift} />
+                          <span>5 dias de teste grátis para você</span>
+                        </div>
+                      )}
                     </div>
                     <button 
                       type="button"

@@ -121,10 +121,12 @@ const PricingCard = ({
         {plano.tokenChat && (
           <div className="plan-tokens">{formatarTokens(plano.tokenChat)} de tokens</div>
         )}
-        <div className="plan-free-trial">
-          <FontAwesomeIcon icon={faGift} />
-          <span>{plano.nome?.toLowerCase().includes('estudante') ? '2 dias de teste grátis para você' : '5 dias de teste grátis para você'}</span>
-        </div>
+        {!plano.nome?.toLowerCase().includes('estudante') && (
+          <div className="plan-free-trial">
+            <FontAwesomeIcon icon={faGift} />
+            <span>5 dias de teste grátis para você</span>
+          </div>
+        )}
       </div>
       <div className="plan-features-wrapper">
         <button
