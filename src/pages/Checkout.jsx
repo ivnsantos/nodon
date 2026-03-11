@@ -1860,7 +1860,7 @@ const Checkout = () => {
             </div>
             <h2 className="success-title">Pagamento Confirmado!</h2>
             <p className="success-message">Sua assinatura foi ativada com sucesso</p>
-            {periodoGratis && periodoGratis.ativo && (
+            {periodoGratis && periodoGratis.ativo && !selectedPlan?.name?.toLowerCase().includes('estudante') && (
               <div className="success-free-trial">
                 <FontAwesomeIcon icon={faGift} />
                 <div className="free-trial-content">
