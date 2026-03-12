@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../context/useAuth'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
+import TimelinePaciente from '../components/TimelinePaciente'
 import exameImage from '../img/exame.jpg'
 import './ClienteDetalhes.css'
 
@@ -2862,6 +2863,12 @@ const ClienteDetalhes = () => {
                 <p className="empty-text">Nenhuma radiografia registrada</p>
               )}
             </div>
+
+            {/* Timeline de Evolução do Paciente */}
+            <TimelinePaciente 
+              pacienteId={id} 
+              profissionalId={user?.id}
+            />
           </div>
         </div>
 
