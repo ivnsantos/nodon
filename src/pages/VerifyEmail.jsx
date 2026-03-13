@@ -147,8 +147,20 @@ const VerifyEmail = () => {
             const clinicsResult = await api.get(`/auth/get-client-token`)
             const clinics = clinicsResult.data?.data?.clientesMaster || []
             
-            // Sempre redirecionar para seleção de consultório
-            navigate('/select-clinic')
+            // Verificar se é plano estudante
+            const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+            const userData = clinicsResult.data?.data?.user
+            const isPlanoEstudante = userData?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
+                                     userData?.planoId === PLANO_ESTUDANTE_ID ||
+                                     userData?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+            
+            // Se for plano estudante, ir direto para /app/chat
+            if (isPlanoEstudante) {
+              navigate('/app/chat')
+            } else {
+              // Caso contrário, ir para seleção de consultório
+              navigate('/select-clinic')
+            }
           } catch (error) {
             console.error('Erro ao verificar dados do cliente master:', error)
             // Em caso de erro, ir para seleção de consultório

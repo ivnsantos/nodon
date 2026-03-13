@@ -181,13 +181,15 @@ const Perfil = () => {
       }
 
       // Mapear dados de assinatura (sempre usar dados da API que são mais atualizados)
-      // A API retorna: { status, valorMensal, dataInicio, proximaRenovacao, nextDueDate }
+      // A API retorna: { status, valorMensal, dataInicio, dataFim, proximaRenovacao, nextDueDate }
       // Estrutura: response.data.data.assinatura
       if (data?.assinatura) {
         const assinaturaFromAPI = data.assinatura
         setAssinatura({
           status: assinaturaFromAPI.status,
           valorMensal: assinaturaFromAPI.valorMensal,
+          dataInicio: assinaturaFromAPI.dataInicio,
+          dataFim: assinaturaFromAPI.dataFim,
           proximaRenovacao: assinaturaFromAPI.proximaRenovacao,
           nextDueDate: assinaturaFromAPI.nextDueDate
         })
@@ -199,6 +201,8 @@ const Perfil = () => {
         setAssinatura({
           status: assinaturaData.status,
           valorMensal: assinaturaData.valorMensal || assinaturaData.value || planoData?.valorPromocional || planoData?.valorOriginal || 0,
+          dataInicio: assinaturaData.dataInicio,
+          dataFim: assinaturaData.dataFim,
           proximaRenovacao: assinaturaData.proximaRenovacao,
           nextDueDate: assinaturaData.nextDueDate
         })
@@ -596,8 +600,8 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Assinatura - Apenas para ClienteMaster */}
-        {isClienteMaster() && (
+        {/* Assinatura - Mostrar se houver dados */}
+        {assinatura && (
           <div className="perfil-card assinatura-card">
             <div className="card-header">
               <h2>
@@ -605,68 +609,62 @@ const Perfil = () => {
               </h2>
             </div>
             <div className="card-body">
-              {assinatura ? (
-                <div className="assinatura-info">
-                  <div className="assinatura-status-section">
-                    <div className="assinatura-status-badge">
-                      <span className={`status-indicator ${assinatura.status === 'ACTIVE' ? 'active' : 'inactive'}`}></span>
-                      <span className="status-text">
-                        {assinatura.status === 'ACTIVE' ? 'Ativa' : 
-                         assinatura.status === 'PENDING' ? 'Pendente' : 
-                         'Inativa'}
-                      </span>
+              <div className="assinatura-info">
+                <div className="assinatura-status-section">
+                  <div className="assinatura-status-badge">
+                    <span className={`status-indicator ${assinatura.status === 'ACTIVE' ? 'active' : 'inactive'}`}></span>
+                    <span className="status-text">
+                      {assinatura.status === 'ACTIVE' ? 'Ativa' : 
+                       assinatura.status === 'PENDING' ? 'Pendente' : 
+                       'Inativa'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="assinatura-details">
+                  <div className="assinatura-detail-item">
+                    <div className="detail-label">
+                      <FontAwesomeIcon icon={faCoins} /> Valor Mensal
+                    </div>
+                    <div className="detail-value">
+                      R$ {assinatura.valorMensal?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
                     </div>
                   </div>
                   
-                  <div className="assinatura-details">
+                  {assinatura.dataInicio && (
                     <div className="assinatura-detail-item">
                       <div className="detail-label">
-                        <FontAwesomeIcon icon={faCoins} /> Valor Mensal
+                        <FontAwesomeIcon icon={faCalendar} /> Data de Início
                       </div>
                       <div className="detail-value">
-                        R$ {assinatura.valorMensal?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+                        {formatarDataLocal(assinatura.dataInicio)}
                       </div>
                     </div>
-                    
-                    {assinatura.dataInicio && (
-                      <div className="assinatura-detail-item">
-                        <div className="detail-label">
-                          <FontAwesomeIcon icon={faCalendar} /> Data de Início
-                        </div>
-                        <div className="detail-value">
-                          {formatarDataLocal(assinatura.dataInicio)}
-                        </div>
+                  )}
+                  
+                  {assinatura.dataFim && (
+                    <div className="assinatura-detail-item">
+                      <div className="detail-label">
+                        <FontAwesomeIcon icon={faCalendar} /> Data de Término
                       </div>
-                    )}
-                    
-                    {assinatura.proximaRenovacao && (
-                      <div className="assinatura-detail-item">
-                        <div className="detail-label">
-                          <FontAwesomeIcon icon={faCalendar} /> Próxima Renovação
-                        </div>
-                        <div className="detail-value">
-                          {formatarDataLocal(assinatura.proximaRenovacao)}
-                        </div>
+                      <div className="detail-value">
+                        {formatarDataLocal(assinatura.dataFim)}
                       </div>
-                    )}
-                    
-                    {assinatura.nextDueDate && (
-                      <div className="assinatura-detail-item">
-                        <div className="detail-label">
-                          <FontAwesomeIcon icon={faCalendar} /> Data de Inicio
-                        </div>
-                        <div className="detail-value">
-                          {formatarDataLocal(assinatura.nextDueDate)}
-                        </div>
+                    </div>
+                  )}
+                  
+                  {assinatura.proximaRenovacao && (
+                    <div className="assinatura-detail-item">
+                      <div className="detail-label">
+                        <FontAwesomeIcon icon={faCalendar} /> Próxima Renovação
                       </div>
-                    )}
-                  </div>
+                      <div className="detail-value">
+                        {formatarDataLocal(assinatura.proximaRenovacao)}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="no-assinatura">
-                  <p>Nenhuma assinatura encontrada</p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         )}

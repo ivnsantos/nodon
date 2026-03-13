@@ -61,6 +61,11 @@ const ProtectedRoute = ({ children }) => {
                            user?.planoId === PLANO_ESTUDANTE_ID ||
                            user?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
   
+  // Se for plano estudante e estiver em /select-clinic, redirecionar para /app/chat
+  if (isPlanoEstudante && phoneVerified && pathname === '/select-clinic') {
+    return <Navigate to="/app/chat" replace />
+  }
+  
   // Se for plano estudante e estiver em /app (sem rota específica), redirecionar para /app/chat
   if (isPlanoEstudante && phoneVerified && pathname === '/app') {
     return <Navigate to="/app/chat" replace />
