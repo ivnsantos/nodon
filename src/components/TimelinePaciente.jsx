@@ -70,40 +70,26 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
     setLoadingConsultas(true)
     try {
       const response = await api.get(`/calendario/consultas?paciente_id=${pacienteId}`)
-      console.log('🔍 Resposta completa da API:', response)
-      console.log('📦 response.data:', response.data)
-      console.log('📦 response.data.data:', response.data?.data)
-      console.log('📦 response.data.data.data:', response.data?.data?.data)
-      console.log('📦 response.data.data.data.consultas:', response.data?.data?.data?.consultas)
       
       // Tentar diferentes estruturas de resposta (API tem estrutura aninhada)
       let data = []
       if (response.data?.data?.data?.consultas) {
         data = response.data.data.data.consultas
-        console.log('✅ Usando response.data.data.data.consultas')
       } else if (response.data?.data?.consultas) {
         data = response.data.data.consultas
-        console.log('✅ Usando response.data.data.consultas')
       } else if (response.data?.consultas) {
         data = response.data.consultas
-        console.log('✅ Usando response.data.consultas')
       } else if (response.data?.data?.data) {
         data = response.data.data.data
-        console.log('✅ Usando response.data.data.data')
       } else if (response.data?.data) {
         data = response.data.data
-        console.log('✅ Usando response.data.data')
       } else if (Array.isArray(response.data)) {
         data = response.data
-        console.log('✅ Usando response.data (array)')
       }
-      
-      console.log('📋 Consultas extraídas:', data)
-      console.log('📊 Quantidade de consultas:', Array.isArray(data) ? data.length : 'não é array')
       
       setConsultas(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('❌ Erro ao carregar consultas:', error)
+      console.error('Erro ao carregar consultas:', error)
       setConsultas([])
     } finally {
       setLoadingConsultas(false)
@@ -131,8 +117,6 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
       if (formData.consultaId) {
         payload.consultaId = formData.consultaId
       }
-
-      console.log('📤 Payload sendo enviado para API:', payload)
 
       if (editandoId) {
         await api.put(`/evolucao-paciente/${editandoId}`, payload)
@@ -169,8 +153,6 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
   }
 
   const handleDeletar = async (id) => {
-    console.log('🗑️ handleDeletar chamado, id:', id)
-    console.log('📋 alertConfig antes:', alertConfig)
     showConfirm(
       'Deseja realmente deletar esta evolução?',
       'Confirmar exclusão',
@@ -185,7 +167,6 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
         }
       }
     )
-    console.log('📋 alertConfig depois:', alertConfig)
   }
 
   const handleCancelar = () => {
@@ -273,10 +254,7 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
             <label>Registar Evolução com agenda</label>
             <select
               value={formData.consultaId}
-              onChange={(e) => {
-                console.log('🎯 Consulta selecionada:', e.target.value)
-                setFormData({ ...formData, consultaId: e.target.value })
-              }}
+              onChange={(e) => setFormData({ ...formData, consultaId: e.target.value })}
               className="form-select"
             >
               <option value="">Sem vínculo com agenda</option>
@@ -285,21 +263,11 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
               ) : consultas.length === 0 ? (
                 <option disabled>Nenhuma consulta encontrada para este paciente</option>
               ) : (
-                consultas.map((consulta, index) => {
-                  console.log(`📝 Renderizando consulta ${index}:`, consulta)
-                  console.log('  - data_consulta:', consulta.data_consulta)
-                  console.log('  - hora_consulta:', consulta.hora_consulta)
-                  console.log('  - titulo:', consulta.titulo)
-                  console.log('  - tipo_consulta:', consulta.tipo_consulta)
-                  
+                consultas.map((consulta) => {
                   const dataConsulta = consulta.data_consulta || consulta.data
                   const horaConsulta = consulta.hora_consulta || consulta.horario
-                  const nomeProfissional = consulta.profissional?.nome || 'Sem profissional'
                   const tipoConsulta = consulta.tipo_consulta?.nome || consulta.titulo || 'Consulta'
                   const titulo = consulta.titulo || ''
-                  
-                  console.log('  - dataConsulta extraída:', dataConsulta)
-                  console.log('  - horaConsulta extraída:', horaConsulta)
                   
                   // Formatar data corretamente
                   let dataFormatada = ''
@@ -307,21 +275,14 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
                     try {
                       const date = new Date(dataConsulta)
                       dataFormatada = date.toLocaleDateString('pt-BR')
-                      console.log('  - dataFormatada:', dataFormatada)
                     } catch (e) {
-                      console.error('  - Erro ao formatar data:', e)
                       dataFormatada = dataConsulta
                     }
-                  } else {
-                    console.warn('  - dataConsulta está vazia!')
                   }
                   
                   // Formatar hora (remover segundos se vier como HH:MM:SS)
                   const horaFormatada = horaConsulta ? horaConsulta.substring(0, 5) : ''
-                  console.log('  - horaFormatada:', horaFormatada)
-                  
                   const textoOpcao = `${dataFormatada} às ${horaFormatada} - ${titulo} (${tipoConsulta})`
-                  console.log('  - Texto final da opção:', textoOpcao)
                   
                   return (
                     <option key={consulta.id} value={consulta.id}>
