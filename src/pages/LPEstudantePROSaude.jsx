@@ -30,7 +30,11 @@ import {
   faCode,
   faVideo,
   faStar,
-  faQuoteLeft
+  faQuoteLeft,
+  faHeartbeat,
+  faStethoscope,
+  faNotesMedical,
+  faSyringe
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
@@ -42,7 +46,7 @@ import chatNodonVideo from '../video/chat-nodon.MP4?url'
 import './LPEstudantePRO.css'
 import './LPDentistaPRO_plans.css'
 
-const LPEstudantePRO = () => {
+const LPEstudantePROSaude = () => {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [videoModalOpen, setVideoModalOpen] = useState(false)
@@ -142,7 +146,7 @@ const LPEstudantePRO = () => {
 
   const handleWhatsAppClick = () => {
     const phoneNumber = '5511932589622'
-    const message = encodeURIComponent('Olá, gostaria de saber mais sobre o plano estudante.')
+    const message = encodeURIComponent('Olá, gostaria de saber mais sobre o plano estudante para área da saúde.')
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
   }
 
@@ -183,7 +187,7 @@ const LPEstudantePRO = () => {
           <div className="video-destaque-wrapper">
             <div className="video-destaque-content">
               <h2 className="video-destaque-title">Veja o Chat NODON em Ação</h2>
-              <p className="video-destaque-sub">Converse por texto, áudio e imagem com a IA mais inteligente para odontologia</p>
+              <p className="video-destaque-sub">Converse por texto, áudio e imagem com a IA especializada em saúde</p>
               <button type="button" className="lp-est-pro-cta-glow video-cta" onClick={handleScrollToPlano}>
                 <span>COMEÇAR AGORA</span>
                 <FontAwesomeIcon icon={faArrowRight} />
@@ -234,18 +238,18 @@ const LPEstudantePRO = () => {
           <div className="lp-est-pro-hero-center">
             <div className="lp-est-pro-hero-badge">
               <FontAwesomeIcon icon={faBolt} />
-              <span>CHAT DE IA PARA ODONTOLOGIA</span>
+              <span>CHAT DE IA PARA ÁREA DA SAÚDE</span>
             </div>
             
             <h1 className="lp-est-pro-hero-title">
-              IA especiliazada em ODONTO <br/>
+              IA especializada em SAÚDE <br/>
              <span className="lp-est-pro-highlight">texto, voz e imagens</span><br />
               — tudo em um só chat
             </h1>
             
             <p className="lp-est-pro-hero-sub">
               Converse por texto, envie áudios ou imagens e receba respostas inteligentes instantâneas.<br />
-              <strong>Seu assistente pessoal de odontologia disponível 24 horas por dia.</strong>
+              <strong>Seu assistente pessoal de saúde disponível 24 horas por dia.</strong>
             </p>
             
             <div className="lp-est-pro-hero-features">
@@ -286,7 +290,7 @@ const LPEstudantePRO = () => {
                 </div>
                 <div className="problema-item">
                   <span className="problema-x">✗</span>
-                  <p>Dificuldade para criar conteúdo e estudar sozinho</p>
+                  <p>Dificuldade para estudar casos clínicos complexos</p>
                 </div>
                 <div className="problema-item">
                   <span className="problema-x">✗</span>
@@ -304,12 +308,11 @@ const LPEstudantePRO = () => {
               <div className="solucao-lista">
                 <div className="solucao-item">
                   <span className="solucao-check">✓</span>
-                  <p>Respostas instantâneas e precisas sobre odonto</p>
+                  <p>Respostas instantâneas e precisas sobre saúde</p>
                 </div>
                 <div className="solucao-item">
                   <span className="solucao-check">✓</span>
-                  <p>Criação de conteúdo e análise de casos
-</p>
+                  <p>Análise de exames e casos clínicos</p>
                 </div>
                 <div className="solucao-item">
                   <span className="solucao-check">✓</span>
@@ -358,7 +361,7 @@ const LPEstudantePRO = () => {
                   <span>TEXTO</span>
                 </div>
                 <h3>Converse naturalmente</h3>
-                <p>Faça perguntas, tire dúvidas e receba respostas completas e precisas sobre odontologia.</p>
+                <p>Faça perguntas, tire dúvidas e receba respostas completas e precisas sobre medicina, enfermagem e todas as áreas da saúde.</p>
               </div>
             </div>
 
@@ -409,8 +412,8 @@ const LPEstudantePRO = () => {
                   <FontAwesomeIcon icon={faImage} />
                   <span>IMAGEM</span>
                 </div>
-                <h3>Analise radiografias e fotos</h3>
-                <p>Envie imagens de casos clínicos e receba análises detalhadas e sugestões de tratamento.</p>
+                <h3>Analise exames e imagens</h3>
+                <p>Envie imagens de exames, radiografias e casos clínicos e receba análises detalhadas e sugestões.</p>
               </div>
             </div>
           </div>
@@ -422,7 +425,7 @@ const LPEstudantePRO = () => {
         <div className="lp-est-pro-container">
           <h2 className="lp-est-pro-section-title">Tudo que você precisa em um só lugar</h2>
           <p className="lp-est-pro-section-sub">
-            Recursos poderosos para acelerar seus estudos e prática profissional.
+            Recursos poderosos para acelerar seus estudos e prática profissional na área da saúde.
           </p>
 
           <div className="features-grid">
@@ -431,7 +434,7 @@ const LPEstudantePRO = () => {
                 <FontAwesomeIcon icon={faComments} />
               </div>
               <h3>Chat Inteligente</h3>
-              <p>Converse naturalmente sobre qualquer tema de odontologia e receba respostas precisas.</p>
+              <p>Converse naturalmente sobre qualquer tema de saúde e receba respostas precisas.</p>
             </div>
 
             <div className="feature-card">
@@ -447,7 +450,7 @@ const LPEstudantePRO = () => {
                 <FontAwesomeIcon icon={faImage} />
               </div>
               <h3>Análise de Imagens</h3>
-              <p>Envie radiografias e fotos clínicas para análise e diagnóstico assistido.</p>
+              <p>Envie exames, radiografias e imagens clínicas para análise assistida.</p>
             </div>
 
             <div className="feature-card">
@@ -463,7 +466,7 @@ const LPEstudantePRO = () => {
                 <FontAwesomeIcon icon={faPencil} />
               </div>
               <h3>Criação de Conteúdo</h3>
-              <p>Gere resumos, planos de tratamento e material de estudo automaticamente.</p>
+              <p>Gere resumos, planos de cuidado e material de estudo automaticamente.</p>
             </div>
 
             <div className="feature-card">
@@ -485,26 +488,26 @@ const LPEstudantePRO = () => {
           <div className="publico-grid">
             <div className="publico-card">
               <FontAwesomeIcon icon={faGraduationCap} className="publico-icon" />
-              <h3>Estudantes de Odontologia</h3>
-              <p>Tire dúvidas, estude casos clínicos e prepare-se para provas e prática.</p>
+              <h3>Estudantes de Medicina</h3>
+              <p>Tire dúvidas, estude casos clínicos e prepare-se para provas e residência.</p>
             </div>
 
             <div className="publico-card">
-              <FontAwesomeIcon icon={faLightbulb} className="publico-icon" />
-              <h3>Recém-Formados</h3>
-              <p>Consulte protocolos, aprenda técnicas e ganhe confiança nos primeiros atendimentos.</p>
+              <FontAwesomeIcon icon={faStethoscope} className="publico-icon" />
+              <h3>Estudantes de Enfermagem</h3>
+              <p>Consulte protocolos, aprenda procedimentos e ganhe confiança na prática.</p>
             </div>
 
             <div className="publico-card">
-              <FontAwesomeIcon icon={faUsers} className="publico-icon" />
-              <h3>Profissionais em Atividade</h3>
-              <p>Otimize diagnósticos, crie orçamentos e melhore a gestão da sua clínica.</p>
+              <FontAwesomeIcon icon={faHeartbeat} className="publico-icon" />
+              <h3>Profissionais da Saúde</h3>
+              <p>Otimize diagnósticos, consulte guidelines e melhore o atendimento.</p>
             </div>
 
             <div className="publico-card">
-              <FontAwesomeIcon icon={faChartLine} className="publico-icon" />
-              <h3>Empreendedores</h3>
-              <p>Automatize processos, aumente produtividade e foque no crescimento do negócio.</p>
+              <FontAwesomeIcon icon={faNotesMedical} className="publico-icon" />
+              <h3>Outras Áreas da Saúde</h3>
+              <p>Fisioterapia, Nutrição, Farmácia e todas as profissões de saúde.</p>
             </div>
           </div>
         </div>
@@ -526,11 +529,11 @@ const LPEstudantePRO = () => {
               </div>
               <FontAwesomeIcon icon={faQuoteLeft} className="quote-icon" />
               <p className="depoimento-texto">
-                "O Chat NODON me ajudou a entender casos complexos que eu não conseguia resolver sozinha. Economizei horas de pesquisa!"
+                "O Chat NODON me ajudou a entender fisiopatologias complexas que eu não conseguia resolver sozinha. Economizei horas de pesquisa!"
               </p>
               <div className="depoimento-autor">
-                <strong>Ana Carolina</strong>
-                <span>Estudante de Odontologia - 4º ano</span>
+                <strong>Maria Eduarda</strong>
+                <span>Estudante de Medicina - 4º ano</span>
               </div>
             </div>
 
@@ -544,11 +547,11 @@ const LPEstudantePRO = () => {
               </div>
               <FontAwesomeIcon icon={faQuoteLeft} className="quote-icon" />
               <p className="depoimento-texto">
-                "Incrível poder enviar áudios e imagens! O Chat NODON analisa radiografias e me dá insights que eu não tinha pensado."
+                "Incrível poder enviar áudios e imagens! O Chat NODON analisa exames e me dá insights que eu não tinha pensado."
               </p>
               <div className="depoimento-autor">
-                <strong>Pedro Henrique</strong>
-                <span>Recém-formado</span>
+                <strong>Lucas Oliveira</strong>
+                <span>Estudante de Enfermagem</span>
               </div>
             </div>
 
@@ -562,11 +565,11 @@ const LPEstudantePRO = () => {
               </div>
               <FontAwesomeIcon icon={faQuoteLeft} className="quote-icon" />
               <p className="depoimento-texto">
-                "Uso o Chat NODON todos os dias para criar planos de tratamento e orçamentos. Minha produtividade triplicou!"
+                "Uso o Chat NODON todos os dias para estudar para a residência. Minha produtividade e compreensão triplicaram!"
               </p>
               <div className="depoimento-autor">
-                <strong>Juliana Santos</strong>
-                <span>Dentista - 2 anos de formada</span>
+                <strong>Fernanda Costa</strong>
+                <span>Médica Recém-formada</span>
               </div>
             </div>
           </div>
@@ -638,7 +641,7 @@ const LPEstudantePRO = () => {
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Análise de <strong>radiografias e imagens clínicas</strong></span>
+                  <span>Análise de <strong>exames e imagens clínicas</strong></span>
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
@@ -646,11 +649,11 @@ const LPEstudantePRO = () => {
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Criação de <strong>planos de tratamento</strong> personalizados</span>
+                  <span>Criação de <strong>planos de cuidado</strong> personalizados</span>
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Geração de <strong>orçamentos automáticos</strong></span>
+                  <span>Consulta de <strong>protocolos clínicos</strong></span>
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
@@ -658,15 +661,15 @@ const LPEstudantePRO = () => {
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Sugestões de <strong>protocolos clínicos</strong></span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
                   <span>Explicações sobre <strong>procedimentos e técnicas</strong></span>
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Criação de <strong>conteúdo educativo</strong> para pacientes</span>
+                  <span>Criação de <strong>resumos e mapas mentais</strong></span>
+                </div>
+                <div className="beneficio-item">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Preparação para <strong>provas e residência</strong></span>
                 </div>
                 <div className="beneficio-item">
                   <FontAwesomeIcon icon={faCheckCircle} />
@@ -675,8 +678,6 @@ const LPEstudantePRO = () => {
               </div>
 
               <div className="plano-estudante-features-wrapper">
-
-
                 {expandedPlan && planoEstudante.features && (
                   <div className="plano-estudante-features-list">
                     {planoEstudante.features.map((feature, idx) => (
@@ -715,8 +716,8 @@ const LPEstudantePRO = () => {
             <div className="faq-item">
               <h3>O que é o Chat NODON?</h3>
               <p>
-                O Chat NODON é uma inteligência artificial especializada em odontologia que funciona 24/7. 
-                Você pode conversar por texto, enviar áudios ou imagens de radiografias e receber respostas 
+                O Chat NODON é uma inteligência artificial especializada em saúde que funciona 24/7. 
+                Você pode conversar por texto, enviar áudios ou imagens de exames e receber respostas 
                 precisas e instantâneas sobre diagnósticos, tratamentos, protocolos clínicos e muito mais.
               </p>
             </div>
@@ -724,7 +725,7 @@ const LPEstudantePRO = () => {
             <div className="faq-item">
               <h3>Como funciona o envio de imagens e áudios?</h3>
               <p>
-                É muito simples! Você pode enviar fotos de radiografias, imagens clínicas ou gravar mensagens 
+                É muito simples! Você pode enviar fotos de exames, imagens clínicas ou gravar mensagens 
                 de áudio diretamente no chat. A IA analisa as imagens e transcreve os áudios, respondendo 
                 de forma contextualizada e precisa.
               </p>
@@ -742,9 +743,8 @@ const LPEstudantePRO = () => {
             <div className="faq-item">
               <h3>O plano estudante é só para estudantes?</h3>
               <p>
-                O Plano Estudante foi criado pensando em estudantes de odontologia, mas qualquer pessoa 
-                pode assinar. É ideal para quem quer acesso ao chat de IA sem precisar das ferramentas 
-                completas de gestão de consultório.
+                O Plano Estudante foi criado pensando em estudantes da área da saúde, mas qualquer pessoa 
+                pode assinar. É ideal para quem quer acesso ao chat de IA especializado em saúde.
               </p>
             </div>
 
@@ -765,11 +765,11 @@ const LPEstudantePRO = () => {
             </div>
 
             <div className="faq-item">
-              <h3>A IA substitui um professor ou dentista?</h3>
+              <h3>A IA substitui um professor ou médico?</h3>
               <p>
                 Não! O Chat NODON é uma ferramenta de apoio ao estudo e trabalho. Ele ajuda com dúvidas, 
                 sugestões e informações, mas não substitui a orientação de professores, supervisores ou 
-                a avaliação clínica presencial de um dentista.
+                a avaliação clínica presencial de um profissional de saúde.
               </p>
             </div>
 
@@ -791,11 +791,11 @@ const LPEstudantePRO = () => {
             </div>
 
             <div className="faq-item">
-              <h3>Posso usar para criar conteúdo educativo?</h3>
+              <h3>Serve para todas as áreas da saúde?</h3>
               <p>
-                Sim! Muitos usuários usam o Chat NODON para criar posts, legendas, roteiros de vídeo e 
-                materiais educativos para redes sociais e pacientes. A IA ajuda a transformar informações 
-                técnicas em conteúdo acessível e didático.
+                Sim! O Chat NODON atende medicina, enfermagem, fisioterapia, nutrição, farmácia, 
+                biomedicina e todas as profissões da área da saúde. A IA é treinada para responder 
+                sobre diversos temas e especialidades.
               </p>
             </div>
           </div>
@@ -807,7 +807,7 @@ const LPEstudantePRO = () => {
         <div className="lp-est-pro-container">
           <div className="cta-final-content">
             <h2>Tenha uma IA que trabalha para você 24h por dia</h2>
-            <p>Comece agora e transforme sua forma de estudar e trabalhar com odontologia.</p>
+            <p>Comece agora e transforme sua forma de estudar e trabalhar na área da saúde.</p>
             <button type="button" className="lp-est-pro-cta-glow" onClick={handleCtaClick}>
               <span>COMEÇAR AGORA</span>
               <FontAwesomeIcon icon={faArrowRight} />
@@ -857,4 +857,4 @@ const LPEstudantePRO = () => {
   )
 }
 
-export default LPEstudantePRO
+export default LPEstudantePROSaude

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ReactDOM from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faTimeline, faPlus, faEdit, faTrash, faSave, faTimes,
@@ -7,6 +8,8 @@ import {
   faArrowRotateRight, faImage, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
+import useAlert from '../hooks/useAlert'
+import AlertModal from '../components/AlertModal'
 import './TimelinePaciente.css'
 
 const TIPOS_EVOLUCAO = [
@@ -21,6 +24,7 @@ const TIPOS_EVOLUCAO = [
 ]
 
 const TimelinePaciente = ({ pacienteId, profissionalId }) => {
+  const { alertConfig, hideAlert, showError, showSuccess, showConfirm } = useAlert()
   const [evolucoes, setEvolucoes] = useState([])
   const [loading, setLoading] = useState(true)
   const [showNovaEvolucao, setShowNovaEvolucao] = useState(false)
@@ -66,10 +70,40 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
     setLoadingConsultas(true)
     try {
       const response = await api.get(`/calendario/consultas?paciente_id=${pacienteId}`)
-      const data = response.data?.data || response.data || []
+      console.log('🔍 Resposta completa da API:', response)
+      console.log('📦 response.data:', response.data)
+      console.log('📦 response.data.data:', response.data?.data)
+      console.log('📦 response.data.data.data:', response.data?.data?.data)
+      console.log('📦 response.data.data.data.consultas:', response.data?.data?.data?.consultas)
+      
+      // Tentar diferentes estruturas de resposta (API tem estrutura aninhada)
+      let data = []
+      if (response.data?.data?.data?.consultas) {
+        data = response.data.data.data.consultas
+        console.log('✅ Usando response.data.data.data.consultas')
+      } else if (response.data?.data?.consultas) {
+        data = response.data.data.consultas
+        console.log('✅ Usando response.data.data.consultas')
+      } else if (response.data?.consultas) {
+        data = response.data.consultas
+        console.log('✅ Usando response.data.consultas')
+      } else if (response.data?.data?.data) {
+        data = response.data.data.data
+        console.log('✅ Usando response.data.data.data')
+      } else if (response.data?.data) {
+        data = response.data.data
+        console.log('✅ Usando response.data.data')
+      } else if (Array.isArray(response.data)) {
+        data = response.data
+        console.log('✅ Usando response.data (array)')
+      }
+      
+      console.log('📋 Consultas extraídas:', data)
+      console.log('📊 Quantidade de consultas:', Array.isArray(data) ? data.length : 'não é array')
+      
       setConsultas(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Erro ao carregar consultas:', error)
+      console.error('❌ Erro ao carregar consultas:', error)
       setConsultas([])
     } finally {
       setLoadingConsultas(false)
@@ -80,14 +114,13 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
     e.preventDefault()
     
     if (!formData.titulo.trim() || !formData.observacao.trim()) {
-      alert('Preencha o título e a observação')
+      showError('Preencha o título e a observação')
       return
     }
 
     try {
       const payload = {
         pacienteId,
-        profissionalId,
         titulo: formData.titulo,
         observacao: formData.observacao,
         tipoEvolucao: formData.tipoEvolucao,
@@ -99,6 +132,8 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
         payload.consultaId = formData.consultaId
       }
 
+      console.log('📤 Payload sendo enviado para API:', payload)
+
       if (editandoId) {
         await api.put(`/evolucao-paciente/${editandoId}`, payload)
       } else {
@@ -109,12 +144,13 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
       setShowNovaEvolucao(false)
       setEditandoId(null)
       loadTimeline()
+      showSuccess(editandoId ? 'Evolução atualizada com sucesso!' : 'Evolução salva com sucesso!')
     } catch (error) {
       console.error('Erro ao salvar evolução:', error)
       if (error.response?.status === 404) {
-        alert('A API de evolução do paciente ainda não está disponível no backend. Entre em contato com o suporte.')
+        showError('A API de evolução do paciente ainda não está disponível no backend. Entre em contato com o suporte.')
       } else {
-        alert('Erro ao salvar evolução: ' + (error.response?.data?.message || error.message))
+        showError('Erro ao salvar evolução: ' + (error.response?.data?.message || error.message))
       }
     }
   }
@@ -133,15 +169,23 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
   }
 
   const handleDeletar = async (id) => {
-    if (!confirm('Deseja realmente deletar esta evolução?')) return
-
-    try {
-      await api.delete(`/evolucao-paciente/${id}`)
-      loadTimeline()
-    } catch (error) {
-      console.error('Erro ao deletar evolução:', error)
-      alert('Erro ao deletar evolução')
-    }
+    console.log('🗑️ handleDeletar chamado, id:', id)
+    console.log('📋 alertConfig antes:', alertConfig)
+    showConfirm(
+      'Deseja realmente deletar esta evolução?',
+      'Confirmar exclusão',
+      async () => {
+        try {
+          await api.delete(`/evolucao-paciente/${id}`)
+          loadTimeline()
+          showSuccess('Evolução deletada com sucesso!')
+        } catch (error) {
+          console.error('Erro ao deletar evolução:', error)
+          showError('Erro ao deletar evolução')
+        }
+      }
+    )
+    console.log('📋 alertConfig depois:', alertConfig)
   }
 
   const handleCancelar = () => {
@@ -178,20 +222,21 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
   }
 
   return (
-    <div className="">
-      <div className="timeline-header">
-        <h2>
-          <FontAwesomeIcon icon={faTimeline} />
-          Timeline do Paciente
-        </h2>
-        <button 
-          className="btn-nova-evolucao"
-          onClick={() => setShowNovaEvolucao(!showNovaEvolucao)}
-        >
-          <FontAwesomeIcon icon={showNovaEvolucao ? faTimes : faPlus} />
-          {showNovaEvolucao ? 'Cancelar' : 'Nova Evolução'}
-        </button>
-      </div>
+    <>
+      <div className="">
+        <div className="timeline-header">
+          <h2>
+            <FontAwesomeIcon icon={faTimeline} />
+            Timeline do Paciente
+          </h2>
+          <button 
+            className="btn-nova-evolucao"
+            onClick={() => setShowNovaEvolucao(!showNovaEvolucao)}
+          >
+            <FontAwesomeIcon icon={showNovaEvolucao ? faTimes : faPlus} />
+            {showNovaEvolucao ? 'Cancelar' : 'Nova Evolução'}
+          </button>
+        </div>
 
       {showNovaEvolucao && (
         <form className="" onSubmit={handleSubmit}>
@@ -225,23 +270,72 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
           </div>
 
           <div className="form-group">
-            <label>Vincular a Consulta (opcional)</label>
+            <label>Registar Evolução com agenda</label>
             <select
               value={formData.consultaId}
-              onChange={(e) => setFormData({ ...formData, consultaId: e.target.value })}
+              onChange={(e) => {
+                console.log('🎯 Consulta selecionada:', e.target.value)
+                setFormData({ ...formData, consultaId: e.target.value })
+              }}
               className="form-select"
             >
-              <option value="">Sem vínculo com consulta</option>
+              <option value="">Sem vínculo com agenda</option>
               {loadingConsultas ? (
                 <option disabled>Carregando consultas...</option>
+              ) : consultas.length === 0 ? (
+                <option disabled>Nenhuma consulta encontrada para este paciente</option>
               ) : (
-                consultas.map(consulta => (
-                  <option key={consulta.id} value={consulta.id}>
-                    {new Date(consulta.data).toLocaleDateString('pt-BR')} às {consulta.horario} - {consulta.profissional?.nome || 'Profissional'}
-                  </option>
-                ))
+                consultas.map((consulta, index) => {
+                  console.log(`📝 Renderizando consulta ${index}:`, consulta)
+                  console.log('  - data_consulta:', consulta.data_consulta)
+                  console.log('  - hora_consulta:', consulta.hora_consulta)
+                  console.log('  - titulo:', consulta.titulo)
+                  console.log('  - tipo_consulta:', consulta.tipo_consulta)
+                  
+                  const dataConsulta = consulta.data_consulta || consulta.data
+                  const horaConsulta = consulta.hora_consulta || consulta.horario
+                  const nomeProfissional = consulta.profissional?.nome || 'Sem profissional'
+                  const tipoConsulta = consulta.tipo_consulta?.nome || consulta.titulo || 'Consulta'
+                  const titulo = consulta.titulo || ''
+                  
+                  console.log('  - dataConsulta extraída:', dataConsulta)
+                  console.log('  - horaConsulta extraída:', horaConsulta)
+                  
+                  // Formatar data corretamente
+                  let dataFormatada = ''
+                  if (dataConsulta) {
+                    try {
+                      const date = new Date(dataConsulta)
+                      dataFormatada = date.toLocaleDateString('pt-BR')
+                      console.log('  - dataFormatada:', dataFormatada)
+                    } catch (e) {
+                      console.error('  - Erro ao formatar data:', e)
+                      dataFormatada = dataConsulta
+                    }
+                  } else {
+                    console.warn('  - dataConsulta está vazia!')
+                  }
+                  
+                  // Formatar hora (remover segundos se vier como HH:MM:SS)
+                  const horaFormatada = horaConsulta ? horaConsulta.substring(0, 5) : ''
+                  console.log('  - horaFormatada:', horaFormatada)
+                  
+                  const textoOpcao = `${dataFormatada} às ${horaFormatada} - ${titulo} (${tipoConsulta})`
+                  console.log('  - Texto final da opção:', textoOpcao)
+                  
+                  return (
+                    <option key={consulta.id} value={consulta.id}>
+                      {textoOpcao}
+                    </option>
+                  )
+                })
               )}
             </select>
+            {consultas.length > 0 && (
+              <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                {consultas.length} consulta{consultas.length > 1 ? 's' : ''} encontrada{consultas.length > 1 ? 's' : ''}
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -338,7 +432,7 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
                   {evolucao.consulta && (
                     <div className="timeline-item-consulta">
                       <FontAwesomeIcon icon={faCalendarAlt} />
-                      Consulta: {new Date(evolucao.consulta.data).toLocaleDateString('pt-BR')} às {evolucao.consulta.horario}
+                      Consulta: {new Date(evolucao.consulta.dataConsulta).toLocaleDateString('pt-BR')} às {evolucao.consulta.horaConsulta?.substring(0, 5)}
                     </div>
                   )}
 
@@ -380,7 +474,22 @@ const TimelinePaciente = ({ pacienteId, profissionalId }) => {
           })}
         </div>
       )}
-    </div>
+      </div>
+
+      {ReactDOM.createPortal(
+        <AlertModal
+          isOpen={alertConfig.isOpen}
+          onClose={hideAlert}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          isConfirm={alertConfig.isConfirm}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+        />,
+        document.body
+      )}
+    </>
   )
 }
 

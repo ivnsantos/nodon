@@ -77,7 +77,7 @@ const Login = () => {
         <div className="auth-branding">
           <h1 className="auth-brand-title">NODON</h1>
           <p className="auth-brand-subtitle">
-            Plataforma inteligente para análise de radiografias odontológicas
+            Plataforma inteligente para Suade
           </p>
           <div className="auth-features">
             <div className="auth-feature-item">
@@ -90,7 +90,7 @@ const Login = () => {
               <div className="feature-icon">
                 <FontAwesomeIcon icon={faFileMedical} />
               </div>
-              <span>Relatórios Detalhados</span>
+              <span>Resumos detalhados</span>
             </div>
             <div className="auth-feature-item">
               <div className="feature-icon">

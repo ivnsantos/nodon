@@ -187,7 +187,7 @@ const Checkout = () => {
             ]
           } else if (isPlanoInicial) {
             // Plano Inicial - Ideal para Dentistas Iniciantes
-            badge = 'Ideal para Dentistas Iniciantes'
+            badge = ''
             features = [
               'Diagnósticos com IA avançada',
               `Até ${plano.limiteAnalises || plano.limite_analises || 12} análises por mês`,
