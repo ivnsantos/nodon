@@ -2548,7 +2548,22 @@ const ClienteDetalhes = () => {
                         <p className="anamnese-descricao">{respostaAnamnese.anamnese.descricao}</p>
                       )}
                       <div className="anamnese-meta">
-                        <span>Perguntas: {respostaAnamnese.anamnese?.perguntas?.length || 0}</span>
+                        <span>
+                          Status: {(() => {
+                            // Verificar se todas as respostas obrigatórias foram preenchidas
+                            const respostasObrigatorias = respostaAnamnese.respostasPerguntas?.filter(
+                              rp => rp.pergunta?.obrigatoria
+                            ) || []
+                            const todasRespondidas = respostasObrigatorias.length > 0 && 
+                              respostasObrigatorias.every(rp => rp.valor !== null && rp.valor !== '')
+                            
+                            return todasRespondidas ? (
+                              <span style={{ color: '#22c55e', fontWeight: 'bold' }}>Respondido</span>
+                            ) : (
+                              <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>Não respondido</span>
+                            )
+                          })()}
+                        </span>
                         <span>Criada em: {new Date(respostaAnamnese.createdAt).toLocaleDateString('pt-BR')}</span>
                       </div>
                     </div>
