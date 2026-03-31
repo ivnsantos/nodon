@@ -48,10 +48,13 @@ const Login = () => {
       
       if (result.success) {
         // Verificar se é plano estudante para redirecionar direto ao chat
-        const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
-        const isPlanoEstudante = result.user?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
-                                 result.user?.planoId === PLANO_ESTUDANTE_ID ||
-                                 result.user?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+        const PLANOS_ESTUDANTE = [
+          '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
+          '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
+        ]
+        const isPlanoEstudante = PLANOS_ESTUDANTE.includes(result.user?.assinatura?.planoId) || 
+                                 PLANOS_ESTUDANTE.includes(result.user?.planoId) ||
+                                 PLANOS_ESTUDANTE.includes(result.user?.assinatura?.plano?.id)
         
         if (isPlanoEstudante) {
           // Plano estudante vai direto para o chat

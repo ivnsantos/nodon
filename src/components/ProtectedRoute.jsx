@@ -56,10 +56,13 @@ const ProtectedRoute = ({ children }) => {
 
   // 3. TERCEIRO: Verificar se precisa selecionar consultório
   // EXCEÇÃO: Usuários com plano estudante vão direto para /app/chat
-  const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
-  const isPlanoEstudante = user?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
-                           user?.planoId === PLANO_ESTUDANTE_ID ||
-                           user?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+  const PLANOS_ESTUDANTE = [
+    '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
+    '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
+  ]
+  const isPlanoEstudante = PLANOS_ESTUDANTE.includes(user?.assinatura?.planoId) || 
+                           PLANOS_ESTUDANTE.includes(user?.planoId) ||
+                           PLANOS_ESTUDANTE.includes(user?.assinatura?.plano?.id)
   
   // Se for plano estudante e estiver em /select-clinic, redirecionar para /app/chat
   if (isPlanoEstudante && phoneVerified && pathname === '/select-clinic') {

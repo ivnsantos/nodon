@@ -74,10 +74,13 @@ export const AuthProvider = ({ children }) => {
           setUser(userData)
           
           // Verificar se é plano estudante e definir acesso como 'chat'
-          const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
-          const isPlanoEstudante = userData?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
-                                   userData?.planoId === PLANO_ESTUDANTE_ID ||
-                                   userData?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+          const PLANOS_ESTUDANTE = [
+            '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
+            '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
+          ]
+          const isPlanoEstudante = PLANOS_ESTUDANTE.includes(userData?.assinatura?.planoId) || 
+                                   PLANOS_ESTUDANTE.includes(userData?.planoId) ||
+                                   PLANOS_ESTUDANTE.includes(userData?.assinatura?.plano?.id)
           
           if (isPlanoEstudante) {
             setPlanoAcesso('chat')
@@ -199,10 +202,13 @@ export const AuthProvider = ({ children }) => {
       setUser(normalizedUser)
 
       // Verificar se é plano estudante e definir acesso como 'chat'
-      const PLANO_ESTUDANTE_ID = '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
-      const isPlanoEstudante = normalizedUser?.assinatura?.planoId === PLANO_ESTUDANTE_ID || 
-                               normalizedUser?.planoId === PLANO_ESTUDANTE_ID ||
-                               normalizedUser?.assinatura?.plano?.id === PLANO_ESTUDANTE_ID
+      const PLANOS_ESTUDANTE = [
+        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
+        '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
+      ]
+      const isPlanoEstudante = PLANOS_ESTUDANTE.includes(normalizedUser?.assinatura?.planoId) || 
+                               PLANOS_ESTUDANTE.includes(normalizedUser?.planoId) ||
+                               PLANOS_ESTUDANTE.includes(normalizedUser?.assinatura?.plano?.id)
       
       if (isPlanoEstudante) {
         setPlanoAcesso('chat')
