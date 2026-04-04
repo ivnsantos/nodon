@@ -790,9 +790,40 @@ const LPEstudante = () => {
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
                     {isPlanoPRO ? (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '0.5rem' }}>
-                        <div className="plan-badge" style={{ background: '#ef4444', borderColor: '#dc2626' }}>🔥 Mais Vendido</div>
-                        <div className="plan-badge" style={{ background: '#3b82f6', borderColor: '#2563eb' }}>⭐ Ideal para Estudantes</div>
+                      <div style={{ 
+                        position: 'absolute',
+                        top: '-12px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex', 
+                        gap: '0.5rem', 
+                        flexWrap: 'wrap', 
+                        justifyContent: 'center',
+                        width: 'max-content',
+                        zIndex: 10
+                      }}>
+                        <div style={{ 
+                          background: '#ef4444', 
+                          borderColor: '#dc2626',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '20px',
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: 'bold',
+                          border: '2px solid #dc2626',
+                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>🔥 Mais Vendido</div>
+                        <div style={{ 
+                          background: '#3b82f6', 
+                          borderColor: '#2563eb',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '20px',
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: 'bold',
+                          border: '2px solid #2563eb',
+                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>⭐ Ideal para Estudantes</div>
                       </div>
                     ) : plano.badge ? (
                       <div className="plan-badge">{plano.badge}</div>
