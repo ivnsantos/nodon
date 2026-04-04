@@ -116,9 +116,9 @@ const LPEstudante = () => {
             'Sem fidelidade - cancele quando quiser'
           ]
         } else if (isPlanoEstudantePRO) {
-          // Plano Estudante PRO - Mais Vendido
+          // Plano Estudante PRO - Mais Vendido + Ideal para Estudantes
           featured = true
-          badge = 'Mais Vendido'
+          badge = 'Mais Vendido • Ideal para Estudantes'
           features = [
             'Chat especializado em odontologia 24/7',
             'IA treinada especificamente para odontologia',
@@ -794,7 +794,7 @@ const LPEstudante = () => {
                         {plano.nome.includes('PRO') ? (
                           <>
                             {plano.nome.split('PRO')[0]}
-                            <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>PRO</span>
+                            <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>⭐ PRO</span>
                             {plano.nome.split('PRO')[1]}
                           </>
                         ) : (
