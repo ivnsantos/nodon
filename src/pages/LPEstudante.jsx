@@ -86,7 +86,10 @@ const LPEstudante = () => {
         return planosIdsPermitidos.includes(plano.id) && plano.ativo !== false
       })
 
+      console.log('📋 Planos filtrados:', planosIniciais)
+      
       const planosMapeados = planosIniciais.map((plano) => {
+        console.log('🔍 Processando plano:', plano.id, plano.nome)
         let features = []
         let featured = false
         let badge = null
