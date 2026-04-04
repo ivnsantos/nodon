@@ -99,15 +99,26 @@ const LPEstudante = () => {
         const valorOriginal = typeof valorOriginalRaw === 'string' ? parseFloat(valorOriginalRaw) : (valorOriginalRaw || 0)
         const valorPromocional = valorPromocionalRaw ? (typeof valorPromocionalRaw === 'string' ? parseFloat(valorPromocionalRaw) : valorPromocionalRaw) : null
 
-        // Identifica o plano pelo ID ou nome
-        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
-        const isPlanoEstudante = plano.nome?.toLowerCase().includes('estudante')
+        // Identifica o plano pelo ID
+        const isPlanoEstudante = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
+        const isPlanoEstudantePRO = plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed'
         const isPlanoInicial = plano.nome?.toLowerCase().includes('inicial')
 
         if (isPlanoEstudante) {
-          // Plano Estudante - Mais Vendido
+          // Plano Estudante - Ideal para Estudantes
+          badge = 'Ideal para Estudantes'
+          features = [
+            'Chat especializado em odontologia 24/7',
+            'IA treinada especificamente para odontologia',
+            'Tire dúvidas sobre diagnósticos e tratamentos',
+            'Suporte para técnicas odontológicas',
+            'Acesso mobile completo',
+            'Sem fidelidade - cancele quando quiser'
+          ]
+        } else if (isPlanoEstudantePRO) {
+          // Plano Estudante PRO - Mais Vendido
           featured = true
-          badge = 'Mais Vendido para Estudantes'
+          badge = 'Mais Vendido'
           features = [
             'Chat especializado em odontologia 24/7',
             'IA treinada especificamente para odontologia',
@@ -779,7 +790,17 @@ const LPEstudante = () => {
                       <div className="plan-badge">{plano.badge}</div>
                     )}
                     <div className="plan-header">
-                      <h3 className="plan-name">{plano.nome}</h3>
+                      <h3 className="plan-name">
+                        {plano.nome.includes('PRO') ? (
+                          <>
+                            {plano.nome.split('PRO')[0]}
+                            <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>PRO</span>
+                            {plano.nome.split('PRO')[1]}
+                          </>
+                        ) : (
+                          plano.nome
+                        )}
+                      </h3>
                       {cupomValido && cupomData && (
                         <div className="cupom-badge-plan">
                           <FontAwesomeIcon icon={faTag} />
