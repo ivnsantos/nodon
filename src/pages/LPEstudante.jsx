@@ -101,11 +101,13 @@ const LPEstudante = () => {
 
         // Identifica o plano pelo ID ou nome
         const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
-        const isPlanoInicial = plano.id === '3521d057-f3b3-4ae5-9966-a5bdeddc38f2' || plano.nome?.toLowerCase().includes('inicial')
+        const isPlanoEstudante = plano.nome?.toLowerCase().includes('estudante')
+        const isPlanoInicial = plano.nome?.toLowerCase().includes('inicial')
 
-        if (isPlanoChat) {
-          // Plano Estudante - Ideal para Estudantes
-          badge = 'Ideal para Estudantes'
+        if (isPlanoEstudante) {
+          // Plano Estudante - Mais Vendido
+          featured = true
+          badge = 'Mais Vendido para Estudantes'
           features = [
             'Chat especializado em odontologia 24/7',
             'IA treinada especificamente para odontologia',
@@ -220,7 +222,7 @@ const LPEstudante = () => {
   const formatarTokens = (tokens) => {
     const numTokens = parseInt(tokens) || 0
     if (numTokens >= 1000000) {
-      return `${(numTokens / 1000000).toFixed(1)} Milhõe ${numTokens > 1000000 ? 's' : ''}`
+      return `${(numTokens / 1000000).toFixed(1)} Milhão${numTokens > 1000000 ? 'es' : ''}`
     } else if (numTokens >= 1000) {
       return `${(numTokens / 1000).toFixed(0)} mil`
     }
