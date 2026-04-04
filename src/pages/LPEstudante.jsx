@@ -814,7 +814,7 @@ const LPEstudante = () => {
                           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                         }}>🔥 Mais Vendido</div>
                         <div style={{ 
-                          background: '#3b82f6', 
+                          background: '#06b6d4', 
                           borderColor: '#2563eb',
                           padding: '0.5rem 1rem',
                           borderRadius: '20px',
@@ -823,7 +823,7 @@ const LPEstudante = () => {
                           fontWeight: 'bold',
                           border: '2px solid #2563eb',
                           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                        }}>⭐ Ideal para Estudantes</div>
+                        }}> Ideal para Estudantes</div>
                       </div>
                     ) : plano.badge ? (
                       <div className="plan-badge">{plano.badge}</div>
