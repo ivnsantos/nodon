@@ -784,8 +784,8 @@ const LPEstudante = () => {
                   }
                 }
                 
-                const isPlanoPRO = plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed' || plano.nome?.toLowerCase().includes('pro')
-                console.log('🔍 Verificando plano:', plano.nome, 'ID:', plano.id, 'É PRO?', isPlanoPRO)
+                const isPlanoPRO = plano.nome && (plano.nome.toLowerCase().includes('pro') || plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed')
+                console.log('🔍 Verificando plano:', plano.nome, 'ID:', plano.id, 'É PRO?', isPlanoPRO, 'Tem PRO no nome?', plano.nome?.toLowerCase().includes('pro'))
                 
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
