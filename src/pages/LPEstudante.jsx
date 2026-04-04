@@ -786,9 +786,14 @@ const LPEstudante = () => {
                 
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
-                    {plano.badge && (
+                    {plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed' ? (
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                        <div className="plan-badge" style={{ background: '#ef4444', borderColor: '#dc2626' }}>🔥 Mais Vendido</div>
+                        <div className="plan-badge" style={{ background: '#3b82f6', borderColor: '#2563eb' }}>⭐ Ideal para Estudantes</div>
+                      </div>
+                    ) : plano.badge ? (
                       <div className="plan-badge">{plano.badge}</div>
-                    )}
+                    ) : null}
                     <div className="plan-header">
                       <h3 className="plan-name">
                         {plano.nome.includes('PRO') ? (
