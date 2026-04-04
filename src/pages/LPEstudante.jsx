@@ -792,38 +792,55 @@ const LPEstudante = () => {
                     {isPlanoPRO ? (
                       <div style={{ 
                         position: 'absolute',
-                        top: '-12px',
+                        top: '-16px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         display: 'flex', 
                         gap: '0.5rem', 
                         flexWrap: 'wrap', 
                         justifyContent: 'center',
-                        width: 'max-content',
+                        alignItems: 'center',
+                        maxWidth: '95%',
                         zIndex: 10
                       }}>
                         <div style={{ 
-                          background: '#ef4444', 
-                          borderColor: '#dc2626',
-                          padding: '0.5rem 1rem',
-                          borderRadius: '20px',
+                          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+                          padding: '0.6rem 1.2rem',
+                          borderRadius: '25px',
                           color: 'white',
-                          fontSize: '0.875rem',
-                          fontWeight: 'bold',
-                          border: '2px solid #dc2626',
-                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                        }}>🔥 Mais Vendido</div>
+                          fontSize: '0.8rem',
+                          fontWeight: '700',
+                          border: '2px solid rgba(255, 255, 255, 0.3)',
+                          boxShadow: '0 6px 12px rgba(239, 68, 68, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem'
+                        }}>
+                          <span style={{ fontSize: '1rem' }}>🔥</span>
+                          <span>Mais Vendido</span>
+                        </div>
                         <div style={{ 
-                          background: '#06b6d4', 
-                          borderColor: '#2563eb',
-                          padding: '0.5rem 1rem',
-                          borderRadius: '20px',
+                          background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', 
+                          padding: '0.6rem 1.2rem',
+                          borderRadius: '25px',
                           color: 'white',
-                          fontSize: '0.875rem',
-                          fontWeight: 'bold',
-                          border: '2px solid #2563eb',
-                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                        }}> Ideal para Estudantes</div>
+                          fontSize: '0.8rem',
+                          fontWeight: '700',
+                          border: '2px solid rgba(255, 255, 255, 0.3)',
+                          boxShadow: '0 6px 12px rgba(6, 182, 212, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem'
+                        }}>
+                          <span style={{ fontSize: '1rem' }}>⭐</span>
+                          <span>Ideal para Estudantes</span>
+                        </div>
                       </div>
                     ) : plano.badge ? (
                       <div className="plan-badge">{plano.badge}</div>
