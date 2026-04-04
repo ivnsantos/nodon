@@ -79,8 +79,7 @@ const LPEstudante = () => {
       // IDs dos planos específicos para estudantes
       const planosIdsPermitidos = [
         '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
-        '1503826a-ee30-4fa9-9955-c77d11fe44ed', // Plano Estudante PRO
-        '3521d057-f3b3-4ae5-9966-a5bdeddc38f2'  // Outro plano
+        '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
       ]
       
       const planosIniciais = planosBackend.filter(plano => {
@@ -121,13 +120,13 @@ const LPEstudante = () => {
           features = [
             'Análise de radiografias com IA',
             'Até 12 análises por mês',
+            '🚀 1 MILHÃO de tokens no chat IA',
             'Relatórios detalhados e didáticos',
             'Precificação de tratamentos',
             'Feedbacks e avaliações',
             'Gráficos customizados para melhor entendimento',
             'Suporte por email',
             'Armazenamento ilimitado na nuvem',
-            '1 Milhõe  de tokens no chat IA',
             'Acesso mobile completo',
             'Sem fidelidade - cancele quando quiser'
           ]
@@ -804,7 +803,19 @@ const LPEstudante = () => {
                         <div className="plan-limit">{plano.limiteAnalises} análises/mês</div>
                       )}
                       {plano.tokenChat && (
-                        <div className="plan-tokens">{formatarTokens(plano.tokenChat)} de tokens</div>
+                        <div className="plan-tokens" style={{
+                          fontSize: '1.1rem',
+                          fontWeight: 'bold',
+                          color: '#0ea5e9',
+                          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.1))',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '8px',
+                          border: '2px solid rgba(14, 165, 233, 0.3)',
+                          marginTop: '0.5rem',
+                          textAlign: 'center'
+                        }}>
+                          🚀 {formatarTokens(plano.tokenChat)} de tokens
+                        </div>
                       )}
                       {!plano.nome?.toLowerCase().includes('estudante') && (
                         <div className="plan-free-trial">
