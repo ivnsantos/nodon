@@ -78,8 +78,9 @@ const LPEstudante = () => {
       
       // IDs dos planos específicos para estudantes
       const planosIdsPermitidos = [
-        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7',
-        '3521d057-f3b3-4ae5-9966-a5bdeddc38f2'
+        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
+        '1503826a-ee30-4fa9-9955-c77d11fe44ed', // Plano Estudante PRO
+        '3521d057-f3b3-4ae5-9966-a5bdeddc38f2'  // Outro plano
       ]
       
       const planosIniciais = planosBackend.filter(plano => {

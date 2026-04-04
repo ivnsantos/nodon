@@ -71,9 +71,18 @@ const LPEstudantePROSaude = () => {
       console.log('Response completa:', response)
       const todosPlanos = response.data.data || response.data
       console.log('Todos os planos:', todosPlanos)
-      const estudante = todosPlanos.find(p => p.nome?.toLowerCase().includes('estudante'))
-      console.log('Plano estudante encontrado:', estudante)
-      setPlanos(todosPlanos)
+      
+      // IDs dos planos específicos para estudantes
+      const planosIdsPermitidos = [
+        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
+        '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
+      ]
+      
+      const planosEstudante = todosPlanos.filter(p => planosIdsPermitidos.includes(p.id) && p.ativo !== false)
+      const estudante = planosEstudante[0] // Pegar o primeiro plano como principal
+      
+      console.log('Planos estudante encontrados:', planosEstudante)
+      setPlanos(planosEstudante)
       setPlanoEstudante(estudante)
     } catch (error) {
       console.error('Erro ao buscar planos:', error)
