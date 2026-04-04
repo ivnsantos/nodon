@@ -86,10 +86,7 @@ const LPEstudante = () => {
         return planosIdsPermitidos.includes(plano.id) && plano.ativo !== false
       })
 
-      console.log('📋 Planos filtrados:', planosIniciais)
-      
       const planosMapeados = planosIniciais.map((plano) => {
-        console.log('🔍 Processando plano:', plano.id, plano.nome)
         let features = []
         let featured = false
         let badge = null
@@ -787,9 +784,12 @@ const LPEstudante = () => {
                   }
                 }
                 
+                const isPlanoPRO = plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed' || plano.nome?.toLowerCase().includes('pro')
+                console.log('🔍 Verificando plano:', plano.nome, 'ID:', plano.id, 'É PRO?', isPlanoPRO)
+                
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
-                    {(plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed' || plano.nome?.toLowerCase().includes('pro')) ? (
+                    {isPlanoPRO ? (
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '0.5rem' }}>
                         <div className="plan-badge" style={{ background: '#ef4444', borderColor: '#dc2626' }}>🔥 Mais Vendido</div>
                         <div className="plan-badge" style={{ background: '#3b82f6', borderColor: '#2563eb' }}>⭐ Ideal para Estudantes</div>
