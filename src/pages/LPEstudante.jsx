@@ -300,7 +300,10 @@ const LPEstudante = () => {
   return (
     <div className="lp-estudante">
       {/* Tag de Cupom Ativo */}
-      {cupomCode && (
+      {(() => {
+        console.log('🔍 DEBUG CUPOM:', { cupomCode, cupomValido, validandoCupom });
+        return cupomCode;
+      })() && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
           <div className="cupom-banner-content">
             {cupomCode === 'DRAISADENTISTA' && cupomValido && (
@@ -319,24 +322,21 @@ const LPEstudante = () => {
               <img src={muniz20Img} alt="Cupom MUNIZ20" className="cupom-image" />
             )}
             <FontAwesomeIcon icon={faTag} />
-            {validandoCupom ? (
-              <span>Validando cupom <strong>{cupomCode}</strong>...</span>
-            ) : cupomValido && cupomData ? (
-              <span>
-                Cupom <strong>{cupomCode}</strong> ativo!{' '}
-                <strong>
-                  {Number(cupomData.discountValue || 0).toLocaleString('pt-BR', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                  })}% de desconto
-                </strong>{' '}
-                aplicado.
-              </span>
-            ) : cupomValido ? (
-              <span>Cupom <strong>{cupomCode}</strong> ativo! Desconto aplicado</span>
-            ) : (
-              <span>Cupom <strong>{cupomCode}</strong> inválido ou inativo</span>
-            )}
+            {(() => {
+              console.log('📊 CUPOM DATA COMPLETO:', cupomData);
+              const percentual = cupomData?.discountValue ? parseFloat(cupomData.discountValue) : (cupomCode === 'MILAFAZODONTO' ? 40 : 20);
+              console.log('💰 PERCENTUAL FINAL:', percentual);
+              
+              if (validandoCupom) {
+                return <span>Validando cupom <strong>{cupomCode}</strong>...</span>;
+              }
+              
+              return (
+                <span>
+                  Cupom <strong>{cupomCode}</strong> ativo! <strong style={{background: 'rgba(255,255,255,0.3)', padding: '0.3rem 0.5rem', borderRadius: '6px', margin: '0 0.2rem'}}>{percentual}% de desconto</strong> aplicado.
+                </span>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -790,56 +790,12 @@ const LPEstudante = () => {
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
                     {isPlanoPRO ? (
-                      <div style={{ 
-                        position: 'absolute',
-                        top: '-16px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        display: 'flex', 
-                        gap: '0.5rem', 
-                        flexWrap: 'wrap', 
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        maxWidth: '95%',
-                        zIndex: 10
-                      }}>
-                        <div style={{ 
-                          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
-                          padding: '0.6rem 1.2rem',
-                          borderRadius: '25px',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '700',
-                          border: '2px solid rgba(255, 255, 255, 0.3)',
-                          boxShadow: '0 6px 12px rgba(239, 68, 68, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          whiteSpace: 'nowrap',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem'
-                        }}>
-                          <span style={{ fontSize: '1rem' }}>🔥</span>
-                          <span>Mais Vendido</span>
+                      <div className="plan-badges-container">
+                        <div className="plan-badge-ideal">
+                          ⭐ Ideal
                         </div>
-                        <div style={{ 
-                          background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', 
-                          padding: '0.6rem 1.2rem',
-                          borderRadius: '25px',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '700',
-                          border: '2px solid rgba(255, 255, 255, 0.3)',
-                          boxShadow: '0 6px 12px rgba(6, 182, 212, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          whiteSpace: 'nowrap',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem'
-                        }}>
-                          <span style={{ fontSize: '1rem' }}>⭐</span>
-                          <span>Ideal para Estudantes</span>
+                        <div className="plan-badge-popular">
+                          🔥 Mais Vendido
                         </div>
                       </div>
                     ) : plano.badge ? (
@@ -877,22 +833,13 @@ const LPEstudante = () => {
                           <span className="price-value">{formatarValor(valorExibir)}</span>
                           <span className="price-period">/mês</span>
                         </div>
+                        <div className="price-info-text">o valor nao aumenta nos proximos meses.</div>
                       </div>
                       {plano.limiteAnalises && (
                         <div className="plan-limit">{plano.limiteAnalises} análises/mês</div>
                       )}
                       {plano.tokenChat && (
-                        <div className="plan-tokens" style={{
-                          fontSize: '1.1rem',
-                          fontWeight: 'bold',
-                          color: '#0ea5e9',
-                          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.1))',
-                          padding: '0.75rem 1rem',
-                          borderRadius: '8px',
-                          border: '2px solid rgba(14, 165, 233, 0.3)',
-                          marginTop: '0.5rem',
-                          textAlign: 'center'
-                        }}>
+                        <div className={`plan-tokens ${plano.tokenChat > 300000 ? 'plan-tokens-premium' : ''}`}>
                           🚀 {formatarTokens(plano.tokenChat)} de tokens
                         </div>
                       )}
@@ -902,14 +849,6 @@ const LPEstudante = () => {
                           <span>5 dias de teste grátis para você</span>
                         </div>
                       )}
-                    </div>
-                    <div className="plan-features-list">
-                      {plano.features.map((feature, idx) => (
-                        <div key={idx} className="feature-item">
-                          <FontAwesomeIcon icon={faCheckCircle} />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
                     </div>
                     <button
                       className={`btn-plan ${plano.featured ? 'featured' : ''}`}
