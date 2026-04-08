@@ -323,9 +323,7 @@ const LPEstudante = () => {
             )}
             <FontAwesomeIcon icon={faTag} />
             {(() => {
-              console.log('📊 CUPOM DATA COMPLETO:', cupomData);
               const percentual = cupomData?.discountValue ? parseFloat(cupomData.discountValue) : (cupomCode === 'MILAFAZODONTO' ? 40 : 20);
-              console.log('💰 PERCENTUAL FINAL:', percentual);
               
               if (validandoCupom) {
                 return <span>Validando cupom <strong>{cupomCode}</strong>...</span>;
@@ -333,7 +331,7 @@ const LPEstudante = () => {
               
               return (
                 <span>
-                  Cupom <strong>{cupomCode}</strong> ativo! <strong style={{background: 'rgba(255,255,255,0.3)', padding: '0.3rem 0.5rem', borderRadius: '6px', margin: '0 0.2rem'}}>{percentual}% de desconto</strong> aplicado.
+                  Cupom <strong>{cupomCode}</strong> ativo! {percentual}% de desconto aplicado.
                 </span>
               );
             })()}
@@ -747,6 +745,19 @@ const LPEstudante = () => {
             <span>PLANOS</span>
           </div>
           <h2 className="section-title">Escolha seu plano</h2>
+
+          <div className="tokens-info-box">
+            <div className="tokens-info-icon">
+              <FontAwesomeIcon icon={faCoins} />
+            </div>
+            <div className="tokens-info-content">
+              <h3>O que são tokens?</h3>
+              <p>
+                <FontAwesomeIcon icon={faComments} /> Cada interação com a IA consome um pouquinho de tokens
+                (quanto mais você utiliza a IA mais tokens sao consumidos )
+              </p>
+            </div>
+          </div>
           
           {loadingPlanos ? (
             <div className="plans-loading">

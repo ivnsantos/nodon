@@ -1113,6 +1113,60 @@
   display: block;
 }
 
+/* Tokens Info Box */
+.lp-estudante .tokens-info-box {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+  border: 2px solid rgba(251, 191, 36, 0.3);
+  border-radius: 16px;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lp-estudante .tokens-info-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-estudante .tokens-info-icon svg {
+  font-size: 2rem;
+  color: #fbbf24;
+}
+
+.lp-estudante .tokens-info-content {
+  flex: 1;
+}
+
+.lp-estudante .tokens-info-content h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 0.5rem;
+}
+
+.lp-estudante .tokens-info-content p {
+  font-size: 0.95rem;
+  color: #e2e8f0;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.lp-estudante .tokens-info-content p svg {
+  color: #fbbf24;
+  margin-right: 0.5rem;
+}
+
 /* Plans Section */
 .lp-estudante .plans-section {
   padding: 0rem 0;
@@ -1728,6 +1782,32 @@
 }
 
 @media (max-width: 768px) {
+  /* Tokens Info Mobile */
+  .lp-estudante .tokens-info-box {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .lp-estudante .tokens-info-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .lp-estudante .tokens-info-icon svg {
+    font-size: 1.5rem;
+  }
+
+  .lp-estudante .tokens-info-content h3 {
+    font-size: 1.125rem;
+  }
+
+  .lp-estudante .tokens-info-content p {
+    font-size: 0.875rem;
+  }
+
   .lp-estudante .plans-container {
     grid-template-columns: 1fr 1fr !important;
     gap: 14px !important;
@@ -1881,8 +1961,10 @@
     padding: 0 0.75rem;
     text-align: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap !important;
     justify-content: center;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }
 
@@ -1913,8 +1995,19 @@
   }
 
   .cupom-banner-content span {
-    font-size: 0.75rem;
+    font-size: 0.85rem !important;
     line-height: 1.4;
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #ffffff !important;
+  }
+  
+  .cupom-banner-content span strong {
+    font-size: 0.95rem !important;
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .lp-estudante:has(.cupom-banner) .lp-header {
