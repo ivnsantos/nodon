@@ -17,10 +17,24 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [dashboardData, setDashboardData] = useState(null)
+  const [tokensPeriodo, setTokensPeriodo] = useState(null)
 
   useEffect(() => {
     loadDashboardData()
+    loadTokensPeriodo()
   }, [])
+
+  const loadTokensPeriodo = async () => {
+    try {
+      const response = await api.get('/chat/conversations/periodo')
+
+      if (response.data?.statusCode === 200 && response.data?.data) {
+        setTokensPeriodo(response.data.data)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar tokens do período:', err)
+    }
+  }
 
   const loadDashboardData = async () => {
     try {
@@ -54,6 +68,9 @@ const Dashboard = () => {
   const calculateStats = () => {
     if (!dashboardData) return null
 
+    // Usar tokens do período se disponível
+    const tokensDoPeriodo = tokensPeriodo?.totalUsedTokensPeriodo || 0
+
     // Se a API retornar resumo e usoTokens diretamente, usar esses dados
     if (dashboardData.resumo && dashboardData.usoTokens) {
       return {
@@ -63,7 +80,7 @@ const Dashboard = () => {
         },
         conversas: {
           total: dashboardData.resumo.conversas?.total || 0,
-          tokensUtilizados: dashboardData.usoTokens?.utilizados || 0,
+          tokensUtilizados: tokensDoPeriodo || dashboardData.usoTokens?.utilizados || 0,
           limiteTokens: dashboardData.usoTokens?.limite || 0,
           tokenPercentage: dashboardData.usoTokens?.porcentagem || 0
         },
@@ -94,8 +111,8 @@ const Dashboard = () => {
 
     // Conversas
     const totalConversas = conversas.length
-    // Calcular tokens usados a partir das conversas
-    const tokensUtilizados = conversas.reduce((total, conv) => {
+    // Usar tokens do período se disponível, senão calcular a partir das conversas
+    const tokensUtilizados = tokensPeriodo?.totalUsedTokensPeriodo || conversas.reduce((total, conv) => {
       return total + (conv.tokensUsados || conv.tokens_usados || 0)
     }, 0)
     // Limite de tokens (pode vir de uma conversa ou ser um valor padrão)

@@ -30,6 +30,7 @@ const Chat = () => {
   const [tokensBlocked, setTokensBlocked] = useState(false)
   const [showTokenWarning, setShowTokenWarning] = useState(false)
   const [tokenWarningLevel, setTokenWarningLevel] = useState(null) // 'near' (80-89%) ou 'critical' (90-99%)
+  const [tokensPeriodo, setTokensPeriodo] = useState(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [audioBlob, setAudioBlob] = useState(null)
@@ -72,9 +73,10 @@ const Chat = () => {
     if (!token) {
       return
     }
-    
+
     loadConversations()
     checkTokens()
+    loadTokensPeriodo()
   }, [selectedClinicData])
 
   // Verificar tokens periodicamente
@@ -88,6 +90,18 @@ const Chat = () => {
 
     return () => clearInterval(interval)
   }, [])
+
+  const loadTokensPeriodo = async () => {
+    try {
+      const response = await api.get('/chat/conversations/periodo')
+
+      if (response.data?.statusCode === 200 && response.data?.data) {
+        setTokensPeriodo(response.data.data)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar tokens do período:', err)
+    }
+  }
 
   const checkTokens = async () => {
     setLoadingTokens(true)
@@ -1042,6 +1056,23 @@ const Chat = () => {
 
   return (
     <div className="chat-modern">
+      {/* Aviso de Assinatura Vencida */}
+      {tokensPeriodo?.assinatura?.vencida && (
+        <div className="assinatura-vencida-banner">
+          <div className="assinatura-vencida-content">
+            <strong>⚠️ {tokensPeriodo?.assinatura?.aviso || 'Assinatura vencida. Renove para continuar usando o serviço.'}</strong>
+            <a
+              href="https://wa.me/5511932589622?text=quero%20fazer%20renovação"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-renew"
+            >
+              Renovar Agora
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="chat-header-modern" style={{ display: 'none' }}>
         <div className="chat-header-content">
           <button 

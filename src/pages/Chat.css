@@ -9,6 +9,62 @@
   margin: 0;
 }
 
+/* Banner de Assinatura Vencida */
+.assinatura-vencida-banner {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  padding: 1rem 1.5rem;
+  animation: pulse-warning 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(220, 38, 38, 0.7);
+  }
+}
+
+.assinatura-vencida-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.assinatura-vencida-content strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.btn-renew {
+  padding: 0.6rem 1.25rem;
+  background: #ffffff;
+  color: #dc2626;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-renew:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+}
+
 .chat-page-header {
   padding: 1.5rem 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
