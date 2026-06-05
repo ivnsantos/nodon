@@ -1,0 +1,85 @@
+@keyframes nodon-loading-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.82;
+  }
+}
+
+.nodon-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+  background-size: 200% 200%;
+  animation: nodon-loading-bg 8s ease infinite;
+}
+
+@keyframes nodon-loading-bg {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.nodon-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.nodon-loading__icon,
+.nodon-spinner {
+  display: block;
+  object-fit: contain;
+  animation: nodon-loading-pulse 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 24px rgba(14, 165, 233, 0.35));
+}
+
+.nodon-loading__text {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nodon-loading--sm .nodon-loading__text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.lp-elite .nodon-loading-overlay {
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+}
+
+.lp-elite .nodon-loading__text {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.plans-loading .nodon-loading {
+  padding: 2rem 0;
+}
+
+.plans-loading .nodon-loading__text {
+  color: var(--ch-text-muted, rgba(255, 255, 255, 0.75));
+  text-transform: none;
+  font-weight: 500;
+}

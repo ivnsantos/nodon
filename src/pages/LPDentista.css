@@ -1800,12 +1800,12 @@
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #0ea5e9;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 12px;
+  background: url('../img/nodonclaro.png') center / contain no-repeat;
+  animation: nodon-loading-pulse 1.5s ease-in-out infinite;
   margin: 0 auto;
 }
 
@@ -4224,22 +4224,27 @@
     height: 32px;
   }
 
-  .lp-dentista .nav-menu {
+  .lp-dentista.lp-elite .nav-menu:not(.open) {
+    display: none !important;
+  }
+
+  .lp-dentista:not(.lp-elite) .nav-menu:not(.open) {
+    display: none;
+  }
+
+  .lp-dentista:not(.lp-elite) .nav-menu {
     position: fixed;
-    top: 70px;
-    left: 0;
-    right: 0;
+    inset: 0;
     background: rgba(10, 10, 15, 0.99);
     backdrop-filter: blur(20px);
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: 1.5rem;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    padding: 5rem 1.5rem 2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 1002;
+    overflow-y: auto;
   }
 
   .lp-dentista .nav-links {
@@ -4267,12 +4272,18 @@
     justify-content: center;
   }
 
-  .lp-dentista .nav-menu.open {
-    transform: translateX(0);
+  .lp-dentista:not(.lp-elite) .nav-menu.open {
+    display: flex;
   }
 
   .lp-dentista .mobile-menu-toggle {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .lp-dentista .hero-section {
@@ -4281,12 +4292,49 @@
     min-height: auto;
   }
 
-  .lp-dentista .hero-content {
-    grid-template-columns: 1fr;
-    gap: 3rem;
+  .lp-dentista.lp-elite .hero-content {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    width: 100%;
+    overflow: hidden;
   }
 
-  .lp-dentista .hero-image-container {
+  .lp-dentista .hero-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .lp-dentista.lp-elite .hero-image-container {
+    order: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: unset !important;
+    max-height: none !important;
+    display: block;
+  }
+
+  .lp-dentista.lp-elite .hero-image {
+    display: block;
+    width: 100%;
+    height: auto !important;
+    max-height: min(420px, 70vh);
+    object-fit: contain;
+    object-position: center top;
+  }
+
+  .lp-dentista.lp-elite .hero-text {
+    order: 2 !important;
+    width: 100% !important;
+  }
+
+  .lp-dentista:not(.lp-elite) .hero-image-container {
     height: 400px;
     min-height: 400px;
     order: -1;

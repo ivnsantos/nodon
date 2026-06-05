@@ -1463,11 +1463,42 @@
 
 @media (max-width: 768px) {
   .chat-home-container {
-    padding: 0 1.25rem;
+    padding: 0 1rem;
   }
 
   .chat-home--elite .chat-home-hero {
-    padding: 2.5rem 0 3rem;
+    padding: 2rem 0 2.5rem;
+  }
+
+  .chat-home--elite .chat-home-title {
+    font-size: clamp(1.75rem, 7vw, 2.35rem);
+  }
+
+  .chat-home--elite .chat-home-subtitle {
+    font-size: 1rem;
+    max-width: 100%;
+  }
+
+  .chat-home--elite .chat-home-section-title {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+
+  .chat-home--elite .chat-home-section-description {
+    font-size: 1rem;
+    padding: 0 0.25rem;
+  }
+
+  .chat-home-hero-grid,
+  .chat-home-showcase-grid {
+    gap: 1.5rem;
+  }
+
+  .chat-home-hero-visual {
+    order: -1;
+  }
+
+  .chat-home-hero-frame {
+    max-height: 280px;
   }
 
   .chat-home-bento {
@@ -1475,9 +1506,10 @@
   }
 
   .bento-main,
-  .bento-tall {
+  .bento-tall,
+  .bento-item {
     grid-column: span 1;
-    min-height: 240px;
+    min-height: 200px;
   }
 
   .chat-home-plans-grid,
@@ -1486,10 +1518,36 @@
   .chat-home-benefits-grid,
   .chat-home-testimonials-grid {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .chat-home-plan-card {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .chat-home-plan-header h3,
+  .chat-home--elite .chat-home-plan-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .chat-home-price-current,
+  .chat-home--elite .chat-home-price-current {
+    font-size: 1.75rem;
+  }
+
+  .chat-home--elite .chat-home-plans,
+  .chat-home--elite .chat-home-how-it-works,
+  .chat-home--elite .chat-home-audience,
+  .chat-home--elite .chat-home-benefits,
+  .chat-home--elite .chat-home-testimonials,
+  .chat-home--elite .chat-home-gallery,
+  .chat-home--elite .chat-home-about {
+    padding: 3rem 0;
   }
 
   .chat-home--elite .chat-home-cta-buttons {
     flex-direction: column;
+    width: 100%;
   }
 
   .chat-home--elite .chat-home-btn-hero,
@@ -1508,7 +1566,46 @@
 
   .chat-home--elite .chat-home-btn-secondary,
   .chat-home--elite .chat-home-btn-primary {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  .chat-home-logo {
+    height: 32px;
+  }
+
+  .chat-home-cta-content h2 {
+    font-size: 1.75rem;
+  }
+
+  .chat-home-cta-content p {
+    font-size: 1rem;
+  }
+
+  .chat-home-whatsapp-float {
+    width: 52px;
+    height: 52px;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-home-container {
+    padding: 0 0.875rem;
+  }
+
+  .chat-home--elite .chat-home-title {
+    font-size: 1.65rem;
+  }
+
+  .chat-home-hero-pills {
+    gap: 0.35rem;
+  }
+
+  .chat-home-hero-pills span {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.75rem;
   }
 }

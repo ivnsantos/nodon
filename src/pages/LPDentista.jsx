@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
+import NodonLoading from '../components/NodonLoading'
 import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
 import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
@@ -508,21 +509,7 @@ const LPDentista = () => {
   }
 
   if (loading) {
-    return (
-      <div className="lp-loading-overlay">
-        <div className="lp-loading-container">
-          <div className="lp-loading-logo">
-            <img src={NODON_LOGO_LIGHT_BG} alt="NODON" />
-          </div>
-          <div className="lp-loading-spinner-modern">
-            <div className="spinner-ring"></div>
-            <div className="spinner-ring"></div>
-            <div className="spinner-ring"></div>
-          </div>
-          <p className="lp-loading-text">Carregando...</p>
-        </div>
-      </div>
-    )
+    return <NodonLoading fullScreen text="Carregando..." size="lg" />
   }
 
   return (
@@ -1285,7 +1272,7 @@ const LPDentista = () => {
           
           {loadingPlanos ? (
             <div className="plans-loading">
-              <div className="loading-spinner"></div>
+              <NodonLoading size="sm" text="Carregando planos..." />
             </div>
           ) : (
             <div className="plans-container">

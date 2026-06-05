@@ -116,12 +116,15 @@
   left: 0;
   right: 0;
   background: rgba(10, 10, 15, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   z-index: 1001;
   padding: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.3s ease;
+}
+
+.lp-estudante:not(.lp-elite) .lp-header {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .lp-estudante:has(.cupom-banner) .lp-header {
@@ -957,10 +960,10 @@
 }
 
 .lp-estudante .urgency-content {
-  /* text-align: center;
+  text-align: center;
   max-width: 900px;
   margin: 0 auto;
-} */
+}
 
 .lp-estudante .urgency-badge {
   display: inline-flex;
@@ -1631,60 +1634,129 @@
 }
 
 @media (max-width: 1024px) {
+  .lp-estudante.lp-elite .nav-menu:not(.open) {
+    display: none !important;
+  }
+
+  .lp-estudante.lp-elite .nav-menu.open {
+    display: flex !important;
+    position: fixed;
+    inset: 0;
+    z-index: 1002;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 5.5rem 1.5rem 2rem;
+    background: rgba(255, 255, 255, 0.98);
+    transform: none !important;
+    overflow-y: auto;
+    gap: 0;
+  }
+
+  .lp-estudante.lp-elite .header-content {
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    min-height: 56px;
+  }
+
+  .lp-estudante.lp-elite .hero-content {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .lp-estudante.lp-elite .hero-image-container {
+    order: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: unset !important;
+    max-height: none !important;
+    display: block;
+  }
+
+  .lp-estudante.lp-elite .hero-image {
+    display: block;
+    width: 100%;
+    height: auto !important;
+    max-height: min(420px, 70vh);
+    object-fit: contain;
+    object-position: center top;
+  }
+
+  .lp-estudante.lp-elite .hero-text {
+    order: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
   .lp-estudante .hero-content {
     grid-template-columns: 1fr;
-    gap: 3rem;
+    gap: 2rem;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    overflow: hidden;
   }
 
   .lp-estudante .hero-text {
-    display: contents;
-  }
-
-  .lp-estudante .hero-label {
-    order: -2;
-    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    justify-content: center;
-  }
-
-  .lp-estudante .hero-image-container {
-    height: 400px;
-    min-height: 400px;
-    order: -1;
-    aspect-ratio: auto;
-    border-radius: 1.25rem;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25), 
-                0 0 0 1px rgba(255, 255, 255, 0.05);
-  }
-
-  .lp-estudante .hero-image {
-    object-fit: contain;
-    object-position: center center;
-    width: 100%;
-    height: 100%;
-    border-radius: 1.25rem;
-  }
-
-  .lp-estudante .hero-title {
-    order: 0;
-  }
-
-  .lp-estudante .hero-description {
-    order: 1;
-  }
-
-  .lp-estudante .hero-features {
+    gap: 1rem;
     order: 2;
   }
 
-  .lp-estudante .hero-actions {
-    order: 3;
+  .lp-estudante .hero-label {
+    align-self: center;
+    margin-bottom: 0;
+  }
+
+  .lp-estudante .hero-image-container {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: unset;
+    max-height: none;
+    aspect-ratio: auto;
+    border-radius: 1.25rem;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+    display: block;
+  }
+
+  .lp-estudante .hero-image {
+    display: block;
+    object-fit: contain;
+    object-position: center top;
+    width: 100%;
+    height: auto;
+    max-height: min(420px, 70vh);
+    border-radius: 1.25rem;
   }
 
   .lp-estudante .hero-title {
-    font-size: 2.5rem;
+    font-size: clamp(1.5rem, 6.5vw, 2.25rem);
+    text-align: center;
+    text-shadow: none;
+  }
+
+  .lp-estudante .hero-description {
+    text-align: center;
+    font-size: 1rem;
+    max-width: 100%;
+  }
+
+  .lp-estudante .hero-feature {
+    font-size: 0.875rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .lp-estudante .hero-metrics {
@@ -1723,22 +1795,23 @@
     gap: 2rem;
   }
 
-  .lp-estudante .nav-menu {
+  .lp-estudante:not(.lp-elite) .nav-menu:not(.open) {
+    display: none;
+  }
+
+  .lp-estudante:not(.lp-elite) .nav-menu {
     position: fixed;
-    top: 70px;
-    left: 0;
-    right: 0;
+    inset: 0;
     background: rgba(10, 10, 15, 0.99);
     backdrop-filter: blur(20px);
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: 1.5rem;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    padding: 5rem 1.5rem 2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 1002;
+    overflow-y: auto;
   }
 
   .lp-estudante .nav-links {
@@ -1766,12 +1839,18 @@
     justify-content: center;
   }
 
-  .lp-estudante .nav-menu.open {
-    transform: translateX(0);
+  .lp-estudante:not(.lp-elite) .nav-menu.open {
+    display: flex;
   }
 
   .lp-estudante .mobile-menu-toggle {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 }
 
@@ -1802,148 +1881,77 @@
     font-size: 0.875rem;
   }
 
+  .lp-estudante .hero-title {
+    font-size: clamp(1.75rem, 7vw, 2.35rem);
+    line-height: 1.2;
+  }
+
+  .lp-estudante .hero-description {
+    font-size: 1rem;
+    max-width: 100%;
+  }
+
+  .lp-estudante .section-title {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+
+  .lp-estudante .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .lp-estudante .btn-hero-main,
+  .lp-estudante .btn-hero-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
   .lp-estudante .plans-container {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 14px !important;
-    padding: 0 12px;
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    padding: 0 !important;
     max-width: 100%;
   }
 
   .lp-estudante .plan-item {
-    padding: 42px 8px 18px 8px !important;
+    padding: 1.5rem 1.25rem 1.25rem !important;
     min-height: auto !important;
-    border-radius: 16px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    border-width: 1.5px !important;
-    background: rgba(15, 23, 42, 0.85) !important;
-  }
-
-  .lp-estudante .plan-badges-container {
-    top: -11px !important;
-    gap: 6px !important;
-    flex-wrap: nowrap !important;
-  }
-
-  .lp-estudante .plan-badge-ideal {
-    font-size: 9px !important;
-    padding: 5px 9px !important;
-    border-radius: 10px !important;
-    letter-spacing: 0.2px !important;
-    border-width: 1.5px !important;
-  }
-
-  .lp-estudante .plan-badge-popular {
-    font-size: 9px !important;
-    padding: 5px 9px !important;
-    border-radius: 10px !important;
-    letter-spacing: 0.2px !important;
-    border-width: 1.5px !important;
-  }
-
-  .lp-estudante .plan-item > div[style*="position: absolute"] {
-    font-size: 9px !important;
-    padding: 4px 9px !important;
-    top: -10px !important;
-    border-radius: 12px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.2px !important;
-  }
-
-  .lp-estudante .plan-badge {
-    font-size: 9px !important;
-    padding: 4px 9px !important;
-    top: -10px !important;
-  }
-
-  .lp-estudante .plan-header {
-    margin-bottom: 12px !important;
-    flex-grow: 0 !important;
+    border-radius: 1rem !important;
   }
 
   .lp-estudante .plan-name {
-    font-size: 15px !important;
-    margin-bottom: 10px !important;
-    line-height: 1.3 !important;
-    font-weight: 700 !important;
-  }
-
-  .lp-estudante .plan-price-section {
-    margin-bottom: 12px !important;
-    gap: 4px !important;
+    font-size: 1.2rem !important;
+    margin-bottom: 0.75rem !important;
   }
 
   .lp-estudante .price-value {
-    font-size: 22px !important;
-    font-weight: 800 !important;
-    color: #0ea5e9 !important;
-    line-height: 1.2 !important;
+    font-size: 1.75rem !important;
   }
 
   .lp-estudante .price-period {
-    font-size: 11px !important;
-    opacity: 0.85;
-    font-weight: 500 !important;
+    font-size: 0.875rem !important;
   }
 
   .lp-estudante .price-info-text {
-    font-size: 9px !important;
-    margin-top: 4px !important;
-    opacity: 0.6;
-  }
-
-  .lp-estudante .old-price {
-    font-size: 12px !important;
-    margin-bottom: 5px !important;
-    opacity: 0.65;
-  }
-
-  .lp-estudante .plan-limit {
-    display: none !important;
+    font-size: 0.75rem !important;
   }
 
   .lp-estudante .plan-tokens {
-    font-size: 11px !important;
-    padding: 9px 10px !important;
-    margin-top: 0 !important;
-    margin-bottom: 14px !important;
-    border-radius: 10px !important;
-    border-width: 1.5px !important;
-    background: rgba(14, 165, 233, 0.1) !important;
-    font-weight: 600 !important;
-    text-align: center !important;
+    font-size: 0.9rem !important;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 1rem !important;
   }
 
-  .lp-estudante .plan-tokens-premium {
-    font-size: 13px !important;
-    font-weight: 800 !important;
-    color: #fbbf24 !important;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2)) !important;
-    padding: 11px 12px !important;
-    border-radius: 10px !important;
-    border: 2px solid rgba(251, 191, 36, 0.5) !important;
-    box-shadow: 0 3px 10px rgba(251, 191, 36, 0.3) !important;
-  }
-
-  .lp-estudante .plan-free-trial {
-    display: none !important;
-  }
-
-  .lp-estudante .cupom-badge-plan {
-    font-size: 10px !important;
-    padding: 6px 9px !important;
-    margin-bottom: 12px !important;
-    font-weight: 600 !important;
+  .lp-estudante .plan-badge,
+  .lp-estudante .plan-badge-popular {
+    font-size: 0.7rem !important;
+    padding: 0.35rem 0.75rem !important;
   }
 
   .lp-estudante .btn-plan {
-    padding: 12px 14px !important;
-    font-size: 13px !important;
-    margin-top: auto !important;
-    font-weight: 700 !important;
-    border-radius: 10px !important;
-    min-height: 44px !important;
-    letter-spacing: 0.2px !important;
+    padding: 0.875rem 1.25rem !important;
+    font-size: 0.9375rem !important;
+    min-height: 48px !important;
   }
 
   .cupom-banner {
@@ -1955,12 +1963,10 @@
     padding: 0 0.75rem;
     text-align: center;
     gap: 0.5rem;
-    flex-wrap: nowrap !important;
+    flex-wrap: wrap !important;
     justify-content: center;
-    overflow-x: auto;
-    white-space: nowrap;
+    white-space: normal;
   }
-}
 
   .cupom-banner-content .cupom-image {
     max-height: 28px;
@@ -2012,7 +2018,7 @@
     margin-top: 40px;
   }
 
-  .lp-estudante .hero-image-container {
+  .lp-estudante:not(.lp-elite) .hero-image-container {
     height: 350px;
     min-height: 350px;
     order: -1;
@@ -2125,7 +2131,7 @@
     height: 24px;
   }
 
-  .lp-estudante .hero-image-container {
+  .lp-estudante:not(.lp-elite) .hero-image-container {
     height: 300px;
     min-height: 300px;
     aspect-ratio: auto;
