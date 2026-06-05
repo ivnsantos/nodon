@@ -119,10 +119,17 @@ export function isPlanoStarter(plano) {
   )
 }
 
-export function sortPlanosPorPreco(planos) {
+export function getPlanoPrecoExibicao(plano) {
+  const promocional = plano?.valorPromocional ?? plano?.valor_promocional
+  if (promocional > 0) return Number(promocional)
+  if (plano?.price > 0) return Number(plano.price)
+  return Number(plano?.valorOriginal ?? plano?.valor_original ?? plano?.price ?? 0) || 0
+}
+
+export function sortPlanosPorPreco(planos, { descendente = true } = {}) {
   return [...planos].sort((a, b) => {
-    const va = a.valorPromocional > 0 ? a.valorPromocional : (a.valorOriginal || a.price || 0)
-    const vb = b.valorPromocional > 0 ? b.valorPromocional : (b.valorOriginal || b.price || 0)
-    return va - vb
+    const va = getPlanoPrecoExibicao(a)
+    const vb = getPlanoPrecoExibicao(b)
+    return descendente ? vb - va : va - vb
   })
 }

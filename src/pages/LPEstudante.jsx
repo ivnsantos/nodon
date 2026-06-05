@@ -14,6 +14,7 @@ import {
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import NodonLoading from '../components/NodonLoading'
+import ChatPromptStarter from '../components/ChatPromptStarter'
 import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
 import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
@@ -23,16 +24,17 @@ import julia20Img from '../img/JULIA20.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import milafazodontoEstudanteImg from '../img/MILAFAZODONTO_ESTU.jpeg'
 import muniz20Img from '../img/muniz20.jpeg'
-import { getCicloFromPlano } from '../utils/planoCiclo'
 import {
   filterPlanosSaude,
-  isPlanoMaster,
-  isPlanoStarter,
   resolvePlanoBadge,
   resolvePlanoFeatured,
   sortPlanosPorPreco
 } from '../utils/planosSaude'
+import { buildPlanoSaudeFeatures, getPlanoSaudeTagline } from '../utils/planoSaudeFeatures'
+import PlanoSaudeCard from '../components/PlanoSaudeCard/PlanoSaudeCard'
+import PlanosSaudeCarousel from '../components/PlanoSaudeCard/PlanosSaudeCarousel'
 import './LPEstudante.css'
+import '../components/ChatPromptStarter/ChatPromptStarter.css'
 import '../styles/LPEliteTheme.css'
 
 const LPEstudante = () => {
@@ -89,18 +91,10 @@ const LPEstudante = () => {
       
       const planosIniciais = filterPlanosSaude(planosBackend)
 
-      const chatFeatures = [
-        'Chat especializado em odontologia 24/7',
-        'IA treinada especificamente para odontologia',
-        'Tire dúvidas sobre diagnósticos e tratamentos',
-        'Suporte para técnicas odontológicas',
-        'Acesso mobile completo',
-        'Sem fidelidade - cancele quando quiser'
-      ]
-
       const planosMapeados = sortPlanosPorPreco(
         planosIniciais.map((plano) => {
-          let features = []
+          let features = buildPlanoSaudeFeatures(plano) || []
+          const tagline = getPlanoSaudeTagline(plano)
 
           const valorOriginalRaw = plano.valorOriginal || plano.valor_original || plano.valor || 0
           const valorPromocionalRaw =
@@ -114,9 +108,7 @@ const LPEstudante = () => {
               : valorPromocionalRaw
             : null
 
-          if (isPlanoStarter(plano) || isPlanoMaster(plano)) {
-            features = [...chatFeatures]
-          } else if (plano.nome?.toLowerCase().includes('inicial')) {
+          if (features.length === 0 && plano.nome?.toLowerCase().includes('inicial')) {
             features = [
               'Análise de radiografias com IA',
               'Até 12 análises por mês',
@@ -141,6 +133,7 @@ const LPEstudante = () => {
             limiteAnalises: plano.limiteAnalises || plano.limite_analises,
             tokenChat: plano.tokenChat || plano.token_chat || plano.tokensChat || null,
             features,
+            tagline,
             featured: resolvePlanoFeatured(plano),
             badge: resolvePlanoBadge(plano)
           }
@@ -217,30 +210,18 @@ const LPEstudante = () => {
     navigate(`/checkout?origem=estudante${cupomParam}`)
   }
 
+  const handleChatPromptSubmit = (message) => {
+    trackButtonClick('chat_prompt_send', 'lp_estudante_hero')
+    trackEvent('generate_lead', { form_type: 'lp_estudante_chat_prompt' })
+    handleGoToCheckout()
+  }
+
   const scrollToSection = (id) => {
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
       setMobileMenuOpen(false)
     }
-  }
-
-  const formatarValor = (valor) => {
-    if (!valor) return 'R$ 0,00'
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor)
-  }
-
-  const formatarTokens = (tokens) => {
-    const numTokens = parseInt(tokens) || 0
-    if (numTokens >= 1000000) {
-      return `${(numTokens / 1000000).toFixed(1)} Milhão${numTokens > 1000000 ? 'es' : ''}`
-    } else if (numTokens >= 1000) {
-      return `${(numTokens / 1000).toFixed(0)} mil`
-    }
-    return numTokens.toString()
   }
 
   // Determina qual imagem usar
@@ -352,58 +333,40 @@ const LPEstudante = () => {
         </div>
       </header>
 
-      {/* Hero - Layout Minimalista e Persuasivo */}
-      <section className="hero-section">
+      {/* Hero */}
+      <section className="hero-section hero-section--chat-first">
         <div className="lp-container">
-          <div className="hero-content">
-            <div className="hero-text">
-              <div className="hero-label">
-                <FontAwesomeIcon icon={faFire} />
-                <span>IA Especializada em Saúde</span>
-              </div>
-              <h1 className="hero-title">
-                NODON
-                <br />
-                 <span className="gradient-text">seu </span> melhor assistente
-              </h1>
-              <p className="hero-description">
-                A NODON não é apenas uma ferramenta. É seu <strong>assistente pessoal de estudos</strong> que vai te ajudar a fazer trabalhos, artigos e estudos com IA especializada em odontologia.
-              </p>
-              <div className="hero-features">
-                <div className="hero-feature">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>IA para trabalhos e artigos acadêmicos</span>
-                </div>
-                <div className="hero-feature">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Estude mais rápido e aprenda melhor</span>
-                </div>
-                <div className="hero-feature">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Professor particular 24/7</span>
-                </div>
-              </div>
-              <div className="hero-actions">
-                <button className="btn-hero-main" onClick={handleCtaClick}>
-                  Começar Agora
-                  <FontAwesomeIcon icon={faArrowRight} />
+          <div className="hero-content hero-content--chat-first">
+            <ChatPromptStarter
+              badge="IA especializada em saúde"
+              title={
+                <>
+                  Sua <span className="highlight">IA de saúde</span> para estudos e clínica
+                </>
+              }
+              subtitle="A NODON entende linguagem médica e odontológica. Tire dúvidas, faça trabalhos acadêmicos e revise conteúdos com uma IA treinada para a área da saúde."
+              capabilities={['Texto', 'Voz', 'Imagem', '24/7']}
+              areas={['Medicina', 'Odontologia', 'Enfermagem', 'Farmácia', 'Fisioterapia', 'Nutrição']}
+              placeholder="Ex.: Explique endodontia ou me ajude com meu TCC..."
+              suggestions={[
+                'Me ajude a estruturar um TCC',
+                'Explique periodontia de forma didática',
+                'Resumir artigo científico de saúde'
+              ]}
+              onSubmit={handleChatPromptSubmit}
+              footerLink={
+                <button
+                  type="button"
+                  className="chat-prompt-starter__footer-link"
+                  onClick={() => {
+                    trackButtonClick('ver_planos', 'lp_estudante_hero')
+                    scrollToSection('planos')
+                  }}
+                >
+                  Ver planos
                 </button>
-                <button className="btn-hero-secondary" onClick={() => {
-                  trackButtonClick('ver_planos', 'lp_estudante_hero')
-                  scrollToSection('planos')
-                }}>
-                  Ver Planos
-                </button>
-              </div>
-            </div>
-            <div className="hero-image-container">
-              <img 
-                key={`hero-img-${cupomCode}-${cupomValido}`}
-                src={getHeroImage()} 
-                alt={getHeroImageAlt()} 
-                className="hero-image" 
-              />
-            </div>
+              }
+            />
           </div>
           <div className="hero-metrics">
             <div className="metric">
@@ -753,108 +716,19 @@ const LPEstudante = () => {
               <NodonLoading size="sm" text="Carregando planos..." />
             </div>
           ) : (
-            <div className="plans-container">
-              {planos.map((plano, index) => {
-                // Os valores já vêm convertidos de loadPlanos
-                const valorOriginal = Number(plano.valorOriginal) || 0
-                const valorPromocional = plano.valorPromocional !== null && plano.valorPromocional !== undefined 
-                  ? Number(plano.valorPromocional) 
-                  : null
-                
-                // Verifica se tem promoção: valor promocional existe, é válido e menor que o original
-                const temPromocao = valorPromocional !== null && 
-                                    !isNaN(valorPromocional) &&
-                                    valorPromocional > 0 && 
-                                    valorOriginal > 0 &&
-                                    valorPromocional < valorOriginal
-                
-                // Aplica desconto do cupom se estiver ativo
-                let valorExibir = temPromocao ? valorPromocional : valorOriginal
-                let temDescontoCupom = false
-                // Valor base para aplicar desconto do cupom (promocional se existir, senão original)
-                let valorBaseParaDesconto = temPromocao ? valorPromocional : valorOriginal
-                
-                if (cupomValido && cupomData && valorOriginal > 0) {
-                  const discountPercent = Number(cupomData.discountValue) || 0
-                  if (discountPercent > 0) {
-                    // Aplica desconto sobre o valor promocional (se existir) ou sobre o original
-                    const valorComDesconto = valorBaseParaDesconto * (1 - discountPercent / 100)
-                    valorExibir = valorComDesconto
-                    temDescontoCupom = true
-                  }
-                }
-                
-                const cicloInfo = getCicloFromPlano(plano)
-
-                return (
-                  <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
-                    {plano.badge && (
-                      /mais\s*vendido/i.test(plano.badge) ? (
-                        <div className="plan-badge-popular">🔥 {plano.badge}</div>
-                      ) : (
-                        <div className="plan-badge">{plano.badge}</div>
-                      )
-                    )}
-                    <div className="plan-header">
-                      <h3 className="plan-name">
-                        {plano.nome.includes('PRO') ? (
-                          <>
-                            {plano.nome.split('PRO')[0]}
-                            <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>⭐ PRO</span>
-                            {plano.nome.split('PRO')[1]}
-                          </>
-                        ) : (
-                          plano.nome
-                        )}
-                      </h3>
-                      {cupomValido && cupomData && (
-                        <div className="cupom-badge-plan">
-                          <FontAwesomeIcon icon={faTag} />
-                          <span>Cupom {cupomCode} aplicado!</span>
-                        </div>
-                      )}
-                      <div className="plan-price-section">
-                        {/* Sempre mostra o original riscado quando tem promoção ou cupom */}
-                        {(temPromocao || temDescontoCupom) && (
-                          <div className="old-price">{formatarValor(valorOriginal)}</div>
-                        )}
-                        {/* Mostra o promocional riscado quando tem cupom aplicado */}
-                        {temDescontoCupom && temPromocao && (
-                          <div className="old-price">{formatarValor(valorPromocional)}</div>
-                        )}
-                        {/* Preço final */}
-                        <div className="price-main">
-                          <span className="price-value">{formatarValor(valorExibir)}</span>
-                          <span className="price-period">{cicloInfo.periodoCurto}</span>
-                        </div>
-                        <div className="price-info-text">o valor nao aumenta nos proximos meses.</div>
-                      </div>
-                      {plano.limiteAnalises && (
-                        <div className="plan-limit">{plano.limiteAnalises} análises/mês</div>
-                      )}
-                      {plano.tokenChat && (
-                        <div className={`plan-tokens ${plano.tokenChat > 300000 ? 'plan-tokens-premium' : ''}`}>
-                          🚀 {formatarTokens(plano.tokenChat)} de tokens
-                        </div>
-                      )}
-                      {!plano.nome?.toLowerCase().includes('estudante') && (
-                        <div className="plan-free-trial">
-                          <FontAwesomeIcon icon={faGift} />
-                          <span>  para você</span>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      className={`btn-plan ${plano.featured ? 'featured' : ''}`}
-                      onClick={() => handlePlanSelect(plano.nome, plano.id)}
-                    >
-                      Assinar Agora
-                      <FontAwesomeIcon icon={faArrowRight} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+            <PlanosSaudeCarousel>
+              {planos.map((plano, index) => (
+                <PlanoSaudeCard
+                  key={plano.id || `plano-${index}`}
+                  plano={plano}
+                  index={index}
+                  cupomValido={cupomValido}
+                  cupomData={cupomData}
+                  cupomLabel={cupomCode || ''}
+                  onSelect={handlePlanSelect}
+                />
+              ))}
+            </PlanosSaudeCarousel>
           )}
         </div>
       </section>

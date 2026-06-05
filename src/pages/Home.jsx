@@ -20,6 +20,7 @@ import AlertModal from '../components/AlertModal'
 import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import { getCicloFromPlano } from '../utils/planoCiclo'
 import { resolvePlanoBadge, resolvePlanoFeatured } from '../utils/planosSaude'
+import { buildPlanoSaudeFeatures, getPlanoSaudeTagline } from '../utils/planoSaudeFeatures'
 import './Home.css'
 
 const Home = () => {
@@ -555,17 +556,23 @@ const Home = () => {
                 }
                 
                 const featuresList = []
+                const taglinePlano = getPlanoSaudeTagline(plano)
+                const saudeFeatures = buildPlanoSaudeFeatures(plano)
                 
                 if (isPlanoChat) {
-                  if (tokenChat && parseInt(tokenChat) > 0) {
-                    featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
+                  if (saudeFeatures) {
+                    featuresList.push(...saudeFeatures)
+                  } else {
+                    if (tokenChat && parseInt(tokenChat) > 0) {
+                      featuresList.push(`${formatarTokens(tokenChat)} de tokens`)
+                    }
+                    featuresList.push('Chat especializado em odontologia 24/7')
+                    featuresList.push('IA treinada especificamente para odontologia')
+                    featuresList.push('Tire dúvidas sobre diagnósticos e tratamentos')
+                    featuresList.push('Suporte para técnicas odontológicas')
+                    featuresList.push('Acesso mobile')
+                    featuresList.push('Sem fidelidade - cancele quando quiser')
                   }
-                  featuresList.push('Chat especializado em odontologia 24/7')
-                  featuresList.push('IA treinada especificamente para odontologia')
-                  featuresList.push('Tire dúvidas sobre diagnósticos e tratamentos')
-                  featuresList.push('Suporte para técnicas odontológicas')
-                  featuresList.push('Acesso mobile')
-                  featuresList.push('Sem fidelidade - cancele quando quiser')
                 } else if (isPlanoInicial) {
                   featuresList.push('Diagnósticos com IA avançada')
                   featuresList.push(`Até ${limiteAnalises || 12} análises por mês`)
@@ -636,7 +643,7 @@ const Home = () => {
                         )}
                       </div>
                       <div className="home-plan-feature-count">
-                        {plano.descricao || (limiteAnalises > 0 ? `Até ${limiteAnalises} análises por mês` : 'Análises ilimitadas')}
+                        {taglinePlano || plano.descricao || (limiteAnalises > 0 ? `Até ${limiteAnalises} análises por mês` : 'Análises ilimitadas')}
                       </div>
                       {!nomePlano.toLowerCase().includes('estudante') && (
                         <div className="home-plan-free-trial">

@@ -11,6 +11,7 @@ import api from '../utils/api'
 import { useAuth } from '../context/useAuth'
 import { useChatHeader } from '../context/ChatHeaderContext'
 import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
+import { consumePendingChatMessage } from '../components/ChatPromptStarter'
 import './Chat.css'
 
 const Chat = () => {
@@ -42,6 +43,13 @@ const Chat = () => {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    const pendingMessage = consumePendingChatMessage()
+    if (pendingMessage) {
+      setInput(pendingMessage)
+    }
+  }, [])
 
   // Verifica se o usuário está próximo do final do chat (dentro de 200px do final)
   const isNearBottom = () => {
@@ -1242,8 +1250,8 @@ const Chat = () => {
               <div className="welcome-icon-modern">
                 <FontAwesomeIcon icon={faMagic} />
               </div>
-              <h3>Olá! Sou seu assistente de IA</h3>
-              <p>Como posso ajudá-lo hoje com questões odontológicas?</p>
+              <h3>Olá! Como posso ajudar você hoje?</h3>
+              <p>A NODON é uma IA especializada em saúde. Tire dúvidas, faça trabalhos acadêmicos e revise conteúdos com uma IA treinada para a área da saúde.</p>
             </div>
           ) : (
             messages.map((msg, index) => (

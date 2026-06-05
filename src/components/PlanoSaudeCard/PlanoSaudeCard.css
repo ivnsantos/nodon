@@ -1,0 +1,351 @@
+.chat-home-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 250px));
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.chat-home-cupom-badge-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  border-radius: 999px;
+  color: #047857;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.chat-home-cupom-badge-plan svg {
+  font-size: 0.7rem;
+}
+
+.chat-home-plan-card.features-open .chat-home-plan-features {
+  display: block;
+}
+
+.chat-home-plan-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  padding: 1.125rem 1rem;
+  max-width: 250px;
+  width: 100%;
+  margin: 0 auto;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chat-home-plan-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(14, 165, 233, 0.45);
+  box-shadow: 0 16px 40px rgba(14, 165, 233, 0.15);
+}
+
+.chat-home-plan-card.featured {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+.chat-home-plan-badge {
+  position: absolute;
+  top: -10px;
+  right: 0.75rem;
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  color: #fff;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.chat-home-plan-card.featured .chat-home-plan-badge {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #0a0e27;
+}
+
+.chat-home-plan-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #fff;
+}
+
+.chat-home-plan-tagline {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  margin: 0 0 0.5rem;
+}
+
+.chat-home-plan-price {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+}
+
+.chat-home-price-old {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: line-through;
+}
+
+.chat-home-price-current {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #7dd3fc;
+}
+
+.chat-home-plan-tokens {
+  font-size: 0.8125rem;
+  color: #a5f3fc;
+  margin-bottom: 0.35rem;
+}
+
+.chat-home-plan-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+  padding: 0.45rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chat-home-plan-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chat-home-plan-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.chat-home-plan-toggle svg.expanded {
+  transform: rotate(180deg);
+}
+
+.chat-home-plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.625rem;
+}
+
+.chat-home-plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.3rem 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chat-home-plan-features li:last-child {
+  border-bottom: none;
+}
+
+.chat-home-plan-features li svg {
+  color: #10b981;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.chat-home-plan-btn {
+  width: 100%;
+  padding: 0.7rem 0.875rem;
+  background: #0ea5e9;
+  border: none;
+  border-radius: 0.625rem;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.chat-home-plan-btn:hover {
+  background: #0284c7;
+  transform: translateY(-2px);
+}
+
+.chat-home-plan-btn.featured {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #0a0e27;
+}
+
+.chat-home-plan-btn.featured:hover {
+  background: linear-gradient(135deg, #fbbf24, #fcd34d);
+}
+
+.chat-home-plan-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+}
+
+/* Tema claro — Home e LPs elite */
+.chat-home--elite .chat-home-plan-card,
+.lp-elite .chat-home-plan-card {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+}
+
+.chat-home--elite .chat-home-plan-card:hover,
+.lp-elite .chat-home-plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ch-shadow-lg);
+}
+
+.chat-home--elite .chat-home-plan-card.featured,
+.lp-elite .chat-home-plan-card.featured {
+  border-color: rgba(12, 74, 110, 0.35);
+  background: linear-gradient(180deg, #fff 0%, var(--ch-accent-soft) 100%);
+}
+
+.chat-home--elite .chat-home-plan-header h3,
+.lp-elite .chat-home-plan-header h3 {
+  color: var(--ch-text);
+}
+
+.chat-home--elite .chat-home-plan-tagline,
+.lp-elite .chat-home-plan-tagline {
+  color: var(--ch-text-muted);
+}
+
+.chat-home--elite .chat-home-price-old,
+.lp-elite .chat-home-price-old {
+  color: #94a3b8;
+}
+
+.chat-home--elite .chat-home-price-current,
+.lp-elite .chat-home-price-current {
+  color: var(--ch-accent);
+}
+
+.chat-home--elite .chat-home-plan-tokens,
+.lp-elite .chat-home-plan-tokens {
+  color: var(--ch-accent-light);
+}
+
+.chat-home--elite .chat-home-plan-toggle,
+.lp-elite .chat-home-plan-toggle {
+  border-color: var(--ch-border);
+  color: var(--ch-text-muted);
+}
+
+.chat-home--elite .chat-home-plan-toggle:hover,
+.lp-elite .chat-home-plan-toggle:hover {
+  background: var(--ch-accent-soft);
+}
+
+.chat-home--elite .chat-home-plan-features li,
+.lp-elite .chat-home-plan-features li {
+  color: var(--ch-text-muted);
+  border-color: var(--ch-border);
+}
+
+.chat-home--elite .chat-home-plan-btn,
+.lp-elite .chat-home-plan-btn {
+  background: var(--ch-accent);
+  color: #fff;
+}
+
+.chat-home--elite .chat-home-plan-btn:hover,
+.lp-elite .chat-home-plan-btn:hover {
+  background: var(--ch-accent-light);
+}
+
+.chat-home--elite .chat-home-plan-btn.featured,
+.lp-elite .chat-home-plan-btn.featured {
+  background: var(--ch-accent);
+  color: #fff;
+}
+
+.chat-home--elite .chat-home-plan-note,
+.lp-elite .chat-home-plan-note {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite .plans-section .chat-home-plans-grid {
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  /* Carrossel horizontal — ver PlanosSaudeCarousel.css */
+  .chat-home-plans-grid:not(.planos-saude-carousel__track) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  .planos-saude-carousel__track > .chat-home-plan-card {
+    max-width: none;
+    width: calc(100% - 2rem);
+    margin: 0 !important;
+  }
+
+  .chat-home-plan-card {
+    padding: 1rem 0.875rem;
+  }
+
+  .chat-home-plan-card:has(.chat-home-plan-features) .chat-home-plan-tokens {
+    display: none;
+  }
+
+  .chat-home-plan-header h3,
+  .chat-home--elite .chat-home-plan-header h3,
+  .lp-elite .chat-home-plan-header h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .chat-home-plan-tagline {
+    font-size: 0.8125rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .chat-home-price-current {
+    font-size: 1.5rem;
+  }
+
+  .chat-home-plan-toggle {
+    margin: 0.625rem 0;
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .chat-home-plan-features {
+    margin-bottom: 0.625rem;
+  }
+
+  .chat-home-plan-features li {
+    font-size: 0.8125rem;
+    padding: 0.35rem 0;
+  }
+
+  .chat-home-plan-btn {
+    padding: 0.7rem 1rem;
+    font-size: 0.875rem;
+    min-height: 44px;
+  }
+
+  .chat-home-plan-note {
+    font-size: 0.6875rem;
+    margin-top: 0.5rem;
+  }
+}

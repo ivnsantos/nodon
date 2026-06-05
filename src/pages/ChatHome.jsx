@@ -21,7 +21,6 @@ import {
   faShieldAlt,
   faStar,
   faQuoteLeft,
-  faChevronDown,
   faTag
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
@@ -33,8 +32,11 @@ import home4Img from '../img/home4.PNG'
 import chatMilaVideo from '../video/cht-mila.mp4'
 import chatExplicaVideo from '../video/chat-explica.mp4'
 import chatNodonVideo from '../video/chat-nodon.MP4?url'
-import { getCicloFromPlano } from '../utils/planoCiclo'
-import { filterPlanosSaude, resolvePlanoBadge, resolvePlanoFeatured } from '../utils/planosSaude'
+import { buildPlanoSaudeFeatures, getPlanoSaudeTagline } from '../utils/planoSaudeFeatures'
+import { filterPlanosSaude, resolvePlanoBadge, resolvePlanoFeatured, sortPlanosPorPreco } from '../utils/planosSaude'
+import ChatPromptStarter from '../components/ChatPromptStarter'
+import PlanoSaudeCard from '../components/PlanoSaudeCard/PlanoSaudeCard'
+import PlanosSaudeCarousel from '../components/PlanoSaudeCard/PlanosSaudeCarousel'
 import './ChatHome.css'
 
 const CUPOM_SAUDE = 'SAUDE'
@@ -49,54 +51,7 @@ const parsePrice = (value) => {
   return null
 }
 
-const arredondarMoeda = (valor) => Math.round((Number(valor) || 0) * 100) / 100
-
-const formatarValor = (valor) => {
-  if (valor === null || valor === undefined || isNaN(Number(valor))) return 'R$ 0,00'
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(arredondarMoeda(valor))
-}
-
-const formatarTokens = (tokens) => {
-  const numTokens = parseInt(tokens) || 0
-  if (numTokens >= 1000000) {
-    return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
-  }
-  if (numTokens >= 1000) {
-    return `${(numTokens / 1000).toFixed(0)} mil`
-  }
-  return numTokens.toString()
-}
-
-const buildFeaturesSaude = (plano) => {
-  const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat
-  const nome = (plano.nome || '').toLowerCase()
-  const features = []
-
-  if (tokenChat && parseInt(tokenChat) > 0) {
-    features.push(`${formatarTokens(tokenChat)} de tokens no chat`)
-  }
-  features.push('Chat por texto, voz e imagem')
-  features.push('IA para profissionais e estudantes de saúde')
-  features.push('Medicina, enfermagem, odonto e demais áreas')
-  features.push('Disponível 24 horas, 7 dias por semana')
-  features.push('Acesso mobile')
-  features.push('Sem fidelidade — cancele quando quiser')
-
-  if (plano.features && Array.isArray(plano.features)) {
-    features.push(...plano.features)
-  } else if (plano.caracteristicas && Array.isArray(plano.caracteristicas)) {
-    features.push(...plano.caracteristicas)
-  }
-
-  if (nome.includes('pro')) {
-    features.unshift('Mais tokens e uso intensivo')
-  }
-
-  return features
-}
+const buildFeaturesSaude = (plano) => buildPlanoSaudeFeatures(plano) ?? []
 
 const SHOWCASE_BLOCKS = [
   {
@@ -131,7 +86,6 @@ const ChatHome = () => {
   const [currentVideo, setCurrentVideo] = useState(null)
   const [planos, setPlanos] = useState([])
   const [loadingPlanos, setLoadingPlanos] = useState(true)
-  const [expandedPlans, setExpandedPlans] = useState({})
   const [cupomValido, setCupomValido] = useState(false)
   const [cupomData, setCupomData] = useState(null)
   const [validandoCupom, setValidandoCupom] = useState(true)
@@ -167,8 +121,8 @@ const ChatHome = () => {
 
       const filtrados = filterPlanosSaude(lista)
 
-      const mapeados = filtrados
-        .map((plano) => {
+      const mapeados = sortPlanosPorPreco(
+        filtrados.map((plano) => {
           const valorOriginal = parsePrice(plano.valorOriginal ?? plano.valor_original ?? plano.valor) ?? 0
           const valorPromocional = parsePrice(plano.valorPromocional ?? plano.valor_promocional)
           const nome = plano.nome || 'Plano'
@@ -181,11 +135,7 @@ const ChatHome = () => {
             badge: resolvePlanoBadge(plano)
           }
         })
-        .sort((a, b) => {
-          const va = a.valorPromocional ?? a.valorOriginal ?? 0
-          const vb = b.valorPromocional ?? b.valorOriginal ?? 0
-          return va - vb
-        })
+      )
 
       setPlanos(mapeados)
     } catch (error) {
@@ -230,33 +180,33 @@ const ChatHome = () => {
   }, [])
 
   useEffect(() => {
-    if (planos.length === 0) return
-    const abertos = {}
-    planos.forEach((plano, index) => {
-      const id = plano.id || `plano-${index}`
-      abertos[id] = true
-    })
-    setExpandedPlans(abertos)
-  }, [planos])
-
-  useEffect(() => {
     const onScroll = () => setHeaderScrolled(window.scrollY > 24)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  const handlePlanToggle = (planId) => {
-    setExpandedPlans((prev) => ({
-      ...prev,
-      [planId]: !(prev[planId] ?? true)
-    }))
-  }
 
   const handlePlanSelect = (nomePlano, planoId) => {
     const cupomParam = cupomValido ? `&cupom=${encodeURIComponent(CUPOM_SAUDE)}` : ''
     navigate(
       `/checkout?plano=${encodeURIComponent(nomePlano)}&planoId=${planoId}&origem=saude${cupomParam}`
     )
+  }
+
+  const handleGoToCheckout = () => {
+    const cupomParam = cupomValido ? `&cupom=${encodeURIComponent(CUPOM_SAUDE)}` : ''
+    const plano = planos.find((p) => p.featured) || planos[0]
+    if (plano?.id && (plano.nome || plano.name)) {
+      const nomePlano = plano.nome || plano.name
+      navigate(
+        `/checkout?plano=${encodeURIComponent(nomePlano)}&planoId=${plano.id}&origem=saude${cupomParam}`
+      )
+      return
+    }
+    navigate(`/checkout?origem=saude${cupomParam}`)
+  }
+
+  const handleChatPromptSubmit = () => {
+    handleGoToCheckout()
   }
 
   return (
@@ -285,46 +235,36 @@ const ChatHome = () => {
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="chat-home-hero">
-        <div className="chat-home-container chat-home-hero-grid">
-          <div className="chat-home-hero-copy">
-            <p className="chat-home-eyebrow">
-              <FontAwesomeIcon icon={faHeartbeat} />
-              Inteligência artificial · Área da saúde
-            </p>
-            <h1 className="chat-home-title">
-              A <span className="highlight">NODON</span> para quem estuda e trabalha com saúde
-            </h1>
-            <p className="chat-home-subtitle">
-              Uma plataforma elegante e precisa para profissionais e estudantes de medicina, enfermagem,
-              odontologia, fisioterapia, nutrição, farmácia e todas as formações do setor.
-            </p>
-            <div className="chat-home-hero-pills">
-              <span>Texto</span>
-              <span>Voz</span>
-              <span>Imagem</span>
-              <span>24/7</span>
-            </div>
-            <div className="chat-home-cta-buttons">
-              <button type="button" className="chat-home-btn-hero" onClick={() => navigate('/register')}>
-                <FontAwesomeIcon icon={faRocket} />
-                Começar Agora
-              </button>
-              <button type="button" className="chat-home-btn-secondary-hero" onClick={() => scrollToSection('planos')}>
+      {/* Hero */}
+      <section className="chat-home-hero chat-home-hero--prompt">
+        <div className="chat-home-container">
+          <ChatPromptStarter
+            badge="Inteligência artificial · Área da saúde"
+            title={
+              <>
+                A <span className="highlight">NODON</span> — IA para quem vive a saúde
+              </>
+            }
+            subtitle="Profissionais e estudantes de medicina, enfermagem, odontologia, fisioterapia, nutrição, farmácia e todas as formações do setor. Pergunte por texto, voz ou imagem."
+            capabilities={['Texto', 'Voz', 'Imagem', '24/7']}
+            areas={['Medicina', 'Enfermagem', 'Odontologia', 'Farmácia', 'Fisioterapia', 'Nutrição']}
+            placeholder="Ex.: Explique o protocolo de sepse ou revise anatomia comigo..."
+            suggestions={[
+              'Revisar conteúdo para prova de anatomia',
+              'Diagnóstico diferencial de dor torácica',
+              'Resumir artigo científico de enfermagem'
+            ]}
+            onSubmit={handleChatPromptSubmit}
+            footerLink={
+              <button
+                type="button"
+                className="chat-prompt-starter__footer-link"
+                onClick={() => scrollToSection('planos')}
+              >
                 Ver planos
               </button>
-            </div>
-          </div>
-          <div className="chat-home-hero-visual">
-            <div className="chat-home-hero-frame">
-              <img src={home1Img} alt="Equipe multiprofissional de saúde em hospital" />
-              <div className="chat-home-hero-caption">
-                <span>Equipes de saúde</span>
-                <strong>Colaboração com tecnologia</strong>
-              </div>
-            </div>
-          </div>
+            }
+          />
         </div>
       </section>
 
@@ -625,109 +565,21 @@ const ChatHome = () => {
               <p>Nenhum plano disponível no momento.</p>
             </div>
           ) : (
-            <div className="chat-home-plans-grid">
-              {planos.map((plano, index) => {
-                const planoId = plano.id || `plano-${index}`
-                const nomePlano = plano.nome || 'Plano'
-                const valorOriginal = Number(plano.valorOriginal) || 0
-                const valorPromocional =
-                  plano.valorPromocional !== null && plano.valorPromocional !== undefined
-                    ? Number(plano.valorPromocional)
-                    : null
-                const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat
-                const temPromocao =
-                  valorPromocional !== null &&
-                  !isNaN(valorPromocional) &&
-                  valorPromocional > 0 &&
-                  valorOriginal > 0 &&
-                  valorPromocional < valorOriginal
-                const valorBase = temPromocao ? valorPromocional : valorOriginal
-                let valorExibir = valorBase
-                let temDescontoCupom = false
-                if (cupomValido && cupomData && valorBase > 0) {
-                  const discountPercent = Number(cupomData.discountValue) || 0
-                  if (discountPercent > 0) {
-                    valorExibir = arredondarMoeda(valorBase * (1 - discountPercent / 100))
-                    temDescontoCupom = true
-                  }
-                }
-                const featuresList = buildFeaturesSaude(plano)
-                const expanded = expandedPlans[planoId] ?? true
-                const cicloInfo = getCicloFromPlano(plano)
-
-                return (
-                  <div
-                    key={planoId}
-                    className={`chat-home-plan-card ${plano.featured ? 'featured' : ''} ${expanded ? 'features-open' : ''}`}
-                  >
-                    {plano.badge && <div className="chat-home-plan-badge">{plano.badge}</div>}
-                    <div className="chat-home-plan-header">
-                      <h3>{nomePlano}</h3>
-                      {cupomValido && cupomData && (
-                        <div className="chat-home-cupom-badge-plan">
-                          <FontAwesomeIcon icon={faTag} />
-                          <span>Cupom {CUPOM_SAUDE} aplicado</span>
-                        </div>
-                      )}
-                      <div className="chat-home-plan-price">
-                        {(temPromocao || temDescontoCupom) && valorOriginal > 0 && (
-                          <span className="chat-home-price-old">
-                            {formatarValor(valorOriginal)}{cicloInfo.periodoCurto}
-                          </span>
-                        )}
-                        {temDescontoCupom && temPromocao && valorPromocional > 0 && (
-                          <span className="chat-home-price-old">
-                            {formatarValor(valorPromocional)}{cicloInfo.periodoCurto}
-                          </span>
-                        )}
-                        {temDescontoCupom && !temPromocao && valorOriginal > 0 && (
-                          <span className="chat-home-price-old">
-                            {formatarValor(valorOriginal)}{cicloInfo.periodoCurto}
-                          </span>
-                        )}
-                        <span className="chat-home-price-current">
-                          {formatarValor(valorExibir)}{cicloInfo.periodoCurto}
-                        </span>
-                      </div>
-                      {tokenChat && parseInt(tokenChat) > 0 && (
-                        <p className="chat-home-plan-tokens">
-                          {formatarTokens(tokenChat)} de tokens
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="chat-home-plan-toggle"
-                      onClick={() => handlePlanToggle(planoId)}
-                    >
-                      {expanded ? 'Ocultar recursos' : 'Ver recursos'}
-                      <FontAwesomeIcon
-                        icon={faChevronDown}
-                        className={expanded ? 'expanded' : ''}
-                      />
-                    </button>
-                    {expanded && (
-                      <ul className="chat-home-plan-features">
-                        {featuresList.map((feature, idx) => (
-                          <li key={idx}>
-                            <FontAwesomeIcon icon={faCheckCircle} />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <button
-                      type="button"
-                      className={`chat-home-plan-btn ${plano.featured ? 'featured' : ''}`}
-                      onClick={() => handlePlanSelect(nomePlano, planoId)}
-                    >
-                      Assinar Agora
-                    </button>
-                    <p className="chat-home-plan-note">{cicloInfo.notaPlano}</p>
-                  </div>
-                )
-              })}
-            </div>
+            <PlanosSaudeCarousel>
+              {planos.map((plano, index) => (
+                <PlanoSaudeCard
+                  key={plano.id || `plano-${index}`}
+                  plano={plano}
+                  index={index}
+                  features={buildFeaturesSaude(plano)}
+                  tagline={getPlanoSaudeTagline(plano)}
+                  cupomValido={cupomValido}
+                  cupomData={cupomData}
+                  cupomLabel={CUPOM_SAUDE}
+                  onSelect={handlePlanSelect}
+                />
+              ))}
+            </PlanosSaudeCarousel>
           )}
         </div>
       </section>

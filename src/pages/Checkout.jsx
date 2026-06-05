@@ -618,6 +618,7 @@ const Checkout = () => {
                 <p>Nenhum plano disponível no momento.</p>
               </div>
             ) : (
+              <>
               <div className="checkout-plans-grid" role="radiogroup" aria-label="Planos disponíveis">
                 {plans.map((plan) => {
                   const selected = selectedPlan?.id === plan.id
@@ -651,6 +652,9 @@ const Checkout = () => {
 
                       <div className="checkout-plan-card-header">
                         <h3 className="checkout-plan-card-name">{plan.name}</h3>
+                        {plan.patients && (
+                          <p className="checkout-plan-card-tagline">{plan.patients}</p>
+                        )}
                         {selected && (
                           <span className="checkout-plan-selected-pill">
                             <FontAwesomeIcon icon={faCheckCircle} /> Selecionado
@@ -708,32 +712,54 @@ const Checkout = () => {
                   )
                 })}
               </div>
+              {plans.length > 1 && (
+                <p className="checkout-plans-scroll-hint">Deslize para ver os planos →</p>
+              )}
+              </>
             )}
 
-            <div className="checkout-coupon-bar">
-              <div className="checkout-coupon-inline">
-                <FontAwesomeIcon icon={faTag} />
-                <input
-                  type="text"
-                  placeholder="Tem um cupom? Digite aqui"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  disabled={couponApplied || isApplyingCoupon}
-                />
-                {couponApplied ? (
-                  <button type="button" className="btn-coupon-remove" onClick={removeCoupon}>
-                    Remover
+            <div className={`checkout-coupon-bar${couponApplied ? ' checkout-coupon-bar--applied' : ''}`}>
+              {couponApplied && appliedCoupon ? (
+                <div className="checkout-coupon-applied">
+                  <div className="checkout-coupon-applied-row">
+                    <span className="checkout-coupon-applied-chip">
+                      <FontAwesomeIcon icon={faTag} aria-hidden />
+                      <strong>{appliedCoupon.name}</strong>
+                      <span className="checkout-coupon-applied-pct">−{discount}%</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-coupon-remove btn-coupon-remove--link"
+                      onClick={removeCoupon}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                  <p className="checkout-coupon-ok">
+                    <FontAwesomeIcon icon={faCheckCircle} aria-hidden />
+                    Desconto aplicado em todos os planos
+                  </p>
+                </div>
+              ) : (
+                <div className="checkout-coupon-inline">
+                  <FontAwesomeIcon icon={faTag} aria-hidden />
+                  <input
+                    type="text"
+                    placeholder="Cupom de desconto"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    disabled={isApplyingCoupon}
+                    aria-label="Código do cupom"
+                  />
+                  <button
+                    type="button"
+                    className="btn-coupon-apply"
+                    onClick={handleCouponSubmit}
+                    disabled={isApplyingCoupon}
+                  >
+                    {isApplyingCoupon ? '…' : 'Aplicar'}
                   </button>
-                ) : (
-                  <button type="button" className="btn-coupon-apply" onClick={handleCouponSubmit} disabled={isApplyingCoupon}>
-                    {isApplyingCoupon ? 'Aplicando...' : 'Aplicar cupom'}
-                  </button>
-                )}
-              </div>
-              {couponApplied && appliedCoupon && (
-                <p className="checkout-coupon-ok">
-                  <FontAwesomeIcon icon={faCheckCircle} /> Cupom <strong>{appliedCoupon.name}</strong> — {discount}% de desconto em todos os planos
-                </p>
+                </div>
               )}
             </div>
           </section>

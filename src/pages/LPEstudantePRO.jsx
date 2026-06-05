@@ -41,6 +41,7 @@ import chatExplicaVideo from '../video/chat-explica.mp4'
 import chatNodonVideo from '../video/chat-nodon.MP4?url'
 import { getCicloFromPlano } from '../utils/planoCiclo'
 import { filterPlanosSaude, resolvePlanoFeatured } from '../utils/planosSaude'
+import { buildPlanoSaudeFeatures, getPlanoSaudeTagline } from '../utils/planoSaudeFeatures'
 import './LPEstudantePRO.css'
 import './LPDentistaPRO_plans.css'
 import '../styles/LPEliteTheme.css'
@@ -71,7 +72,11 @@ const LPEstudantePRO = () => {
       const todosPlanos = response.data.data || response.data
       console.log('Todos os planos:', todosPlanos)
       
-      const planosEstudante = filterPlanosSaude(todosPlanos)
+      const planosEstudante = filterPlanosSaude(todosPlanos).map((plano) => ({
+        ...plano,
+        features: buildPlanoSaudeFeatures(plano) ?? [],
+        tagline: getPlanoSaudeTagline(plano)
+      }))
       const estudante = planosEstudante.find((p) => resolvePlanoFeatured(p)) || planosEstudante[0]
       
       console.log('Planos estudante encontrados:', planosEstudante)
@@ -173,6 +178,10 @@ const LPEstudantePRO = () => {
   }
 
   const cicloPlano = getCicloFromPlano(planoEstudante)
+  const planoFeatures = planoEstudante?.features?.length
+    ? planoEstudante.features
+    : buildPlanoSaudeFeatures(planoEstudante) ?? []
+  const planoTagline = getPlanoSaudeTagline(planoEstudante)
 
   return (
     <div className="lp-estudante-pro lp-elite">
@@ -639,47 +648,15 @@ const LPEstudantePRO = () => {
                 )}
               </div>
 
+              {planoTagline && <p className="plano-estudante-tagline">{planoTagline}</p>}
+
               <div className="plano-beneficios-destaque">
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span><strong>300 mil tokens</strong> por mês para conversas ilimitadas</span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Análise de <strong>radiografias e imagens clínicas</strong></span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Envio de <strong>mensagens de áudio</strong> para respostas rápidas</span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Criação de <strong>planos de tratamento</strong> personalizados</span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Geração de <strong>orçamentos automáticos</strong></span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Ajuda com <strong>diagnósticos diferenciais</strong></span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Sugestões de <strong>protocolos clínicos</strong></span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Explicações sobre <strong>procedimentos e técnicas</strong></span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Criação de <strong>conteúdo educativo</strong> para pacientes</span>
-                </div>
-                <div className="beneficio-item">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>Suporte <strong>24/7</strong> sempre disponível</span>
-                </div>
+                {planoFeatures.map((feature) => (
+                  <div key={feature} className="beneficio-item">
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    <span>{feature}</span>
+                  </div>
+                ))}
               </div>
 
               <div className="plano-estudante-features-wrapper">

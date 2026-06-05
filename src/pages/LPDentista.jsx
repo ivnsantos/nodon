@@ -7,7 +7,7 @@ import {
   faBars, faTimes, faBolt, faXRay, faBookOpen, faRocket,
   faComments, faMessage, faBrain, faAward, faLightbulb,
   faChartLine, faHandHoldingHeart, faTag, faUserMd, faStethoscope, faCoins,
-  faFileMedical, faCalendarAlt, faClipboardList, faChevronDown, faChevronUp,
+  faFileMedical, faCalendarAlt, faClipboardList,
   faCalendarCheck, faQuestionCircle, faComments as faCommentsAlt, faPercent,
   faChartBar, faExclamationTriangle, faDollarSign, faFileInvoiceDollar, faClock,
   faFire, faTrophy, faUserCheck, faArrowUp, faHeartbeat, faGift, faPlay
@@ -15,6 +15,7 @@ import {
 import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import NodonLoading from '../components/NodonLoading'
+import ChatPromptStarter from '../components/ChatPromptStarter'
 import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
 import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
@@ -30,143 +31,12 @@ import preci from '../img/preci.jpeg'
 import videoExplicativo from '../video/explicatico.mp4'
 import headerVideo from '../video/header.mp4'
 import didaticaVideo from '../video/didatica.mp4'
-import { getCicloFromPlano } from '../utils/planoCiclo'
-import { isPlanoChatExcluirDentista, resolvePlanoBadge, resolvePlanoFeatured } from '../utils/planosSaude'
+import { isPlanoChatExcluirDentista, resolvePlanoBadge, resolvePlanoFeatured, sortPlanosPorPreco } from '../utils/planosSaude'
+import PlanoSaudeCard from '../components/PlanoSaudeCard/PlanoSaudeCard'
+import PlanosSaudeCarousel from '../components/PlanoSaudeCard/PlanosSaudeCarousel'
 import './LPDentista.css'
+import '../components/ChatPromptStarter/ChatPromptStarter.css'
 import '../styles/LPEliteTheme.css'
-
-// Componente individual para cada card de plano - gerencia seu próprio estado
-const PricingCard = ({ 
-  plano, 
-  index, 
-  cupomValido, 
-  cupomData, 
-  cupomCode, 
-  formatarValor, 
-  formatarTokens, 
-  handlePlanSelect 
-}) => {
-  // Cada card tem seu próprio estado interno de expansão
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  // Calcula os valores do plano
-  const valorOriginal = Number(plano.valorOriginal) || 0
-  const valorPromocional = plano.valorPromocional !== null && plano.valorPromocional !== undefined 
-    ? Number(plano.valorPromocional) 
-    : null
-  
-  const valorBase = valorOriginal > 0 ? valorOriginal : (valorPromocional || 0)
-  
-  const temPromocao = valorPromocional !== null && 
-                      !isNaN(valorPromocional) &&
-                      valorPromocional > 0 && 
-                      valorOriginal > 0 &&
-                      valorPromocional < valorOriginal
-  
-  let valorExibir = temPromocao ? valorPromocional : valorBase
-  let temDescontoCupom = false
-  let valorBaseParaDesconto = temPromocao ? valorPromocional : valorBase
-  
-  if (cupomValido && cupomData && valorBaseParaDesconto > 0) {
-    const discountPercent = Number(cupomData.discountValue) || 0
-    if (discountPercent > 0) {
-      const valorComDesconto = valorBaseParaDesconto * (1 - discountPercent / 100)
-      valorExibir = valorComDesconto
-      temDescontoCupom = true
-    }
-  }
-
-  const cicloInfo = getCicloFromPlano(plano)
-
-  // ID único para o card
-  const planId = plano.id || `plan-${index}`
-
-  // Handler interno para toggle - cada card controla seu próprio estado
-  const toggleFeatures = (e) => {
-    e.preventDefault()
-    e.stopPropagation() // Impede que o evento afete outros componentes
-    setIsExpanded(prev => {
-      const newState = !prev
-      // Debug: descomente para verificar se o estado está mudando
-      // console.log(`Card ${plano.nome} - Estado mudou de ${prev} para ${newState}`)
-      return newState
-    })
-  }
-
-  return (
-    <div className={`plan-item ${plano.featured ? 'featured' : ''} ${isExpanded ? 'active' : ''}`}>
-      {plano.badge && (
-        <div className="plan-badge">{plano.badge}</div>
-      )}
-      <div className="plan-header">
-        <h3 className="plan-name">{plano.nome}</h3>
-        {cupomValido && cupomData && (
-          <div className="cupom-badge-plan">
-            <FontAwesomeIcon icon={faTag} />
-            <span>Cupom {cupomCode} aplicado!</span>
-          </div>
-        )}
-        <div className="plan-price-section">
-          {temPromocao && valorOriginal > 0 && (
-            <div className="old-price">{formatarValor(valorOriginal)}</div>
-          )}
-          {temDescontoCupom && temPromocao && valorPromocional > 0 && (
-            <div className="old-price">{formatarValor(valorPromocional)}</div>
-          )}
-          {temDescontoCupom && !temPromocao && valorBase > 0 && (
-            <div className="old-price">{formatarValor(valorBase)}</div>
-          )}
-          <div className="price-main">
-            <span className="price-value">{formatarValor(valorExibir)}</span>
-            <span className="price-period">{cicloInfo.periodoCurto}</span>
-          </div>
-        </div>
-        {plano.limiteAnalises && (
-          <div className="plan-limit">{plano.limiteAnalises} análises/mês</div>
-        )}
-        {plano.tokenChat && (
-          <div className="plan-tokens">{formatarTokens(plano.tokenChat)} de tokens</div>
-        )}
-        {!plano.nome?.toLowerCase().includes('estudante') && (
-          <div className="plan-free-trial">
-            <FontAwesomeIcon icon={faGift} />
-            <span>  para você</span>
-          </div>
-        )}
-      </div>
-      <div className="plan-features-wrapper">
-        <button
-          type="button"
-          className="plan-features-toggle"
-          onClick={toggleFeatures}
-        >
-          <span>{isExpanded ? 'Ocultar recursos' : 'Ver recursos'}</span>
-          <FontAwesomeIcon 
-            icon={isExpanded ? faChevronUp : faChevronDown} 
-          />
-        </button>
-        {/* Renderização condicional RESTRITA - só renderiza se isExpanded for true */}
-        {isExpanded && plano.features && Array.isArray(plano.features) && plano.features.length > 0 && (
-          <div className="plan-features-list">
-            {plano.features.map((feature, idx) => (
-              <div key={idx} className="feature-item">
-                <FontAwesomeIcon icon={faCheckCircle} />
-                <span>{feature}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <button
-        className={`btn-plan ${plano.featured ? 'featured' : ''}`}
-        onClick={() => handlePlanSelect(plano.nome, plano.id)}
-      >
-        Assinar Agora
-        <FontAwesomeIcon icon={faArrowRight} />
-      </button>
-    </div>
-  )
-}
 
 const LPDentista = () => {
   const navigate = useNavigate()
@@ -338,15 +208,7 @@ const LPDentista = () => {
         }
       })
 
-      // Ordena os planos por preço (do menor para o maior)
-      // Usa valorPromocional se existir, senão usa valorOriginal
-      const planosOrdenados = planosMapeados.sort((a, b) => {
-        const valorA = a.valorPromocional > 0 ? a.valorPromocional : (a.valorOriginal || 0)
-        const valorB = b.valorPromocional > 0 ? b.valorPromocional : (b.valorOriginal || 0)
-        return valorA - valorB
-      })
-
-      setPlanos(planosOrdenados)
+      setPlanos(sortPlanosPorPreco(planosMapeados))
     } catch (error) {
       console.error('Erro ao carregar planos:', error)
     } finally {
@@ -410,6 +272,24 @@ const LPDentista = () => {
     navigate(`/checkout?plano=${encodeURIComponent(planoNome)}&planoId=${planoId}&origem=dentista${cupomParam}`)
   }
 
+  const handleGoToCheckout = () => {
+    const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
+    const plano = planos.find((p) => p.featured) || planos[0]
+    if (plano?.id && plano?.nome) {
+      navigate(
+        `/checkout?plano=${encodeURIComponent(plano.nome)}&planoId=${plano.id}&origem=dentista${cupomParam}`
+      )
+      return
+    }
+    navigate(`/checkout?origem=dentista${cupomParam}`)
+  }
+
+  const handleChatPromptSubmit = () => {
+    trackButtonClick('chat_prompt_send', 'lp_dentista_hero')
+    trackEvent('generate_lead', { form_type: 'lp_dentista_chat_prompt' })
+    handleGoToCheckout()
+  }
+
   const scrollToForm = () => {
     console.log('scrollToForm chamado')
     console.log('Elementos disponíveis:', document.querySelectorAll('section'))
@@ -445,24 +325,6 @@ const LPDentista = () => {
       })
       setMobileMenuOpen(false)
     }
-  }
-
-  const formatarValor = (valor) => {
-    if (!valor) return 'R$ 0,00'
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor)
-  }
-
-  const formatarTokens = (tokens) => {
-    const numTokens = parseInt(tokens) || 0
-    if (numTokens >= 1000000) {
-      return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
-    } else if (numTokens >= 1000) {
-      return `${(numTokens / 1000).toFixed(0)} mil`
-    }
-    return numTokens.toString()
   }
 
   // Determina qual imagem usar - igual ao esquema da LP de estudante
@@ -586,65 +448,37 @@ const LPDentista = () => {
         </div>
       </header>
 
-      {/* Hero - Layout Impactante */}
-      <section className="hero-section">
+      {/* Hero */}
+      <section className="hero-section hero-section--chat-first">
         <div className="lp-container">
-          <div className="hero-content">
-            <div className="hero-text">
-              <div className="hero-badge">
-                <FontAwesomeIcon icon={faRocket} />
-                <span>#1 EM GERAR VALOR PARA DENTISTAS</span>
-              </div>
-              <div className="hero-content-main">
-                <h1 className="hero-title">
-                  <br />
-                  <span className="hero-highlight">Domine</span> sua carreira
-                  <br />
-                  <span className="hero-highlight">Conquiste</span> seu espaço
-                </h1>
-                <p className="hero-description">
-                  A IA que <strong>coloca você no comando</strong>. 
-                  <br />
-                  <strong>Domine a concorrência</strong> com diagnósticos precisos
-                  <br />
-                  <strong>Conquiste seu espaço</strong> com gestão automatizada
-                  <br />
-                  <strong>Torne-se imbatível</strong> na odontologia.
-                </p>
-              </div>
-              <div className="hero-stats">
-                <div className="stat-item">
-                  <div className="stat-number">#1</div>
-                  <div className="stat-label">Dominação</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-number">∞</div>
-                  <div className="stat-label">Potencial</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-number">100%</div>
-                  <div className="stat-label">Mercado</div>
-                </div>
-              </div>
-              <div className="hero-cta">
-                <button className="hero-cta-btn" onClick={scrollToForm}>
-                  <span>Começar Agora</span>
-                  <FontAwesomeIcon icon={faArrowRight} />
+          <div className="hero-content hero-content--chat-first">
+            <ChatPromptStarter
+              badge="IA especializada em odontologia"
+              title={
+                <>
+                  A <span className="highlight">IA de saúde</span> feita para dentistas
+                </>
+              }
+              subtitle="Diagnósticos, gestão de clínica, explicações para pacientes e dúvidas clínicas — com inteligência artificial especializada em odontologia e saúde bucal."
+              capabilities={['Texto', 'Voz', 'Imagem', '24/7']}
+              areas={['Diagnóstico', 'Gestão', 'Precificação', 'Atendimento ao paciente']}
+              placeholder="Ex.: Como explicar tratamento de canal ao paciente?"
+              suggestions={[
+                'Ajude com diagnóstico por imagem',
+                'Como precificar facetas em porcelana?',
+                'Roteiro para explicar tratamento ao paciente'
+              ]}
+              onSubmit={handleChatPromptSubmit}
+              footerLink={
+                <button
+                  type="button"
+                  className="chat-prompt-starter__footer-link"
+                  onClick={() => scrollToSection('planos')}
+                >
+                  Ver planos
                 </button>
-                <div className="hero-trust">
-                  <FontAwesomeIcon icon={faShieldAlt} />
-                  <span>7 dias garantia • Cancelamento a qualquer momento</span>
-                </div>
-              </div>
-            </div>
-            <div className="hero-image-container">
-              <img 
-                key={`hero-img-${cupomCode}-${cupomValido}`}
-                src={getHeroImage()} 
-                alt={getHeroImageAlt()} 
-                className="hero-image" 
-              />
-            </div>
+              }
+            />
           </div>
           <div className="hero-metrics">
             <div className="metric">
@@ -1275,21 +1109,19 @@ const LPDentista = () => {
               <NodonLoading size="sm" text="Carregando planos..." />
             </div>
           ) : (
-            <div className="plans-container">
+            <PlanosSaudeCarousel>
               {planos.map((plano, index) => (
-                <PricingCard
+                <PlanoSaudeCard
                   key={plano.id || `plan-${index}`}
                   plano={plano}
                   index={index}
                   cupomValido={cupomValido}
                   cupomData={cupomData}
-                  cupomCode={cupomCode}
-                  formatarValor={formatarValor}
-                  formatarTokens={formatarTokens}
-                  handlePlanSelect={handlePlanSelect}
+                  cupomLabel={cupomCode || ''}
+                  onSelect={handlePlanSelect}
                 />
               ))}
-            </div>
+            </PlanosSaudeCarousel>
           )}
         </div>
       </section>

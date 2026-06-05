@@ -205,6 +205,16 @@
   color: var(--ch-text);
 }
 
+.lp-elite.lp-estudante .section-title,
+.lp-elite.lp-dentista .section-title {
+  margin-bottom: 2rem;
+}
+
+.lp-elite.lp-estudante .plans-section .section-title,
+.lp-elite.lp-dentista .plans-section .section-title {
+  margin-bottom: 1.5rem;
+}
+
 .lp-elite.lp-estudante .opener-subtitle,
 .lp-elite.lp-dentista .opener-subtitle,
 .lp-elite.lp-estudante .hero-description,
@@ -447,6 +457,66 @@
 .lp-elite.lp-dentista .plan-features li {
   color: var(--ch-text-muted);
   border-color: var(--ch-border);
+}
+
+.lp-elite.lp-estudante .plan-tagline,
+.lp-elite.lp-dentista .plan-tagline {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .old-price,
+.lp-elite.lp-dentista .old-price {
+  color: #94a3b8;
+}
+
+.lp-elite.lp-estudante .price-period,
+.lp-elite.lp-dentista .price-period,
+.lp-elite.lp-estudante .price-info-text,
+.lp-elite.lp-dentista .price-info-text {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .plan-limit,
+.lp-elite.lp-dentista .plan-limit,
+.lp-elite.lp-estudante .plan-tokens,
+.lp-elite.lp-dentista .plan-tokens {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .price-value,
+.lp-elite.lp-dentista .price-value {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  color: var(--ch-accent);
+}
+
+.lp-elite.lp-estudante .plan-header,
+.lp-elite.lp-dentista .plan-header {
+  margin-bottom: 1rem;
+}
+
+.lp-elite.lp-estudante .plan-price-section,
+.lp-elite.lp-dentista .plan-price-section {
+  margin-bottom: 0.75rem;
+}
+
+.lp-elite.lp-estudante .plan-features-list,
+.lp-elite.lp-dentista .plan-features-list {
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.lp-elite.lp-estudante .feature-item,
+.lp-elite.lp-dentista .feature-item {
+  color: var(--ch-text);
+  font-size: 0.875rem;
+}
+
+.lp-elite.lp-estudante .feature-item svg,
+.lp-elite.lp-dentista .feature-item svg {
+  color: #059669;
 }
 
 .lp-elite.lp-estudante .plan-btn,
@@ -832,6 +902,15 @@
     top: 40px;
   }
 
+  .lp-elite .hero-content--chat-first .hero-image-container {
+    order: 2 !important;
+    margin-top: 0.5rem;
+  }
+
+  .lp-elite .hero-text--chat-first {
+    order: 1 !important;
+  }
+
   .lp-elite .hero-content {
     display: flex !important;
     flex-direction: column !important;
@@ -954,42 +1033,107 @@
     padding: 0 1rem;
   }
 
-  .lp-elite .plans-container {
-    grid-template-columns: 1fr !important;
-    gap: 1.25rem !important;
-    padding: 0 !important;
+  .lp-elite .plans-section {
+    padding: 2.25rem 0 !important;
   }
 
-  .lp-elite .plan-item {
-    padding: 1.5rem 1.25rem !important;
-    min-height: auto !important;
-  }
-
-  .lp-elite .plan-name {
-    font-size: 1.2rem !important;
-  }
-
-  .lp-elite .price-value,
-  .lp-elite .plan-price-current {
-    font-size: 1.75rem !important;
-  }
-
-  .lp-elite .price-period {
-    font-size: 0.875rem !important;
-  }
-
-  .lp-elite .btn-plan,
-  .lp-elite .plan-btn {
-    min-height: 48px;
-    font-size: 0.9375rem !important;
+  .lp-elite .section-title {
+    margin-bottom: 1.25rem !important;
   }
 
   .lp-elite .tokens-info-box {
     flex-direction: column;
     text-align: center;
-    padding: 1.25rem 1rem;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem !important;
+    padding: 0.875rem 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .lp-elite .tokens-info-content h3 {
+    font-size: 1rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .lp-elite .tokens-info-content p {
+    font-size: 0.8125rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .lp-elite .plans-container {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    padding: 0 !important;
+  }
+
+  .lp-elite .plan-item {
+    padding: 1rem 0.875rem 0.875rem !important;
+    min-height: auto !important;
+    border-radius: 0.875rem !important;
+  }
+
+  .lp-elite .plan-item:has(.plan-features-list) .plan-tokens {
+    display: none;
+  }
+
+  .lp-elite .plan-header {
+    margin-bottom: 0.625rem !important;
+  }
+
+  .lp-elite .plan-name {
+    font-size: 1.05rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .lp-elite .plan-tagline {
+    font-size: 0.8125rem !important;
+    margin-bottom: 0.5rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .lp-elite .plan-price-section {
+    margin-bottom: 0.5rem !important;
+    gap: 0.2rem !important;
+  }
+
+  .lp-elite .price-value,
+  .lp-elite .plan-price-current {
+    font-size: 1.5rem !important;
+  }
+
+  .lp-elite .price-period {
+    font-size: 0.8125rem !important;
+  }
+
+  .lp-elite .price-info-text {
+    font-size: 0.6875rem !important;
+    margin-top: 0.15rem !important;
+  }
+
+  .lp-elite .plan-features-list {
+    gap: 0.35rem !important;
+    margin-bottom: 0.625rem !important;
+  }
+
+  .lp-elite .feature-item {
+    font-size: 0.8125rem !important;
+    gap: 0.45rem !important;
+  }
+
+  .lp-elite .feature-item svg {
+    font-size: 0.875rem !important;
+  }
+
+  .lp-elite .btn-plan,
+  .lp-elite .plan-btn {
+    min-height: 44px;
+    padding: 0.7rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  .lp-elite .plan-badge,
+  .lp-elite .plan-badge-popular {
+    font-size: 0.625rem !important;
+    padding: 0.3rem 0.6rem !important;
   }
 
   .lp-elite .comparison-grid,
@@ -1001,7 +1145,6 @@
   }
 
   .lp-elite .cta-section,
-  .lp-elite .plans-section,
   .lp-elite .why-nodon-section,
   .lp-elite .benefits-section {
     padding: 3rem 0;

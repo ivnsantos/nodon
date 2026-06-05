@@ -1,5 +1,6 @@
 import { parseCiclo } from './planoCiclo'
-import { filterPlanosSaude, resolvePlanoBadge, resolvePlanoFeatured } from './planosSaude'
+import { buildPlanoSaudeFeatures, getPlanoSaudeTagline } from './planoSaudeFeatures'
+import { filterPlanosSaude, resolvePlanoBadge, resolvePlanoFeatured, sortPlanosPorPreco } from './planosSaude'
 
 const parsePrice = (value) => {
   if (value === null || value === undefined) return null
@@ -19,6 +20,9 @@ const formatarTokens = (tokens) => {
 }
 
 const buildFeatures = (plano, origemSaude) => {
+  const saudeFeatures = buildPlanoSaudeFeatures(plano)
+  if (saudeFeatures) return saudeFeatures
+
   const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat
   const nome = (plano.nome || '').toLowerCase()
   const features = []
@@ -50,31 +54,34 @@ export function mapPlanosCheckout(planosBackend, { origemSaude = false } = {}) {
 
   const lista = origemSaude ? filterPlanosSaude(planosBackend) : planosBackend
 
-  return lista
-    .filter((p) => p.ativo !== false && p.id && p.nome)
-    .map((plano) => {
-      const valorOriginal = parsePrice(plano.valorOriginal ?? plano.valor_original ?? plano.valor) ?? 0
-      const valorPromocional = parsePrice(plano.valorPromocional ?? plano.valor_promocional)
-      const pricePromo = valorPromocional > 0 ? valorPromocional : null
-      const price = pricePromo ?? valorOriginal
-      const oldPrice = pricePromo && valorOriginal > pricePromo ? valorOriginal : null
-      const nome = plano.nome || 'Plano'
-      const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat
+  return sortPlanosPorPreco(
+    lista
+      .filter((p) => p.ativo !== false && p.id && p.nome)
+      .map((plano) => {
+        const valorOriginal = parsePrice(plano.valorOriginal ?? plano.valor_original ?? plano.valor) ?? 0
+        const valorPromocional = parsePrice(plano.valorPromocional ?? plano.valor_promocional)
+        const pricePromo = valorPromocional > 0 ? valorPromocional : null
+        const price = pricePromo ?? valorOriginal
+        const oldPrice = pricePromo && valorOriginal > pricePromo ? valorOriginal : null
+        const nome = plano.nome || 'Plano'
+        const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat
 
-      return {
-        id: plano.id,
-        name: nome,
-        price,
-        oldPrice,
-        ciclo: parseCiclo(plano),
-        patients: plano.descricao || '',
-        tokenChat: tokenChat && parseInt(tokenChat) > 0 ? tokenChat : null,
-        features: buildFeatures(plano, origemSaude),
-        featured: resolvePlanoFeatured(plano),
-        badge: resolvePlanoBadge(plano)
-      }
-    })
-    .sort((a, b) => (a.price || 0) - (b.price || 0))
+        return {
+          id: plano.id,
+          name: nome,
+          price,
+          oldPrice,
+          ciclo: parseCiclo(plano),
+          patients: getPlanoSaudeTagline(plano) || plano.descricao || '',
+          tokenChat: tokenChat && parseInt(tokenChat) > 0 ? tokenChat : null,
+          features: buildFeatures(plano, origemSaude),
+          featured: resolvePlanoFeatured(plano),
+          badge: resolvePlanoBadge(plano),
+          valorOriginal,
+          valorPromocional: valorPromocional > 0 ? valorPromocional : null
+        }
+      })
+  )
 }
 
 export { parsePrice }

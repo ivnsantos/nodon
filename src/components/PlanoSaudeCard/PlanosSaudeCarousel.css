@@ -1,0 +1,109 @@
+/* Carrossel horizontal no mobile */
+.lp-elite .plans-section,
+.chat-home-plans {
+  overflow-x: clip;
+}
+
+.planos-saude-carousel {
+  position: relative;
+  width: 100%;
+}
+
+.planos-saude-carousel__track {
+  list-style: none;
+}
+
+.planos-saude-carousel__footer {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .planos-saude-carousel {
+    width: 100%;
+    overflow: visible;
+  }
+
+  .lp-elite .plans-section .planos-saude-carousel,
+  .chat-home-plans .planos-saude-carousel {
+    margin-top: 0.5rem;
+  }
+
+  .planos-saude-carousel__track.chat-home-plans-grid {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.875rem 1rem 0.5rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
+
+  .planos-saude-carousel__track.chat-home-plans-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .planos-saude-carousel__track > .chat-home-plan-card {
+    flex: 0 0 calc(100% - 2rem);
+    width: calc(100% - 2rem);
+    min-width: calc(100% - 2rem);
+    max-width: calc(100% - 2rem);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    margin: 0 !important;
+  }
+
+  .planos-saude-carousel__track > .chat-home-plan-card:last-child {
+    scroll-snap-align: start;
+  }
+
+  .planos-saude-carousel__track > .chat-home-plan-card:hover {
+    transform: none;
+  }
+
+  .planos-saude-carousel__footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem 0;
+  }
+
+  .planos-saude-carousel__hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--ch-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .planos-saude-carousel__dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .planos-saude-carousel__dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #cbd5e1;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .planos-saude-carousel__dot.active {
+    background: var(--ch-accent, #0c4a6e);
+    transform: scale(1.15);
+  }
+}
