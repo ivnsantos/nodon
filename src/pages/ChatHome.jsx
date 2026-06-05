@@ -242,7 +242,7 @@ const ChatHome = () => {
             badge="Inteligência artificial · Área da saúde"
             title={
               <>
-                A <span className="highlight">NODON</span> — IA para quem vive a saúde
+                A <span className="highlight">NODON</span> — IA para quem vive no setor da saúde e bem-estar
               </>
             }
             subtitle="Profissionais e estudantes de medicina, enfermagem, odontologia, fisioterapia, nutrição, farmácia e todas as formações do setor. Pergunte por texto, voz ou imagem."
