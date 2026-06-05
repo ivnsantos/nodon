@@ -594,7 +594,7 @@ const Checkout = () => {
               <div>
                 <h2>Escolha seu plano</h2>
                 <p className="checkout-plans-hint">
-                  Compare os benefícios e clique no card. Você pode alterar antes de finalizar.
+                  Compare e clique no card para selecionar.
                 </p>
               </div>
               {!loadingPlans && plans.length > 0 && (
@@ -715,6 +715,7 @@ const Checkout = () => {
               {plans.length > 1 && (
                 <p className="checkout-plans-scroll-hint">Deslize para ver os planos →</p>
               )}
+              <p className="checkout-plans-continue-hint">Cadastro e pagamento abaixo ↓</p>
               </>
             )}
 

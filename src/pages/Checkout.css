@@ -2582,17 +2582,27 @@
 
 /* ——— Checkout em uma única etapa ——— */
 .checkout-page--single {
-  padding-bottom: 3rem;
+  padding: 1.25rem 0 3rem;
 }
 
 .checkout-header--compact {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+}
+
+.checkout-page--single .checkout-logo {
+  width: 80px;
+  margin-bottom: 0.65rem;
+}
+
+.checkout-page--single .checkout-header h1 {
+  font-size: 1.65rem;
 }
 
 .checkout-header-sub {
   color: rgba(255, 255, 255, 0.65);
-  font-size: 1rem;
-  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  margin: 0.35rem 0 0;
+  line-height: 1.4;
 }
 
 .checkout-single-wrap {
@@ -2614,7 +2624,7 @@
 
 .checkout-single-grid--form {
   grid-template-columns: 1fr minmax(260px, 300px);
-  margin-top: 2rem;
+  margin-top: 1.25rem;
   width: 100%;
 }
 
@@ -2657,41 +2667,56 @@
 .checkout-plans-section-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .checkout-plans-section-head h2 {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #fff;
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.15rem;
 }
 
 .checkout-plans-hint {
   margin: 0;
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.55);
   max-width: 36rem;
+  line-height: 1.35;
 }
 
 .checkout-plans-count {
-  font-size: 0.8rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: #7dd3fc;
   background: rgba(14, 165, 233, 0.15);
   border: 1px solid rgba(14, 165, 233, 0.35);
-  padding: 0.4rem 0.85rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 999px;
 }
 
 .checkout-plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0.75rem;
   align-items: stretch;
+}
+
+.checkout-plans-continue-hint {
+  display: none;
+  margin: 0.5rem 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+@media (min-width: 769px) {
+  .checkout-page--single .checkout-plans-continue-hint {
+    display: block;
+  }
 }
 
 .checkout-plans-empty {
@@ -2710,11 +2735,11 @@
   align-items: stretch;
   text-align: left;
   width: 100%;
-  padding: 1.5rem 1.5rem 1.25rem;
-  padding-top: 1.75rem;
+  padding: 0.85rem 0.85rem 0.7rem;
+  padding-top: 1rem;
   background: rgba(255, 255, 255, 0.04);
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  border-radius: 1.25rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
   cursor: pointer;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.2s ease;
   color: inherit;
@@ -2727,9 +2752,9 @@
 }
 
 .checkout-plan-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   border-color: rgba(14, 165, 233, 0.45);
-  box-shadow: 0 12px 32px rgba(14, 165, 233, 0.12);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.1);
 }
 
 .checkout-plan-card.featured {
@@ -2750,10 +2775,10 @@
 
 .checkout-plan-radio {
   position: absolute;
-  top: 1.25rem;
-  left: 1.25rem;
-  width: 22px;
-  height: 22px;
+  top: 0.85rem;
+  left: 0.85rem;
+  width: 18px;
+  height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
   display: flex;
@@ -2768,8 +2793,8 @@
 }
 
 .checkout-plan-radio-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: transparent;
   transition: background 0.2s, transform 0.2s;
@@ -2804,72 +2829,72 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 0.75rem 2rem;
-  min-height: 1.75rem;
+  gap: 0.35rem;
+  margin: 0 0 0.35rem 1.65rem;
+  min-height: auto;
 }
 
 .checkout-plan-card-name {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #fff;
   margin: 0;
   flex: 1;
   min-width: 0;
+  line-height: 1.25;
 }
 
 .checkout-plan-card-tagline {
   width: 100%;
-  margin: 0 0 0.75rem 2rem;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.875rem;
-  line-height: 1.45;
+  margin: 0 0 0.35rem 1.65rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .checkout-plan-selected-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #34d399;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
+  display: none;
 }
 
 .checkout-plan-card-price {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.5rem;
-  padding-left: 2rem;
+  gap: 0.1rem;
+  margin-bottom: 0.35rem;
+  padding-left: 1.65rem;
 }
 
 .checkout-plan-price-old {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.45);
   text-decoration: line-through;
 }
 
 .checkout-plan-price-current {
-  font-size: 2rem;
+  font-size: 1.45rem;
   font-weight: 800;
   color: #7dd3fc;
   line-height: 1.1;
 }
 
 .checkout-plan-price-current small {
-  font-size: 1rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
 }
 
+.checkout-plan-card:has(.checkout-plan-features-toggle) .checkout-plan-tokens {
+  display: none;
+}
+
 .checkout-plan-tokens {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #a5f3fc;
-  margin: 0 0 0.5rem 2rem;
+  margin: 0 0 0.35rem 1.65rem;
 }
 
 .checkout-plan-trial {
@@ -2890,15 +2915,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  width: calc(100% - 2rem);
-  margin: 0 0 0.5rem 2rem;
-  padding: 0.55rem;
+  gap: 0.4rem;
+  width: calc(100% - 1.65rem);
+  margin: 0 0 0.35rem 1.65rem;
+  padding: 0.4rem;
+  min-height: 32px;
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.8);
-  font-size: 0.8rem;
+  font-size: 0.6875rem;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -2946,9 +2972,9 @@
 
 .checkout-plan-card-cta {
   margin-top: auto;
-  padding-top: 0.75rem;
+  padding-top: 0.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.8rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.5);
   text-align: center;
@@ -2960,7 +2986,7 @@
 
 .checkout-plan-card--skeleton {
   pointer-events: none;
-  min-height: 280px;
+  min-height: 200px;
 }
 
 .checkout-plan-card--skeleton .skeleton-line {
@@ -2988,8 +3014,8 @@
 }
 
 .checkout-coupon-bar {
-  margin-top: 1.75rem;
-  padding-top: 1.25rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
