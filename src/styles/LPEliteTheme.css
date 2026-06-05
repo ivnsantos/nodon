@@ -1,0 +1,724 @@
+/* Tema elite das LPs — alinhado à ChatHome (chat-home--elite) */
+
+.lp-elite {
+  --ch-bg: #f8fafc;
+  --ch-bg-alt: #ffffff;
+  --ch-bg-dark: #0c1929;
+  --ch-text: #0f172a;
+  --ch-text-muted: #64748b;
+  --ch-accent: #0c4a6e;
+  --ch-accent-light: #0369a1;
+  --ch-accent-soft: #e0f2fe;
+  --ch-border: #e2e8f0;
+  --ch-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  --ch-shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.12);
+  --ch-radius: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ——— LP clássica (estudante / dentista) ——— */
+.lp-elite.lp-estudante,
+.lp-elite.lp-dentista {
+  background: var(--ch-bg);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .lp-header,
+.lp-elite.lp-dentista .lp-header {
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent;
+  box-shadow: none;
+}
+
+.lp-elite.lp-estudante .lp-header.scrolled,
+.lp-elite.lp-dentista .lp-header.scrolled {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-color: var(--ch-border);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+.lp-elite.lp-estudante .logo img,
+.lp-elite.lp-dentista .logo img {
+  height: 40px;
+}
+
+.lp-elite.lp-estudante .nav-menu a,
+.lp-elite.lp-dentista .nav-menu a {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .nav-menu a:hover,
+.lp-elite.lp-dentista .nav-menu a:hover {
+  color: var(--ch-accent-light);
+}
+
+.lp-elite.lp-estudante .btn-cta-header,
+.lp-elite.lp-dentista .btn-cta-header {
+  background: var(--ch-accent);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.lp-elite.lp-estudante .btn-cta-header:hover,
+.lp-elite.lp-dentista .btn-cta-header:hover {
+  background: var(--ch-accent-light);
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-estudante .mobile-menu-toggle,
+.lp-elite.lp-dentista .mobile-menu-toggle {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .nav-menu.open,
+.lp-elite.lp-dentista .nav-menu.open {
+  background: #fff;
+  border-bottom: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+}
+
+/* Hero */
+.lp-elite.lp-estudante .hero-section,
+.lp-elite.lp-dentista .hero-section {
+  background: linear-gradient(180deg, #fff 0%, var(--ch-bg) 100%);
+}
+
+.lp-elite.lp-estudante .hero-label,
+.lp-elite.lp-dentista .hero-label {
+  background: var(--ch-accent-soft);
+  border-color: transparent;
+  color: var(--ch-accent);
+}
+
+.lp-elite.lp-estudante .hero-title,
+.lp-elite.lp-dentista .hero-title {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .hero-title .gradient-text,
+.lp-elite.lp-dentista .hero-title .gradient-text {
+  background: linear-gradient(135deg, var(--ch-accent-light), var(--ch-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.lp-elite.lp-estudante .hero-description,
+.lp-elite.lp-dentista .hero-description {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .hero-feature,
+.lp-elite.lp-dentista .hero-feature {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .btn-hero-main,
+.lp-elite.lp-dentista .btn-hero-main {
+  background: var(--ch-accent);
+  border-radius: 12px;
+}
+
+.lp-elite.lp-estudante .btn-hero-main:hover,
+.lp-elite.lp-dentista .btn-hero-main:hover {
+  background: var(--ch-accent-light);
+}
+
+.lp-elite.lp-estudante .btn-hero-secondary,
+.lp-elite.lp-dentista .btn-hero-secondary {
+  background: transparent;
+  border: 1px solid var(--ch-border);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .btn-hero-secondary:hover,
+.lp-elite.lp-dentista .btn-hero-secondary:hover {
+  border-color: var(--ch-accent-light);
+  color: var(--ch-accent);
+  background: var(--ch-accent-soft);
+}
+
+.lp-elite.lp-estudante .hero-image-container,
+.lp-elite.lp-dentista .hero-image-container {
+  border-radius: var(--ch-radius);
+  box-shadow: var(--ch-shadow-lg);
+  border: 1px solid var(--ch-border);
+  background: #fff;
+}
+
+.lp-elite.lp-estudante .hero-metrics,
+.lp-elite.lp-dentista .hero-metrics {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-estudante .metric-value,
+.lp-elite.lp-dentista .metric-value {
+  color: var(--ch-accent);
+}
+
+.lp-elite.lp-estudante .metric-label,
+.lp-elite.lp-dentista .metric-label {
+  color: var(--ch-text-muted);
+}
+
+/* Seções */
+.lp-elite.lp-estudante .why-nodon-section,
+.lp-elite.lp-dentista .why-nodon-section,
+.lp-elite.lp-estudante .benefits-section,
+.lp-elite.lp-dentista .benefits-section,
+.lp-elite.lp-estudante .testimonials-section,
+.lp-elite.lp-dentista .testimonials-section,
+.lp-elite.lp-estudante .contact-section,
+.lp-elite.lp-dentista .contact-section {
+  background: var(--ch-bg-alt);
+}
+
+.lp-elite.lp-estudante .why-nodon-section::before,
+.lp-elite.lp-dentista .why-nodon-section::before {
+  display: none;
+}
+
+.lp-elite.lp-estudante .opener-title,
+.lp-elite.lp-dentista .opener-title,
+.lp-elite.lp-estudante .section-title,
+.lp-elite.lp-dentista .section-title,
+.lp-elite.lp-estudante .cta-left h2,
+.lp-elite.lp-dentista .cta-left h2,
+.lp-elite.lp-estudante .urgency-title,
+.lp-elite.lp-dentista .urgency-title {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .opener-subtitle,
+.lp-elite.lp-dentista .opener-subtitle,
+.lp-elite.lp-estudante .hero-description,
+.lp-elite.lp-dentista .hero-description,
+.lp-elite.lp-estudante .cta-left > p,
+.lp-elite.lp-dentista .cta-left > p,
+.lp-elite.lp-estudante .urgency-subtitle,
+.lp-elite.lp-dentista .urgency-subtitle {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .opener-badge,
+.lp-elite.lp-dentista .opener-badge {
+  background: var(--ch-accent-soft);
+  color: var(--ch-accent);
+  border: 1px solid var(--ch-border);
+}
+
+.lp-elite.lp-estudante .highlight-blue,
+.lp-elite.lp-dentista .highlight-blue {
+  color: var(--ch-accent-light);
+}
+
+.lp-elite.lp-estudante .comparison-card,
+.lp-elite.lp-dentista .comparison-card,
+.lp-elite.lp-estudante .benefit-card,
+.lp-elite.lp-dentista .benefit-card,
+.lp-elite.lp-estudante .testimonial-card,
+.lp-elite.lp-dentista .testimonial-card,
+.lp-elite.lp-estudante .stat-card,
+.lp-elite.lp-dentista .stat-card {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+}
+
+/* Caixa "O que são tokens?" */
+.lp-elite.lp-estudante .tokens-info-box,
+.lp-elite.lp-dentista .tokens-info-box {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(245, 158, 11, 0.08));
+  border: 2px solid rgba(251, 191, 36, 0.35);
+  border-radius: 16px;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-estudante .tokens-info-icon,
+.lp-elite.lp-dentista .tokens-info-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-elite.lp-estudante .tokens-info-icon svg,
+.lp-elite.lp-dentista .tokens-info-icon svg {
+  font-size: 2rem;
+  color: #d97706;
+}
+
+.lp-elite.lp-estudante .tokens-info-content,
+.lp-elite.lp-dentista .tokens-info-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.lp-elite.lp-estudante .tokens-info-content h3,
+.lp-elite.lp-dentista .tokens-info-content h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #b45309;
+  margin-bottom: 0.5rem;
+}
+
+.lp-elite.lp-estudante .tokens-info-content p,
+.lp-elite.lp-dentista .tokens-info-content p {
+  font-size: 0.95rem;
+  color: var(--ch-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.lp-elite.lp-estudante .tokens-info-content p svg,
+.lp-elite.lp-dentista .tokens-info-content p svg {
+  color: #d97706;
+  margin-right: 0.5rem;
+}
+
+/* CTA final + formulário */
+.lp-elite.lp-estudante .cta-section,
+.lp-elite.lp-dentista .cta-section {
+  background: var(--ch-bg-alt);
+  padding: 5rem 0;
+}
+
+.lp-elite.lp-estudante .cta-point,
+.lp-elite.lp-dentista .cta-point {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .cta-point svg,
+.lp-elite.lp-dentista .cta-point svg {
+  color: #10b981;
+}
+
+.lp-elite.lp-estudante .form-modern,
+.lp-elite.lp-dentista .form-modern {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-estudante .form-field input,
+.lp-elite.lp-estudante .form-field select,
+.lp-elite.lp-dentista .form-field input,
+.lp-elite.lp-dentista .form-field select {
+  background: var(--ch-bg);
+  border: 1px solid var(--ch-border);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .form-field input::placeholder,
+.lp-elite.lp-dentista .form-field input::placeholder {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .form-field input:focus,
+.lp-elite.lp-estudante .form-field select:focus,
+.lp-elite.lp-dentista .form-field input:focus,
+.lp-elite.lp-dentista .form-field select:focus {
+  border-color: var(--ch-accent-light);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--ch-accent-soft);
+}
+
+/* Bloco de urgência (checklist antes dos planos) */
+.lp-elite.lp-estudante .urgency-cta-box,
+.lp-elite.lp-dentista .urgency-cta-box {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--ch-shadow);
+  padding: 2.5rem;
+}
+
+.lp-elite.lp-estudante .urgency-cta-box h3,
+.lp-elite.lp-dentista .urgency-cta-box h3 {
+  color: var(--ch-text);
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.lp-elite.lp-estudante .urgency-cta-box > p,
+.lp-elite.lp-dentista .urgency-cta-box > p {
+  color: var(--ch-text-muted);
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+}
+
+.lp-elite.lp-estudante .cta-benefit,
+.lp-elite.lp-dentista .cta-benefit {
+  color: var(--ch-accent);
+  font-weight: 600;
+}
+
+.lp-elite.lp-estudante .cta-benefit svg,
+.lp-elite.lp-dentista .cta-benefit svg {
+  color: #10b981;
+}
+
+/* Planos */
+.lp-elite.lp-estudante .plans-section,
+.lp-elite.lp-dentista .plans-section {
+  background: var(--ch-bg);
+  padding: 5rem 0;
+}
+
+.lp-elite.lp-estudante .plans-bg,
+.lp-elite.lp-dentista .plans-bg {
+  background:
+    radial-gradient(circle at 20% 50%, rgba(224, 242, 254, 0.8) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(224, 242, 254, 0.5) 0%, transparent 50%);
+}
+
+.lp-elite.lp-estudante .section-label span,
+.lp-elite.lp-dentista .section-label span {
+  color: var(--ch-accent-light);
+}
+
+.lp-elite.lp-estudante .plan-item,
+.lp-elite.lp-dentista .plan-item {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-estudante .plan-item:hover,
+.lp-elite.lp-dentista .plan-item:hover {
+  border-color: rgba(12, 74, 110, 0.3);
+  box-shadow: var(--ch-shadow-lg);
+}
+
+.lp-elite.lp-estudante .plan-item.featured,
+.lp-elite.lp-dentista .plan-item.featured {
+  border-color: rgba(12, 74, 110, 0.35);
+  background: linear-gradient(180deg, #fff 0%, var(--ch-accent-soft) 100%);
+}
+
+.lp-elite.lp-estudante .plan-name,
+.lp-elite.lp-dentista .plan-name {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante .plan-price,
+.lp-elite.lp-dentista .plan-price,
+.lp-elite.lp-estudante .plan-price-current,
+.lp-elite.lp-dentista .plan-price-current {
+  color: var(--ch-accent);
+}
+
+.lp-elite.lp-estudante .plan-price-old,
+.lp-elite.lp-dentista .plan-price-old {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante .plan-features li,
+.lp-elite.lp-dentista .plan-features li {
+  color: var(--ch-text-muted);
+  border-color: var(--ch-border);
+}
+
+.lp-elite.lp-estudante .plan-btn,
+.lp-elite.lp-dentista .plan-btn,
+.lp-elite.lp-estudante .btn-plan,
+.lp-elite.lp-dentista .btn-plan {
+  background: var(--ch-accent);
+  color: #fff;
+}
+
+.lp-elite.lp-estudante .plan-btn:hover,
+.lp-elite.lp-dentista .plan-btn:hover,
+.lp-elite.lp-estudante .btn-plan:hover,
+.lp-elite.lp-dentista .btn-plan:hover {
+  background: var(--ch-accent-light);
+}
+
+/* Footer — igual à Home */
+.lp-elite.lp-estudante .lp-footer,
+.lp-elite.lp-dentista .lp-footer {
+  background: var(--ch-bg-dark);
+  border-top: none;
+}
+
+.lp-elite.lp-estudante .footer-nav a,
+.lp-elite.lp-dentista .footer-nav a,
+.lp-elite.lp-estudante .footer-bottom,
+.lp-elite.lp-dentista .footer-bottom {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lp-elite.lp-estudante .footer-social a,
+.lp-elite.lp-dentista .footer-social a {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Loading */
+.lp-elite .lp-loading-overlay {
+  background: var(--ch-bg);
+}
+
+.lp-elite .lp-loading-text {
+  color: var(--ch-text-muted);
+}
+
+/* ——— LP PRO (dentista-pro) ——— */
+.lp-elite.lp-pro {
+  background: var(--ch-bg);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-pro .lp-pro-header {
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent;
+}
+
+.lp-elite.lp-pro .lp-pro-header.scrolled,
+.lp-elite.lp-pro .lp-pro-header.is-scrolled {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-color: var(--ch-border);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+.lp-elite.lp-pro .lp-pro-nav a,
+.lp-elite.lp-pro .lp-pro-menu-btn {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-pro .lp-pro-cta-nav {
+  background: var(--ch-accent);
+  color: #fff !important;
+  border-radius: 10px;
+}
+
+.lp-elite.lp-pro .lp-pro-hero {
+  background: linear-gradient(180deg, #fff 0%, var(--ch-bg) 100%);
+}
+
+.lp-elite.lp-pro .lp-pro-hero-bg,
+.lp-elite.lp-pro .lp-pro-hero-mesh,
+.lp-elite.lp-pro .lp-pro-hero-glow,
+.lp-elite.lp-pro .lp-pro-hero-particles {
+  opacity: 0.15;
+}
+
+.lp-elite.lp-pro .lp-pro-hero-title,
+.lp-elite.lp-pro .lp-pro-section-title {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-pro .lp-pro-hero-sub,
+.lp-elite.lp-pro .lp-pro-section-sub {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-pro .lp-pro-dores,
+.lp-elite.lp-pro .lp-pro-bento,
+.lp-elite.lp-pro .lp-pro-chaos-order,
+.lp-elite.lp-pro .lp-pro-planos {
+  background: var(--ch-bg-alt);
+}
+
+.lp-elite.lp-pro .lp-pro-dor-card,
+.lp-elite.lp-pro .lp-pro-bento-card,
+.lp-elite.lp-pro .lp-pro-chaos-side {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-pro .lp-pro-cta-glow {
+  background: var(--ch-accent);
+  color: #fff;
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-pro .lp-pro-footer {
+  background: var(--ch-bg-dark);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ——— LP Estudante PRO ——— */
+.lp-elite.lp-estudante-pro {
+  --dark-bg: #f8fafc;
+  --dark-surface: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --card-bg: #ffffff;
+  background: var(--ch-bg);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-estudante-pro .lp-est-pro-header {
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent;
+}
+
+.lp-elite.lp-estudante-pro .lp-est-pro-video-destaque,
+.lp-elite.lp-estudante-pro .lp-est-pro-benefits,
+.lp-elite.lp-estudante-pro .lp-est-pro-planos,
+.lp-elite.lp-estudante-pro .lp-est-pro-faq {
+  background: var(--ch-bg-alt);
+}
+
+.lp-elite.lp-estudante-pro .video-destaque-title,
+.lp-elite.lp-estudante-pro .lp-est-pro-hero-title,
+.lp-elite.lp-estudante-pro .lp-est-pro-section-title {
+  color: var(--ch-text);
+  -webkit-text-fill-color: unset;
+  background: none;
+}
+
+.lp-elite.lp-estudante-pro .video-destaque-sub,
+.lp-elite.lp-estudante-pro .lp-est-pro-hero-sub {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-estudante-pro .lp-est-pro-hero {
+  background: linear-gradient(180deg, #fff 0%, var(--ch-bg) 100%);
+}
+
+.lp-elite.lp-estudante-pro .lp-est-pro-hero-video-bg {
+  opacity: 0.12;
+}
+
+.lp-elite.lp-estudante-pro .benefit-card,
+.lp-elite.lp-estudante-pro .lp-est-pro-plan-card,
+.lp-elite.lp-estudante-pro .faq-item {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+}
+
+.lp-elite.lp-estudante-pro .lp-est-pro-cta-glow {
+  background: var(--ch-accent);
+  color: #fff;
+}
+
+.lp-elite.lp-estudante-pro .lp-est-pro-footer {
+  background: var(--ch-bg-dark);
+}
+
+/* ——— LP Dentista PRO v2 ——— */
+.lp-elite.lp-dentista-pro-v2,
+.lp-elite.lp-pro-v2 {
+  --bg-dark: #f8fafc;
+  --bg-card: #ffffff;
+  --white-bright: #0f172a;
+  --border-glass: #e2e8f0;
+  background: var(--ch-bg);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-header,
+.lp-elite.lp-pro-v2 .lp-v2-header {
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent;
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-nav a,
+.lp-elite.lp-pro-v2 .lp-v2-nav a,
+.lp-elite.lp-dentista-pro-v2 .lp-v2-menu-btn,
+.lp-elite.lp-pro-v2 .lp-v2-menu-btn {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-cta-nav,
+.lp-elite.lp-pro-v2 .lp-v2-cta-nav {
+  background: var(--ch-accent);
+  color: #fff !important;
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-hero,
+.lp-elite.lp-pro-v2 .lp-v2-hero {
+  background: linear-gradient(180deg, #fff 0%, var(--ch-bg) 55%, var(--ch-bg-alt) 100%);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-hero-video-overlay,
+.lp-elite.lp-pro-v2 .lp-v2-hero-video-overlay {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.85) 100%);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-hero-title,
+.lp-elite.lp-pro-v2 .lp-v2-hero-title,
+.lp-elite.lp-dentista-pro-v2 .lp-v2-section-title,
+.lp-elite.lp-pro-v2 .lp-v2-section-title {
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-hero-sub,
+.lp-elite.lp-pro-v2 .lp-v2-hero-sub {
+  color: var(--ch-text-muted);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-benefits,
+.lp-elite.lp-pro-v2 .lp-v2-benefits,
+.lp-elite.lp-dentista-pro-v2 .lp-v2-plans,
+.lp-elite.lp-pro-v2 .lp-v2-plans,
+.lp-elite.lp-dentista-pro-v2 .lp-v2-faq,
+.lp-elite.lp-pro-v2 .lp-v2-faq {
+  background: var(--ch-bg-alt);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-benefit-card,
+.lp-elite.lp-pro-v2 .lp-v2-benefit-card,
+.lp-elite.lp-dentista-pro-v2 .lp-v2-plan-card,
+.lp-elite.lp-pro-v2 .lp-v2-plan-card {
+  background: #fff;
+  border: 1px solid var(--ch-border);
+  box-shadow: var(--ch-shadow);
+  color: var(--ch-text);
+}
+
+.lp-elite.lp-dentista-pro-v2 .lp-v2-footer,
+.lp-elite.lp-pro-v2 .lp-v2-footer {
+  background: var(--ch-bg-dark);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Planos compartilhados (LPDentistaPRO_plans.css) */
+.lp-elite .lp-pro-plan-card,
+.lp-elite .plan-card-pro {
+  background: #fff !important;
+  border: 1px solid var(--ch-border) !important;
+  box-shadow: var(--ch-shadow) !important;
+  color: var(--ch-text) !important;
+}
+
+.lp-elite .lp-pro-plan-card h3,
+.lp-elite .plan-card-pro h3 {
+  color: var(--ch-text) !important;
+}
+
+.lp-elite .lp-pro-plan-price,
+.lp-elite .plan-card-pro .price {
+  color: var(--ch-accent) !important;
+}
+
+.lp-elite .lp-pro-plan-btn,
+.lp-elite .plan-card-pro button {
+  background: var(--ch-accent) !important;
+  color: #fff !important;
+}

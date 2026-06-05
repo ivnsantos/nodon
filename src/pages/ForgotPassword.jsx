@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faArrowRight, faXRay, faFileMedical, faSearch, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import './Auth.css'
 
 const ForgotPassword = () => {

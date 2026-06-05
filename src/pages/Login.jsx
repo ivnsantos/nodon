@@ -5,8 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope, faLock, faArrowRight, faXRay, faFileMedical, faSearch, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { faGoogle, faFacebook } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
-import nodoLogo from '../img/nodo.png'
-import nodoImage from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import './Auth.css'
 
 // URL base da API

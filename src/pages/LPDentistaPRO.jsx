@@ -25,7 +25,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
 
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
 
 import xldentistaImg from '../img/xldentista.jpeg'
 
@@ -43,7 +43,10 @@ import didaticaVideo from '../video/didatica.mp4'
 
 import preci from '../img/preci.jpeg'
 
+import { getCicloFromPlano } from '../utils/planoCiclo'
+import { isPlanoChatExcluirDentista, resolvePlanoBadge, resolvePlanoFeatured } from '../utils/planosSaude'
 import './LPDentistaPRO.css'
+import '../styles/LPEliteTheme.css'
 import './LPDentistaPRO_plans.css'
 
 // Componente individual para cada card de plano
@@ -86,6 +89,7 @@ const PricingCard = ({
   }
 
   const planId = plano.id || `plan-${index}`
+  const cicloInfo = getCicloFromPlano(plano)
 
   const toggleFeatures = (e) => {
     e.preventDefault()
@@ -118,7 +122,7 @@ const PricingCard = ({
           )}
           <div className="price-main">
             <span className="price-value">{formatarValor(valorExibir)}</span>
-            <span className="price-period">/mês</span>
+            <span className="price-period">{cicloInfo.periodoCurto}</span>
           </div>
         </div>
         {plano.limiteAnalises && (
@@ -130,7 +134,7 @@ const PricingCard = ({
         {!plano.nome?.toLowerCase().includes('estudante') && (
           <div className="plan-free-trial">
             <FontAwesomeIcon icon={faGift} />
-            <span>5 dias de teste grátis</span>
+            <span> </span>
           </div>
         )}
       </div>
@@ -238,10 +242,9 @@ const LPDentistaPRO = () => {
         '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
       ]
       
-      const planosIniciais = planosBackend.filter(plano => {
-        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
-        return plano.ativo && !planosExcluidos.includes(plano.id) && !isPlanoChat
-      })
+      const planosIniciais = planosBackend.filter(
+        (plano) => plano.ativo && !planosExcluidos.includes(plano.id) && !isPlanoChatExcluirDentista(plano)
+      )
 
       const formatarTokensAux = (tokens) => {
         const numTokens = parseInt(tokens) || 0
@@ -308,11 +311,12 @@ const LPDentistaPRO = () => {
           nome: plano.nome,
           valorOriginal: valorOriginal,
           valorPromocional: valorPromocional,
+          ciclo: plano.ciclo ?? plano.cicloCobranca ?? plano.ciclo_cobranca ?? 1,
           limiteAnalises: plano.limiteAnalises || plano.limite_analises,
           tokenChat: plano.tokenChat || plano.token_chat || plano.tokensChat || null,
           features,
-          featured,
-          badge
+          featured: resolvePlanoFeatured(plano) || featured,
+          badge: resolvePlanoBadge(plano) || badge
         }
       })
 
@@ -421,7 +425,7 @@ const LPDentistaPRO = () => {
 
   return (
 
-    <div className="lp-pro">
+    <div className="lp-pro lp-elite">
 
       {/* Banner de Cupom */}
 
@@ -459,7 +463,7 @@ const LPDentistaPRO = () => {
 
           <a href="/" className="lp-pro-logo">
 
-            <img src={nodoLogo} alt="NODON" width="120" height="40" loading="lazy" />
+            <img src={NODON_LOGO_LIGHT_BG} alt="NODON" width="120" height="40" loading="lazy" />
 
           </a>
 
@@ -650,7 +654,7 @@ const LPDentistaPRO = () => {
 
             <div className="lp-pro-chaos-preview">
 
-              <img src={nodoLogo} alt="Interface NODON" width="160" height="80" loading="lazy" />
+              <img src={NODON_LOGO_LIGHT_BG} alt="Interface NODON" width="160" height="80" loading="lazy" />
 
               <p>Diagnóstico · Precificação · Agenda</p>
 

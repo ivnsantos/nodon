@@ -7,7 +7,8 @@ import {
   faChevronRight, faChevronLeft, faTag, faLock, faChevronDown,
   faExclamationTriangle, faTimes, faCheck, faUser, faEnvelope, faPhone, faIdCard, faHome, faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
+import { getCicloFromPlano } from '../utils/planoCiclo'
 import './Checkout.css'
 
 const Register = () => {
@@ -58,6 +59,7 @@ const Register = () => {
       name: 'Plano Inicial',
       price: 98,
       oldPrice: 159,
+      ciclo: 1,
       patients: 'Até 12 análises por mês',
       features: [
         'Análise de radiografias',
@@ -480,7 +482,8 @@ const Register = () => {
                   const finalPrice = couponApplied 
                     ? Math.round(plan.price - (plan.price * discount / 100))
                     : plan.price
-                  
+                  const cicloInfo = getCicloFromPlano(plan)
+
                   return (
                     <div
                       key={plan.id}
@@ -498,16 +501,16 @@ const Register = () => {
                         <div className="plan-price">
                           {plan.oldPrice && !couponApplied ? (
                             <>
-                              <span className="price-old">De: R$ {plan.oldPrice}/mês*</span>
-                              <span className="price-new">Por: R$ {plan.price}/mês*</span>
+                              <span className="price-old">De: R$ {plan.oldPrice}{cicloInfo.periodoCurto}*</span>
+                              <span className="price-new">Por: R$ {plan.price}{cicloInfo.periodoCurto}*</span>
                             </>
                           ) : couponApplied && plan.price !== finalPrice ? (
                             <>
-                              <span className="price-old">De: R$ {plan.price}/mês*</span>
-                              <span className="price-new">Por: R$ {finalPrice}/mês*</span>
+                              <span className="price-old">De: R$ {plan.price}{cicloInfo.periodoCurto}*</span>
+                              <span className="price-new">Por: R$ {finalPrice}{cicloInfo.periodoCurto}*</span>
                             </>
                           ) : (
-                            <span className="price-single">R$ {finalPrice}/mês*</span>
+                            <span className="price-single">R$ {finalPrice}{cicloInfo.periodoCurto}*</span>
                           )}
                         </div>
                         <div className="plan-feature-count">{plan.patients}</div>
@@ -532,7 +535,7 @@ const Register = () => {
                           ))}
                         </ul>
                       </div>
-                      <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
+                      <p className="plan-note">{cicloInfo.notaPlano}</p>
                     </div>
                   )
                 })}

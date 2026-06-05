@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown'
 import api from '../utils/api'
 import { useAuth } from '../context/useAuth'
 import { useChatHeader } from '../context/ChatHeaderContext'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import './Chat.css'
 
 const Chat = () => {

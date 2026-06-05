@@ -17,7 +17,9 @@ import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import api from '../utils/api'
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
+import { getCicloFromPlano } from '../utils/planoCiclo'
+import { resolvePlanoBadge, resolvePlanoFeatured } from '../utils/planosSaude'
 import './Home.css'
 
 const Home = () => {
@@ -527,8 +529,8 @@ const Home = () => {
                 const limiteAnalises = plano.limiteAnalises || plano.limite_analises || 0
                 const tokenChat = plano.tokenChat || plano.token_chat || plano.tokensChat || '0'
                 const temPromocao = valorPromocional !== null && valorPromocional > 0 && valorOriginal !== null && valorPromocional < valorOriginal
-                const badge = plano.badge || plano.label || null
-                const featured = plano.featured || plano.destaque || false
+                const badge = resolvePlanoBadge(plano)
+                const featured = resolvePlanoFeatured(plano)
                 const acesso = plano.acesso || null
                 const isPlanoChat = acesso === 'chat' || nomePlano.toLowerCase().includes('estudante') || nomePlano.toLowerCase().includes('chat')
                 const isPlanoInicial = nomePlano.toLowerCase().includes('inicial')
@@ -610,6 +612,8 @@ const Home = () => {
                   }
                 }
                 
+                const cicloInfo = getCicloFromPlano(plano)
+
                 return (
                   <div key={planoId} className={`home-plan-card ${featured ? 'home-featured' : ''}`}>
                     {badge && (
@@ -620,15 +624,15 @@ const Home = () => {
                       <div className="home-plan-price">
                         {temPromocao && valorPromocional && valorOriginal ? (
                           <>
-                            <span className="home-price-old">De: {formatarValor(valorOriginal)}/mês*</span>
-                            <span className="home-price-new">Por: {formatarValor(valorPromocional)}/mês*</span>
+                            <span className="home-price-old">De: {formatarValor(valorOriginal)}{cicloInfo.periodoCurto}*</span>
+                            <span className="home-price-new">Por: {formatarValor(valorPromocional)}{cicloInfo.periodoCurto}*</span>
                           </>
                         ) : valorPromocional !== null && valorPromocional > 0 ? (
-                          <span className="home-price-single">{formatarValor(valorPromocional)}/mês*</span>
+                          <span className="home-price-single">{formatarValor(valorPromocional)}{cicloInfo.periodoCurto}*</span>
                         ) : valorOriginal !== null && valorOriginal > 0 ? (
-                          <span className="home-price-single">{formatarValor(valorOriginal)}/mês*</span>
+                          <span className="home-price-single">{formatarValor(valorOriginal)}{cicloInfo.periodoCurto}*</span>
                         ) : (
-                          <span className="home-price-single">{formatarValor(valorOriginal || 0)}/mês*</span>
+                          <span className="home-price-single">{formatarValor(valorOriginal || 0)}{cicloInfo.periodoCurto}*</span>
                         )}
                       </div>
                       <div className="home-plan-feature-count">
@@ -637,7 +641,7 @@ const Home = () => {
                       {!nomePlano.toLowerCase().includes('estudante') && (
                         <div className="home-plan-free-trial">
                           <FontAwesomeIcon icon={faGift} />
-                          <span>5 dias de teste grátis para você</span>
+                          <span>  para você</span>
                         </div>
                       )}
                     </div>
@@ -682,7 +686,7 @@ const Home = () => {
                     >
                       Assine Agora
                     </button>
-                    <p className="home-plan-note">*Plano mensal. Cobrança recorrente com renovação automática.</p>
+                    <p className="home-plan-note">{cicloInfo.notaPlano}</p>
                   </div>
                 )
               })}

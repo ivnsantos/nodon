@@ -7,9 +7,10 @@ import {
   faChevronRight, faChevronLeft, faChevronDown, faTag, faLock,
   faExclamationTriangle, faTimes, faCheck, faArrowLeft
 } from '@fortawesome/free-solid-svg-icons'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import api from '../utils/api'
 import { useAuth } from '../context/useAuth'
+import { getCicloFromPlano } from '../utils/planoCiclo'
 import './Checkout.css'
 
 const AddClinic = () => {
@@ -90,7 +91,8 @@ const AddClinic = () => {
             limiteAnalises: plano.analises || plano.limiteAnalises || 0,
             tokenChat: plano.tokenChat || 0,
             valorPromocional: Number(plano.valorPromocional || 0),
-            valorOriginal: Number(plano.valorOriginal || plano.valor || 0)
+            valorOriginal: Number(plano.valorOriginal || plano.valor || 0),
+            ciclo: plano.ciclo ?? plano.cicloCobranca ?? plano.ciclo_cobranca ?? 1
           }
         })
 
@@ -484,7 +486,8 @@ const AddClinic = () => {
                     const finalPrice = couponApplied && appliedCoupon && selectedPlan?.id === plan.id && discountPercent > 0
                       ? Math.max(0, Math.round(planPrice - discountValue))
                       : planPrice
-                    
+                    const cicloInfo = getCicloFromPlano(plan)
+
                     return (
                       <div
                         key={plan.id}
@@ -502,16 +505,16 @@ const AddClinic = () => {
                           <div className="plan-price">
                             {plan.originalPrice && Number(plan.originalPrice) > planPrice && !couponApplied ? (
                               <>
-                                <span className="price-old">De: R$ {Number(plan.originalPrice || 0).toFixed(2).replace('.', ',')}/mês*</span>
-                                <span className="price-new">Por: R$ {planPrice.toFixed(2).replace('.', ',')}/mês*</span>
+                                <span className="price-old">De: R$ {Number(plan.originalPrice || 0).toFixed(2).replace('.', ',')}{cicloInfo.periodoCurto}*</span>
+                                <span className="price-new">Por: R$ {planPrice.toFixed(2).replace('.', ',')}{cicloInfo.periodoCurto}*</span>
                               </>
                             ) : couponApplied && appliedCoupon && selectedPlan?.id === plan.id && planPrice !== finalPrice ? (
                               <>
-                                <span className="price-old">De: R$ {planPrice.toFixed(2).replace('.', ',')}/mês*</span>
-                                <span className="price-new">Por: R$ {finalPrice.toFixed(2).replace('.', ',')}/mês*</span>
+                                <span className="price-old">De: R$ {planPrice.toFixed(2).replace('.', ',')}{cicloInfo.periodoCurto}*</span>
+                                <span className="price-new">Por: R$ {finalPrice.toFixed(2).replace('.', ',')}{cicloInfo.periodoCurto}*</span>
                               </>
                             ) : (
-                              <span className="price-single">R$ {finalPrice.toFixed(2).replace('.', ',')}/mês*</span>
+                              <span className="price-single">R$ {finalPrice.toFixed(2).replace('.', ',')}{cicloInfo.periodoCurto}*</span>
                             )}
                           </div>
                         </div>
@@ -535,7 +538,7 @@ const AddClinic = () => {
                             ))}
                           </ul>
                         </div>
-                        <p className="plan-note">*Plano mensal. Cobrança recorrente com renovação automática.</p>
+                        <p className="plan-note">{cicloInfo.notaPlano}</p>
                       </div>
                     )
                   })}

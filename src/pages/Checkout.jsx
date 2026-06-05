@@ -1,27 +1,31 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faCreditCard, faMapMarkerAlt, faCheckCircle,
-  faChevronRight, faChevronLeft, faTag, faLock, faChevronDown, faChevronUp,
-  faExclamationTriangle, faTimes, faCheck, faPhone, faUsers, faShieldAlt, faGift
+  faCreditCard,
+  faCheckCircle,
+  faTag,
+  faLock,
+  faExclamationTriangle,
+  faTimes,
+  faCheck,
+  faShieldAlt,
+  faChevronDown,
+  faGift
 } from '@fortawesome/free-solid-svg-icons'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import axios from 'axios'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import api from '../utils/api'
-import { trackCheckoutStep, trackPlanSelection, trackConversion, trackEvent } from '../utils/gtag'
+import { mapPlanosCheckout } from '../utils/checkoutPlans'
+import { getCicloFromPlano } from '../utils/planoCiclo'
+import { trackPlanSelection, trackConversion, trackEvent } from '../utils/gtag'
 import './Checkout.css'
 
 const PAGARME_PUBLIC_KEY = import.meta.env.VITE_PAGARME_PUBLIC_KEY || ''
 
-/**
- * Tokeniza o cartão na Pagar.me (core v5).
- * Inclui billing_address quando informado.
- * Retorna { token, lastFourDigits, brand }.
- */
-async function tokenizeCardPagarMe ({
+async function tokenizeCardPagarMe({
   number,
   holder_name,
   holder_document,
@@ -46,7 +50,7 @@ async function tokenizeCardPagarMe ({
     },
     type: 'card'
   }
-  if (billing_address && billing_address.zip_code && billing_address.line_1) {
+  if (billing_address?.zip_code && billing_address?.line_1) {
     body.billing_address = {
       country: billing_address.country || 'BR',
       state: billing_address.state || '',
@@ -57,51 +61,95 @@ async function tokenizeCardPagarMe ({
     }
   }
   const response = await axios.post(url, body, {
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    }
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' }
   })
   const data = response.data
   const token = data?.id
-  const lastFourDigits = data?.card?.last_four_digits != null ? String(data.card.last_four_digits) : null
-  const brand = data?.card?.brand || null
-  if (!token) {
-    throw new Error(data?.message || 'Token do cartão não retornado pela Pagar.me')
+  if (!token) throw new Error(data?.message || 'Token do cartão não retornado pela Pagar.me')
+  return {
+    token,
+    lastFourDigits: data?.card?.last_four_digits != null ? String(data.card.last_four_digits) : null,
+    brand: data?.card?.brand || null
   }
-  return { token, lastFourDigits, brand }
 }
+
+const formatMoney = (valor) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor) || 0)
+
+const formatPhone = (value) => {
+  let numbers = value.replace(/\D/g, '')
+  if (numbers.startsWith('55')) numbers = numbers.substring(2)
+  numbers = numbers.substring(0, 11)
+  let formatted = ''
+  if (numbers.length <= 10) {
+    formatted = numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, (_, ddd, p1, p2) => {
+      if (p2) return `(${ddd}) ${p1}-${p2}`
+      if (p1) return `(${ddd}) ${p1}`
+      if (ddd) return `(${ddd})`
+      return numbers
+    })
+  } else {
+    formatted = numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, (_, ddd, p1, p2) => {
+      if (p2) return `(${ddd}) ${p1}-${p2}`
+      if (p1) return `(${ddd}) ${p1}`
+      if (ddd) return `(${ddd})`
+      return numbers
+    })
+  }
+  return formatted ? `55 ${formatted}` : ''
+}
+
+const formatCpfCnpj = (value) => {
+  const numbers = value.replace(/\D/g, '')
+  if (numbers.length <= 11) {
+    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (_, p1, p2, p3, p4) => {
+      if (p4) return `${p1}.${p2}.${p3}-${p4}`
+      if (p3) return `${p1}.${p2}.${p3}`
+      if (p2) return `${p1}.${p2}`
+      return p1
+    })
+  }
+  return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (_, p1, p2, p3, p4, p5) => {
+    if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`
+    if (p4) return `${p1}.${p2}.${p3}/${p4}`
+    if (p3) return `${p1}.${p2}.${p3}`
+    if (p2) return `${p1}.${p2}`
+    return p1
+  })
+}
+
+const formatCardNumber = (value) => value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')
+const formatExpiry = (value) => value.replace(/\D/g, '').replace(/(\d{2})(?=\d)/g, '$1/')
+
+const ESTADOS = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+]
 
 const Checkout = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  
-  const [currentStep, setCurrentStep] = useState(1)
+  const origemParam = searchParams.get('origem')
+  const origemSaude = origemParam === 'saude' || origemParam === 'estudante'
+
   const [selectedPlan, setSelectedPlan] = useState(null)
-  const [couponCode, setCouponCode] = useState('')
-  const [discount, setDiscount] = useState(0)
-  const [discountValue, setDiscountValue] = useState(0) // Valor em reais
-  const [couponApplied, setCouponApplied] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState(null) // Armazena o cupom aplicado
-  const [expandedPlan, setExpandedPlan] = useState(null)
-  const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
-  const [showAddressFields, setShowAddressFields] = useState(false)
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [plans, setPlans] = useState([])
   const [loadingPlans, setLoadingPlans] = useState(true)
-  const [showAllPlans, setShowAllPlans] = useState(false)
-  
-  // Form data
+
+  const [couponCode, setCouponCode] = useState('')
+  const [discount, setDiscount] = useState(0)
+  const [discountValue, setDiscountValue] = useState(0)
+  const [couponApplied, setCouponApplied] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
+
   const [formData, setFormData] = useState({
-    // Dados pessoais
     nome: '',
     email: '',
     password: '',
     confirmPassword: '',
     telefone: '',
     cpf: '',
-    
-    // Endereço
     cep: '',
     rua: '',
     numero: '',
@@ -109,722 +157,340 @@ const Checkout = () => {
     bairro: '',
     cidade: '',
     estado: '',
-    
-    // Cartão
     numeroCartao: '',
     nomeCartao: '',
     validade: '',
-    cvv: '',
-    parcelas: 1
+    cvv: ''
   })
 
-  const showAlert = (message, type = 'error') => {
-    setCustomAlert({ show: true, message, type })
-    setTimeout(() => {
-      setCustomAlert({ show: false, message: '', type: 'error' })
-    }, 5000)
-  }
-
-  // Carregar planos do backend
-  useEffect(() => {
-    const loadPlans = async () => {
-      try {
-        setLoadingPlans(true)
-        // O baseURL já garante que termina com /api, então usamos apenas /planos
-        const response = await api.get('/planos')
-        
-        // A API pode retornar { statusCode, message, data } ou diretamente o array
-        const planosBackend = response.data?.data || response.data || []
-
-        // Verificar se é um array
-        if (!Array.isArray(planosBackend)) {
-          showAlert('Erro ao carregar planos. Formato inválido.', 'error')
-          return
-        }
-
-        // Função auxiliar para formatar tokens
-        const formatarTokensAux = (tokens) => {
-          const numTokens = parseInt(tokens) || 0
-          if (numTokens >= 1000000) {
-            return `${(numTokens / 1000000).toFixed(1)} milhão${numTokens > 1000000 ? 's' : ''}`
-          } else if (numTokens >= 1000) {
-            return `${(numTokens / 1000).toFixed(0)} mil`
-          }
-          return numTokens.toString()
-        }
-
-        // Mapear planos do backend para o formato esperado no frontend
-        // Filtrar apenas planos ativos
-        const planosAtivos = planosBackend.filter(plano => plano.ativo !== false)
-        
-        const planosMapeados = planosAtivos.map((plano) => {
-          // Validar campos obrigatórios
-          if (!plano.id || !plano.nome) {
-            // Plano com dados incompletos - será filtrado depois
-          }
-
-          // Determinar features baseado no ID ou nome do plano (mesma lógica do LPDentista)
-          let features = []
-          let featured = false
-          let badge = null
-
-          // Identifica o plano pelo ID ou nome
-          const isPlanoInicial = plano.id === '3521d057-f3b3-4ae5-9966-a5bdeddc38f2' || plano.nome?.toLowerCase().includes('inicial')
-          const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
-
-          if (isPlanoChat) {
-            // Plano Estudante - Apenas Chat
-            badge = 'Ideal para estudantes'
-            features = [
-              'Chat especializado em odontologia 24/7',
-              'IA treinada especificamente para odontologia',
-              'Tire dúvidas sobre diagnósticos e tratamentos',
-              'Suporte para técnicas odontológicas',
-              'Respostas instantâneas e precisas',
-              plano.tokenChat || plano.token_chat || plano.tokensChat ? `${formatarTokensAux(plano.tokenChat || plano.token_chat || plano.tokensChat)} de tokens` : '1 milhão de tokens',
-              'Acesso mobile completo',
-              'Sem fidelidade - cancele quando quiser'
-            ]
-          } else if (isPlanoInicial) {
-            // Plano Inicial - Ideal para Dentistas Iniciantes
-            badge = ''
-            features = [
-              'Diagnósticos com IA avançada',
-              `Até ${plano.limiteAnalises || plano.limite_analises || 12} análises por mês`,
-              'Agendamento de consultas',
-              'Anamneses personalizadas',
-              'Chat especializado em odontologia 24/7',
-              'Precificação de tratamentos',
-              'Feedbacks e avaliações',
-              'Gráficos customizados para melhor entendimento',
-              'Gestão completa de pacientes',
-              'Relatórios detalhados e profissionais',
-              'Armazenamento ilimitado na nuvem',
-              plano.tokenChat || plano.token_chat || plano.tokensChat ? `${formatarTokensAux(plano.tokenChat || plano.token_chat || plano.tokensChat)} de tokens` : '1 milhão de tokens',
-              'Acesso mobile completo',
-              'Sem fidelidade - cancele quando quiser'
-            ]
-          } else {
-            // Features completas para outros planos
-            features = [
-              'Diagnósticos com IA avançada',
-              plano.limiteAnalises || plano.limite_analises ? `Até ${plano.limiteAnalises || plano.limite_analises} análises por mês` : 'Análises ilimitadas',
-              'Agendamento de consultas',
-              'Anamneses personalizadas',
-              'Chat especializado em odontologia 24/7',
-              'Precificação de tratamentos',
-              'Feedbacks e avaliações',
-              'Gráficos customizados para melhor entendimento',
-              'Gestão completa de pacientes',
-              'Relatórios detalhados e profissionais',
-              'Armazenamento ilimitado na nuvem',
-              plano.tokenChat || plano.token_chat || plano.tokensChat ? `${formatarTokensAux(plano.tokenChat || plano.token_chat || plano.tokensChat)} de tokens` : '1 milhão de tokens',
-              'Acesso mobile completo',
-              'Sem fidelidade - cancele quando quiser'
-            ]
-          }
-
-          // Valores padrão baseados no nome do plano (quando API retorna null)
-          const getDefaultPrices = (nomePlano) => {
-            switch (nomePlano) {
-              case 'Plano Inicial':
-                return { original: 159, promocional: 98 }
-              case 'Plano Básico':
-                return { original: 299, promocional: 179 }
-              case 'Plano Premium':
-                return { original: 299, promocional: null }
-              case 'Plano Essencial':
-                return { original: 399, promocional: null }
-              case 'Plano Enterprise':
-                return { original: 499, promocional: null }
-              case 'Plano Estudante':
-                return { original: 49, promocional: 39 }
-              default:
-                return { original: 0, promocional: null }
-            }
-          }
-
-          // Calcular preços com segurança
-          // Os valores podem vir como string (ex: "49.00") ou número
-          let valorPromocional = plano.valorPromocional || plano.valor_promocional || null
-          let valorOriginal = plano.valorOriginal || plano.valor_original || plano.valor || null
-          
-          // Se os valores vierem null, usar valores padrão
-          if (valorOriginal === null && valorPromocional === null) {
-            const defaultPrices = getDefaultPrices(plano.nome)
-            valorOriginal = defaultPrices.original
-            valorPromocional = defaultPrices.promocional
-          } else if (valorOriginal === null) {
-            // Se só o original for null, usar o promocional como original
-            valorOriginal = valorPromocional
-          }
-          
-          // Converter para número, tratando strings com vírgula ou ponto decimal
-          const parsePrice = (value) => {
-            if (value === null || value === undefined) return null
-            if (typeof value === 'number') return value
-            if (typeof value === 'string') {
-              // Remove espaços e converte vírgula para ponto
-              const cleaned = value.trim().replace(',', '.')
-              const parsed = parseFloat(cleaned)
-              return isNaN(parsed) ? null : parsed
-            }
-            return null
-          }
-          
-          const priceOriginal = parsePrice(valorOriginal) || 0
-          const pricePromocional = valorPromocional !== null ? parsePrice(valorPromocional) : null
-          const price = pricePromocional !== null && pricePromocional > 0 ? pricePromocional : priceOriginal
-          const oldPrice = pricePromocional !== null && pricePromocional > 0 && priceOriginal > pricePromocional ? priceOriginal : null
-
-          return {
-            id: plano.id,
-            name: plano.nome,
-            price: price,
-            oldPrice: oldPrice,
-            patients: plano.descricao || `Até ${plano.limiteAnalises || plano.limite_analises || 0} análises por mês`,
-            features,
-            featured,
-            badge
-          }
-        })
-
-        // Filtrar planos inválidos
-        const planosValidos = planosMapeados.filter(plano => plano.id && plano.name)
-        
-        if (planosValidos.length === 0) {
-          console.error('Nenhum plano válido encontrado')
-          showAlert('Nenhum plano disponível no momento.', 'error')
-          return
-        }
-
-        setPlans(planosValidos)
-      } catch (error) {
-        console.error('Erro ao carregar planos:', error)
-        showAlert('Erro ao carregar planos. Tente novamente.', 'error')
-      } finally {
-        setLoadingPlans(false)
-      }
-    }
-
-    loadPlans()
-  }, [])
-
-  // Rastrear mudanças de etapa
-  useEffect(() => {
-    if (currentStep) {
-      trackCheckoutStep(currentStep, selectedPlan?.name, selectedPlan?.price)
-    }
-  }, [currentStep])
-
-  const applyCoupon = async (code) => {
-    if (!code || !code.trim()) {
-      return false
-    }
-
-    // Garantir que o código do cupom sempre seja enviado em maiúsculas
-    const codigoNormalizado = code.toString().toUpperCase().trim()
-
-    setIsApplyingCoupon(true)
-    try {
-      const response = await api.get(`/cupons/name/${codigoNormalizado}`)
-      // A API pode retornar { message, data } ou diretamente o cupom
-      const cupom = response.data?.data || response.data
-
-      // Verificar se o cupom existe e está ativo (verificação estrita)
-      if (!cupom || cupom.active !== true) {
-        showAlert('Cupom inválido ou inativo', 'error')
-        setIsApplyingCoupon(false)
-        setCouponApplied(false)
-        setAppliedCoupon(null)
-        setDiscount(0)
-        setDiscountValue(0)
-        return false
-      }
-
-      // O cupom retorna discountValue em porcentagem
-      setAppliedCoupon(cupom)
-      const discountPercent = parseFloat(cupom.discountValue) || 0
-      setDiscount(discountPercent)
-      
-      // Calcular valor em reais do desconto (baseado no plano selecionado)
-      // SEM arredondamento - manter precisão decimal
-      if (selectedPlan) {
-        const planPrice = parseFloat(selectedPlan.price) || 0
-        if (planPrice > 0) {
-          const discountInReais = (planPrice * discountPercent) / 100
-          setDiscountValue(discountInReais) // Mantém precisão decimal completa
-        }
-      }
-      
-      setCouponApplied(true)
-      setIsApplyingCoupon(false)
-      return true
-    } catch (error) {
-      console.error('Erro ao validar cupom:', error)
-      setIsApplyingCoupon(false)
-      setCouponApplied(false)
-      setAppliedCoupon(null)
-      setDiscount(0)
-      setDiscountValue(0)
-      
-      if (error.response?.status === 404) {
-        showAlert('Cupom não encontrado', 'error')
-      } else {
-        showAlert('Erro ao validar cupom. Tente novamente.', 'error')
-      }
-      return false
-    }
-  }
-
-  // Aplicar cupom assim que chegar na página (independente dos planos)
-  useEffect(() => {
-    const coupon = searchParams.get('cupom')
-    if (coupon) {
-      // Preenche o input com o cupom
-      setCouponCode(coupon.toUpperCase())
-      // Aplica o cupom se ainda não foi aplicado
-      if (!couponApplied && !isApplyingCoupon) {
-        applyCoupon(coupon.toUpperCase())
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-
-  useEffect(() => {
-    // Verificar se há plano na query (usando o ID ou nome do plano)
-    if (plans.length > 0) {
-      const planParam = searchParams.get('plano')
-      if (planParam) {
-        // Tentar encontrar por ID primeiro, depois por nome
-        const plan = plans.find(p => p.id === planParam || p.name === planParam)
-        if (plan) {
-          setSelectedPlan(plan)
-          // Não pular o passo 1, deixar o usuário confirmar
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, plans])
-
-  // Recalcular desconto quando o plano mudar ou quando o cupom for aplicado
-  useEffect(() => {
-    if (appliedCoupon && selectedPlan) {
-      const discountPercent = parseFloat(appliedCoupon.discountValue) || 0
-      const planPrice = parseFloat(selectedPlan.price) || 0
-      setDiscount(discountPercent)
-      if (planPrice > 0) {
-        // SEM arredondamento - manter precisão decimal completa
-        const discountInReais = (planPrice * discountPercent) / 100
-        setDiscountValue(discountInReais)
-      }
-    } else if (appliedCoupon && !selectedPlan) {
-      // Se tem cupom mas ainda não tem plano, mantém o desconto percentual
-      const discountPercent = parseFloat(appliedCoupon.discountValue) || 0
-      setDiscount(discountPercent)
-      setDiscountValue(0) // Valor em reais será calculado quando o plano for selecionado
-    }
-  }, [selectedPlan, appliedCoupon])
-
-  const handleCouponSubmit = async (e) => {
-    e.preventDefault()
-    if (!couponCode.trim()) {
-      showAlert('Por favor, digite um código de cupom', 'error')
-      return
-    }
-
-    const success = await applyCoupon(couponCode)
-    if (success) {
-      showAlert('Cupom aplicado com sucesso!', 'success')
-    }
-  }
-
-  const formatPhone = (value) => {
-    // Remove tudo que não é dígito
-    let numbers = value.replace(/\D/g, '')
-    
-    // Se começar com 55, remover para processar
-    let hasCountryCode = false
-    if (numbers.startsWith('55')) {
-      hasCountryCode = true
-      numbers = numbers.substring(2)
-    }
-    
-    // Limitar a 11 dígitos (DDD + número)
-    numbers = numbers.substring(0, 11)
-    
-    // Formatar conforme o tamanho
-    let formatted = ''
-    if (numbers.length <= 10) {
-      // Telefone fixo: (00) 0000-0000
-      formatted = numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, (match, ddd, part1, part2) => {
-        if (part2) return `(${ddd}) ${part1}-${part2}`
-        if (part1) return `(${ddd}) ${part1}`
-        if (ddd) return `(${ddd})`
-        return numbers
-      })
-    } else {
-      // Celular: (00) 00000-0000
-      formatted = numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, (match, ddd, part1, part2) => {
-        if (part2) return `(${ddd}) ${part1}-${part2}`
-        if (part1) return `(${ddd}) ${part1}`
-        if (ddd) return `(${ddd})`
-        return numbers
-      })
-    }
-    
-    // Adicionar código do país 55 no início
-    if (formatted) {
-      return `55 ${formatted}`
-    }
-    
-    return formatted
-  }
-
-  const formatCpfCnpj = (value) => {
-    // Remove tudo que não é dígito
-    const numbers = value.replace(/\D/g, '')
-    
-    // Se tiver 11 dígitos ou menos, formata como CPF
-    if (numbers.length <= 11) {
-      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (match, p1, p2, p3, p4) => {
-        if (p4) return `${p1}.${p2}.${p3}-${p4}`
-        if (p3) return `${p1}.${p2}.${p3}`
-        if (p2) return `${p1}.${p2}`
-        return p1
-      })
-    } else {
-      // Se tiver mais de 11 dígitos, formata como CNPJ
-      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (match, p1, p2, p3, p4, p5) => {
-        if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`
-        if (p4) return `${p1}.${p2}.${p3}/${p4}`
-        if (p3) return `${p1}.${p2}.${p3}`
-        if (p2) return `${p1}.${p2}`
-        return p1
-      })
-    }
-  }
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    
-    // Formatar telefone automaticamente
-    if (name === 'telefone') {
-      const formatted = formatPhone(value)
-      setFormData(prev => ({
-        ...prev,
-        [name]: formatted
-      }))
-    } else if (name === 'cpf') {
-      // Formatar CPF ou CNPJ automaticamente
-      const formatted = formatCpfCnpj(value)
-      setFormData(prev => ({
-        ...prev,
-        [name]: formatted
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
-    }
-  }
-
-  const handleCepChange = async (e) => {
-    const cep = e.target.value.replace(/\D/g, '')
-    const formattedCep = cep.replace(/(\d{5})(\d)/, '$1-$2')
-    setFormData(prev => ({ ...prev, cep: formattedCep }))
-
-    if (cep.length === 8) {
-      // Mostrar campos quando CEP tiver 8 dígitos
-      setShowAddressFields(true)
-      try {
-        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        const data = await response.json()
-        
-        if (data.erro) {
-          showAlert('CEP não encontrado. Por favor, verifique o CEP digitado ou preencha manualmente.')
-          // Manter campos visíveis para preenchimento manual
-          setShowAddressFields(true)
-          return
-        }
-
-        setFormData(prev => ({
-          ...prev,
-          rua: data.logradouro || '',
-          bairro: data.bairro || '',
-          cidade: data.localidade || '',
-          estado: data.uf || '',
-          complemento: data.complemento || prev.complemento
-        }))
-        
-        // Mostrar campos de endereço após preencher
-        setShowAddressFields(true)
-      } catch (error) {
-        console.error('Erro ao buscar CEP:', error)
-        showAlert('Erro ao buscar CEP. Você pode preencher manualmente.')
-        // Manter campos visíveis para preenchimento manual
-        setShowAddressFields(true)
-      }
-    } else if (cep.length < 8) {
-      // Limpar campos se CEP incompleto
-      setFormData(prev => ({
-        ...prev,
-        rua: '',
-        bairro: '',
-        cidade: '',
-        estado: ''
-      }))
-      setShowAddressFields(false)
-    }
-  }
-
-  const formatCardNumber = (value) => {
-    return value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')
-  }
-
-  const formatExpiry = (value) => {
-    return value.replace(/\D/g, '').replace(/(\d{2})(?=\d)/g, '$1/')
-  }
-
-  const calculateTotal = () => {
-    if (!selectedPlan) return 0
-    const subtotal = parseFloat(selectedPlan.price) || 0
-    // discountValue agora é calculado em reais baseado na porcentagem
-    // SEM arredondamento - manter precisão decimal completa
-    const discountAmount = parseFloat(discountValue) || 0
-    const total = subtotal - discountAmount
-    return total > 0 ? total : 0 // Garantir que não seja negativo
-  }
-
-  const handlePlanSelect = (plan) => {
-    setSelectedPlan(plan)
-    // Atualizar a query string com o nome do plano selecionado
-    const newSearchParams = new URLSearchParams(searchParams)
-    newSearchParams.set('plano', plan.name)
-    setSearchParams(newSearchParams, { replace: true })
-    
-    // Evento GTM - Seleção de plano
-    trackPlanSelection(plan.name, plan.id, plan.price)
-    
-    // Ocultar outros planos quando selecionar um
-    setShowAllPlans(false)
-    
-    // Avançar automaticamente para o próximo step
-    if (currentStep === 1) {
-      setCurrentStep(2)
-    }
-  }
-
-  const handlePlanToggle = (planId, e) => {
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    setExpandedPlan(expandedPlan === planId ? null : planId)
-  }
-
-  // Função para cadastrar cliente na API
-  const createCustomer = async () => {
-    if (isCreatingCustomer) return
-    
-    setIsCreatingCustomer(true)
-    try {
-      // Validar telefone
-      let phoneNumbers = formData.telefone.replace(/\D/g, '')
-      if (!phoneNumbers.startsWith('55')) {
-        phoneNumbers = '55' + phoneNumbers
-      }
-      
-      const customerPayload = {
-        name: formData.nome,
-        email: formData.email,
-        password: formData.password,
-        cpf: formData.cpf.replace(/\D/g, ''),
-        phone: phoneNumbers,
-        postalCode: formData.cep.replace(/\D/g, ''),
-        address: formData.rua,
-        addressNumber: formData.numero,
-        complement: formData.complemento || '',
-        province: formData.bairro,
-        city: formData.cidade,
-        state: formData.estado
-      }
-      
-      const response = await api.post('/assinaturas/customer', customerPayload)
-      
-      // Backend retorna { data: { pagarMeCustomerId, userId } } ou aninhado
-      const outerData = response.data?.data
-      const innerData = outerData?.data ?? outerData
-      const pagarMeId = innerData?.pagarMeCustomerId ?? outerData?.pagarMeCustomerId ?? response.data?.pagarMeCustomerId
-      const user = innerData?.userId ?? outerData?.userId ?? response.data?.userId
-      
-      if (!user) {
-        console.error('userId não encontrado na resposta')
-        throw new Error('userId não retornado pela API')
-      }
-      
-      setPagarMeCustomerId(pagarMeId ?? null)
-      setUserId(user)
-      
-    } catch (error) {
-      console.error('Erro ao criar cliente:', error)
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao cadastrar cliente. Tente novamente.'
-      showAlert(errorMessage, 'error')
-      setIsCreatingCustomer(false)
-      throw error // Re-throw para impedir avanço de etapa
-    } finally {
-      setIsCreatingCustomer(false)
-    }
-  }
-
-
-  const handleNext = async () => {
-    if (currentStep === 1) {
-      if (!selectedPlan) {
-        showAlert('Por favor, selecione um plano para continuar')
-        return
-      }
-    }
-    if (currentStep === 2) {
-      // Validar dados pessoais e endereço
-      if (!formData.nome || !formData.email || !formData.telefone || !formData.cpf) {
-        showAlert('Por favor, preencha todos os campos obrigatórios')
-        return
-      }
-      // Validar telefone com DDD e código do país
-      let phoneNumbers = formData.telefone.replace(/\D/g, '')
-      
-      // Se não começar com 55, adicionar
-      if (!phoneNumbers.startsWith('55')) {
-        phoneNumbers = '55' + phoneNumbers
-      }
-      
-      // Validar tamanho: 55 (código país) + 2 (DDD) + 8 ou 9 (número) = 12 ou 13 dígitos
-      if (phoneNumbers.length < 12 || phoneNumbers.length > 13) {
-        showAlert('Por favor, informe um telefone válido com DDD (ex: 55 (11) 98765-4321)')
-        return
-      }
-      if (!formData.password || formData.password.length < 6) {
-        showAlert('A senha deve ter no mínimo 6 caracteres')
-        return
-      }
-      if (formData.password !== formData.confirmPassword) {
-        showAlert('As senhas não coincidem')
-        return
-      }
-      if (!formData.cep || !formData.rua || !formData.numero || !formData.cidade || !formData.estado) {
-        showAlert('Por favor, preencha todos os campos de endereço')
-        return
-      }
-      
-      // Se já tem o userId, não precisa criar novamente
-      if (!userId) {
-        try {
-          // Cadastrar cliente antes de avançar para etapa 3
-          await createCustomer()
-        } catch (error) {
-          // Erro já foi tratado na função createCustomer
-          return // Não avança para próxima etapa se houver erro
-        }
-      }
-    }
-    if (currentStep === 3) {
-      // Validar dados do cartão
-      if (!formData.numeroCartao || !formData.nomeCartao || !formData.validade || !formData.cvv) {
-        showAlert('Por favor, preencha todos os dados do cartão')
-        return
-      }
-    }
-    setCurrentStep(prev => prev + 1)
-  }
-
+  const [customAlert, setCustomAlert] = useState({ show: false, message: '', type: 'error' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [showPollingModal, setShowPollingModal] = useState(false)
   const [showLoadingModal, setShowLoadingModal] = useState(false)
   const [pollingAttempt, setPollingAttempt] = useState(0)
   const [pollingStatus, setPollingStatus] = useState('Verificando pagamento...')
-  const [loadingMessage, setLoadingMessage] = useState('Criando assinatura...')
+  const [loadingMessage, setLoadingMessage] = useState('Processando...')
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
-  const [pagarMeCustomerId, setPagarMeCustomerId] = useState(null)
   const [userId, setUserId] = useState(null)
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
   const [periodoGratis, setPeriodoGratis] = useState(null)
+  const [expandedPlanFeatures, setExpandedPlanFeatures] = useState({})
 
-  // Bloquear scroll do body quando modal estiver aberto
+  const showAlert = (message, type = 'error') => {
+    setCustomAlert({ show: true, message, type })
+    setTimeout(() => setCustomAlert({ show: false, message: '', type: 'error' }), 5000)
+  }
+
   useEffect(() => {
-    if (showLoadingModal || showPollingModal || showSuccessAnimation) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
+    const loadPlans = async () => {
+      try {
+        setLoadingPlans(true)
+        const response = await api.get('/planos')
+        const raw = response.data?.data || response.data || []
+        setPlans(mapPlanosCheckout(raw, { origemSaude }))
+      } catch {
+        showAlert('Erro ao carregar planos. Tente novamente.', 'error')
+      } finally {
+        setLoadingPlans(false)
+      }
     }
-    
-    return () => {
-      document.body.style.overflow = 'unset'
+    loadPlans()
+  }, [origemSaude])
+
+  const applyCoupon = async (code) => {
+    const codigo = code?.toString().toUpperCase().trim()
+    if (!codigo) return false
+    setIsApplyingCoupon(true)
+    try {
+      const response = await api.get(`/cupons/name/${codigo}`)
+      const cupom = response.data?.data || response.data
+      if (!cupom?.active) {
+        showAlert('Cupom inválido ou inativo', 'error')
+        setCouponApplied(false)
+        setAppliedCoupon(null)
+        setDiscount(0)
+        setDiscountValue(0)
+        return false
+      }
+      setAppliedCoupon(cupom)
+      const pct = parseFloat(cupom.discountValue) || 0
+      setDiscount(pct)
+      setCouponApplied(true)
+      return true
+    } catch (err) {
+      showAlert(err.response?.status === 404 ? 'Cupom não encontrado' : 'Erro ao validar cupom', 'error')
+      setCouponApplied(false)
+      setAppliedCoupon(null)
+      setDiscount(0)
+      setDiscountValue(0)
+      return false
+    } finally {
+      setIsApplyingCoupon(false)
     }
+  }
+
+  useEffect(() => {
+    const cupom = searchParams.get('cupom')
+    if (cupom && !couponApplied && !isApplyingCoupon) {
+      setCouponCode(cupom.toUpperCase())
+      applyCoupon(cupom.toUpperCase())
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!plans.length) return
+    const planoId = searchParams.get('planoId')
+    const planoNome = searchParams.get('plano')
+    const found = plans.find(
+      (p) => (planoId && p.id === planoId) || (planoNome && (p.id === planoNome || p.name === planoNome))
+    )
+    if (found) {
+      setSelectedPlan(found)
+      return
+    }
+    setSelectedPlan((prev) => prev ?? plans.find((p) => p.featured) ?? plans[0])
+  }, [plans, searchParams])
+
+  useEffect(() => {
+    if (!appliedCoupon || !selectedPlan) {
+      if (appliedCoupon && !selectedPlan) setDiscountValue(0)
+      return
+    }
+    const pct = parseFloat(appliedCoupon.discountValue) || 0
+    const price = parseFloat(selectedPlan.price) || 0
+    setDiscount(pct)
+    setDiscountValue(price > 0 ? (price * pct) / 100 : 0)
+  }, [selectedPlan, appliedCoupon])
+
+  useEffect(() => {
+    const lock = showLoadingModal || showPollingModal || showSuccessAnimation
+    document.body.style.overflow = lock ? 'hidden' : 'unset'
+    return () => { document.body.style.overflow = 'unset' }
   }, [showLoadingModal, showPollingModal, showSuccessAnimation])
+
+  const total = useMemo(() => {
+    if (!selectedPlan) return 0
+    const sub = parseFloat(selectedPlan.price) || 0
+    const t = sub - (parseFloat(discountValue) || 0)
+    return t > 0 ? t : 0
+  }, [selectedPlan, discountValue])
+
+  const handleCouponSubmit = async (e) => {
+    e.preventDefault()
+    if (!couponCode.trim()) {
+      showAlert('Digite um código de cupom', 'error')
+      return
+    }
+    if (await applyCoupon(couponCode)) showAlert('Cupom aplicado!', 'success')
+  }
+
+  const removeCoupon = () => {
+    setCouponApplied(false)
+    setAppliedCoupon(null)
+    setDiscount(0)
+    setDiscountValue(0)
+    setCouponCode('')
+  }
+
+  const selectPlan = (plan) => {
+    setSelectedPlan(plan)
+    const params = new URLSearchParams(searchParams)
+    params.set('plano', plan.name)
+    params.set('planoId', plan.id)
+    setSearchParams(params, { replace: true })
+    trackPlanSelection(plan.name, plan.id, plan.price)
+  }
+
+  const togglePlanFeatures = (planId, e) => {
+    e.stopPropagation()
+    setExpandedPlanFeatures((prev) => ({ ...prev, [planId]: !prev[planId] }))
+  }
+
+  const formatTokens = (tokens) => {
+    const n = parseInt(tokens) || 0
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)} milhão${n > 1000000 ? 's' : ''}`
+    if (n >= 1000) return `${(n / 1000).toFixed(0)} mil`
+    return String(n)
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    if (name === 'telefone') {
+      setFormData((p) => ({ ...p, telefone: formatPhone(value) }))
+    } else if (name === 'cpf') {
+      setFormData((p) => ({ ...p, cpf: formatCpfCnpj(value) }))
+    } else {
+      setFormData((p) => ({ ...p, [name]: value }))
+    }
+  }
+
+  const handleCepChange = async (e) => {
+    const cep = e.target.value.replace(/\D/g, '')
+    const formattedCep = cep.replace(/(\d{5})(\d)/, '$1-$2')
+    setFormData((p) => ({ ...p, cep: formattedCep }))
+    if (cep.length !== 8) return
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const data = await res.json()
+      if (data.erro) {
+        showAlert('CEP não encontrado. Preencha o endereço manualmente.', 'error')
+        return
+      }
+      setFormData((p) => ({
+        ...p,
+        rua: data.logradouro || p.rua,
+        bairro: data.bairro || p.bairro,
+        cidade: data.localidade || p.cidade,
+        estado: data.uf || p.estado,
+        complemento: data.complemento || p.complemento
+      }))
+    } catch {
+      showAlert('Erro ao buscar CEP. Preencha manualmente.', 'error')
+    }
+  }
+
+  const normalizePhone = () => {
+    let phone = formData.telefone.replace(/\D/g, '')
+    if (!phone.startsWith('55')) phone = '55' + phone
+    return phone
+  }
+
+  const validateForm = () => {
+    if (!selectedPlan) {
+      showAlert('Selecione um plano', 'error')
+      return false
+    }
+    if (!formData.nome?.trim() || !formData.email?.trim() || !formData.telefone || !formData.cpf) {
+      showAlert('Preencha nome, e-mail, telefone e CPF', 'error')
+      return false
+    }
+    const phone = normalizePhone()
+    if (phone.length < 12 || phone.length > 13) {
+      showAlert('Telefone inválido. Ex: 55 (11) 98765-4321', 'error')
+      return false
+    }
+    if (!formData.password || formData.password.length < 6) {
+      showAlert('Senha com mínimo de 6 caracteres', 'error')
+      return false
+    }
+    if (formData.password !== formData.confirmPassword) {
+      showAlert('As senhas não coincidem', 'error')
+      return false
+    }
+    if (!formData.cep || !formData.rua || !formData.numero || !formData.cidade || !formData.estado) {
+      showAlert('Preencha o endereço completo', 'error')
+      return false
+    }
+    if (!formData.numeroCartao || !formData.nomeCartao || !formData.validade || !formData.cvv) {
+      showAlert('Preencha os dados do cartão', 'error')
+      return false
+    }
+    return true
+  }
+
+  const createCustomer = async () => {
+    const payload = {
+      name: formData.nome.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      cpf: formData.cpf.replace(/\D/g, ''),
+      phone: normalizePhone(),
+      postalCode: formData.cep.replace(/\D/g, ''),
+      address: formData.rua,
+      addressNumber: formData.numero,
+      complement: formData.complemento || '',
+      province: formData.bairro,
+      city: formData.cidade,
+      state: formData.estado
+    }
+    const response = await api.post('/assinaturas/customer', payload)
+    const outer = response.data?.data
+    const inner = outer?.data ?? outer
+    const uid = inner?.userId ?? outer?.userId ?? response.data?.userId
+    if (!uid) throw new Error('Cadastro não concluído. Tente novamente.')
+    setUserId(uid)
+    return uid
+  }
+
+  const finishSuccess = (transactionId) => {
+    trackConversion('purchase', total, 'BRL')
+    trackEvent('purchase', {
+      transaction_id: transactionId,
+      value: total,
+      currency: 'BRL',
+      items: selectedPlan
+        ? [{ item_name: selectedPlan.name, item_id: selectedPlan.id, price: selectedPlan.price, quantity: 1 }]
+        : []
+    })
+    setShowLoadingModal(false)
+    setShowPollingModal(false)
+    setIsPolling(false)
+    setIsSubmitting(false)
+    setShowSuccessAnimation(true)
+    setTimeout(() => {
+      setShowSuccessAnimation(false)
+      navigate('/login')
+    }, 3500)
+  }
+
+  const pollPaymentStatus = async (paymentId) => {
+    const maxAttempts = 3
+    const interval = 8000
+    let attempts = 0
+
+    const poll = async () => {
+      attempts++
+      setPollingAttempt(attempts)
+      setPollingStatus(`Verificando pagamento... (${attempts}/${maxAttempts})`)
+      try {
+        const response = await api.get(`/assinaturas/check-payment-status/${paymentId}`)
+        const responseData = response.data?.data || response.data
+        const pagamento = responseData?.pagamento || responseData
+        const status = pagamento?.status || responseData?.status
+
+        if (status === 'CONFIRMED') {
+          finishSuccess(paymentId)
+          return
+        }
+        if (attempts >= maxAttempts) {
+          setIsPolling(false)
+          setIsSubmitting(false)
+          setShowPollingModal(false)
+          showAlert('Não foi possível confirmar o pagamento. Verifique mais tarde.', 'error')
+          return
+        }
+        setTimeout(poll, interval)
+      } catch {
+        if (attempts >= maxAttempts) {
+          setIsPolling(false)
+          setIsSubmitting(false)
+          setShowPollingModal(false)
+          showAlert('Erro ao verificar pagamento.', 'error')
+          return
+        }
+        setTimeout(poll, interval)
+      }
+    }
+    setTimeout(poll, interval)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    if (isSubmitting) return
+    if (isSubmitting || !validateForm()) return
 
     setIsSubmitting(true)
+    setShowLoadingModal(true)
+    setLoadingMessage('Criando sua conta...')
 
     try {
-      // Validar se as senhas coincidem antes de enviar
-      if (formData.password !== formData.confirmPassword) {
-        showAlert('As senhas não coincidem. Por favor, verifique.')
-        setIsSubmitting(false)
-        return
-      }
-      
-      // Validar tamanho mínimo da senha
-      if (formData.password.length < 6) {
-        showAlert('A senha deve ter no mínimo 6 caracteres')
-        setIsSubmitting(false)
-        return
-      }
-      
-      // Validar telefone antes de enviar
-      let phoneNumbers = formData.telefone.replace(/\D/g, '')
-      
-      // Se não começar com 55, adicionar
-      if (!phoneNumbers.startsWith('55')) {
-        phoneNumbers = '55' + phoneNumbers
-      }
-      
-      // Validar tamanho: 55 (código país) + 2 (DDD) + 8 ou 9 (número) = 12 ou 13 dígitos
-      if (!phoneNumbers || phoneNumbers.length < 12 || phoneNumbers.length > 13) {
-        showAlert('Por favor, informe um telefone válido com DDD')
-        setIsSubmitting(false)
-        return
+      let uid = userId
+      if (!uid) {
+        uid = await createCustomer()
       }
 
-      // Validar se tem userId
-      if (!userId) {
-        showAlert('Erro: Cliente não cadastrado. Por favor, volte e tente novamente.', 'error')
-        setIsSubmitting(false)
-        return
-      }
+      setLoadingMessage('Processando pagamento...')
 
-      // Mostrar modal de loading
-      setShowLoadingModal(true)
-      setLoadingMessage('Tokenizando cartão...')
-
-      // Preparar dados do cartão (validade MM/AA)
-      const [expiryMonth, expiryYear] = (formData.validade || '/').split('/').map(s => s.trim())
-      const expYearTwoDigits = expiryYear?.length === 2 ? expiryYear : (expiryYear || '').slice(-2)
-
-      // 1. Tokenizar cartão na Pagar.me (retorna token + últimos 4 dígitos + bandeira)
-      if (!formData.cep || !formData.rua || !formData.numero || !formData.cidade || !formData.estado) {
-        showAlert('Para gerar o token do cartão é necessário preencher o endereço (CEP, rua, número, cidade e estado). Volte ao passo anterior e complete os dados.')
-        setIsSubmitting(false)
-        setShowLoadingModal(false)
-        return
-      }
-
+      const [expiryMonth, expiryYear] = (formData.validade || '/').split('/').map((s) => s.trim())
       const billing_address = {
         country: 'BR',
         state: (formData.estado || '').trim().toUpperCase().slice(0, 2),
@@ -834,997 +500,413 @@ const Checkout = () => {
         ...(formData.complemento?.trim() && { line_2: formData.complemento.trim() })
       }
 
-      let creditCardToken, creditCardNumber, creditCardBrand
-      try {
-        const tokenResult = await tokenizeCardPagarMe({
-          number: formData.numeroCartao,
-          holder_name: formData.nomeCartao,
-          holder_document: formData.cpf,
-          exp_month: expiryMonth || '01',
-          exp_year: expYearTwoDigits || '00',
-          cvv: formData.cvv,
-          billing_address
-        })
-        creditCardToken = tokenResult.token
-        creditCardNumber = tokenResult.lastFourDigits || undefined
-        creditCardBrand = tokenResult.brand || undefined
-      } catch (tokenError) {
-        const msg = tokenError.response?.data?.message || tokenError.message || 'Falha ao tokenizar o cartão.'
-        throw new Error(msg)
-      }
+      const { token, lastFourDigits, brand } = await tokenizeCardPagarMe({
+        number: formData.numeroCartao,
+        holder_name: formData.nomeCartao,
+        holder_document: formData.cpf,
+        exp_month: expiryMonth || '01',
+        exp_year: expiryYear?.length === 2 ? expiryYear : (expiryYear || '').slice(-2),
+        cvv: formData.cvv,
+        billing_address
+      })
 
-      setLoadingMessage('Processando pagamento...')
-
-      // 2. Fazer checkout no backend (Pagar.me: token + últimos 4 dígitos + bandeira)
       const checkoutPayload = {
-        userId,
+        userId: uid,
         planoId: selectedPlan.id,
         billingType: 'CREDIT_CARD',
-        creditCardToken,
-        ...(creditCardNumber && { creditCardNumber }),
-        ...(creditCardBrand && { creditCardBrand }),
+        creditCardToken: token,
+        ...(lastFourDigits && { creditCardNumber: lastFourDigits }),
+        ...(brand && { creditCardBrand: brand }),
         ...(appliedCoupon ? { couponName: appliedCoupon.name } : {})
       }
 
-      // Fazer checkout
       const response = await api.post('/assinaturas/checkout', checkoutPayload)
-      
-      // Verificar se há erro na resposta (statusCode 400, 500, etc)
       const responseStatusCode = response.data?.statusCode || response.status
       if (responseStatusCode >= 400) {
-        const errorMessage = response.data?.message || 'Erro ao processar pagamento. Tente novamente.'
-        // Limpar mensagens duplicadas ou muito técnicas
-        const cleanMessage = errorMessage
-          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
-          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
-          .trim()
-        throw new Error(cleanMessage || 'Erro ao processar pagamento. Verifique os dados e tente novamente.')
+        throw new Error(response.data?.message || 'Erro ao processar pagamento.')
       }
-      
-      // Estrutura aninhada: response.data.data.data contém { assinatura, periodoGratis }
-      // response.data.data.statusCode contém o statusCode interno (200 ou 202)
-      // response.data.statusCode contém o statusCode externo (201)
+
       const outerData = response.data?.data
       const innerData = outerData?.data
-      const innerStatusCode = outerData?.statusCode
-      const outerStatusCode = response.data?.statusCode || response.status
-      
-      // Tentar diferentes níveis de aninhamento para compatibilidade
       const responseData = innerData || outerData || response.data
-      const statusCode = innerStatusCode || outerData?.statusCode || outerStatusCode
-      
-      if (!responseData) {
-        console.error('Resposta inválida do servidor')
-        throw new Error('Resposta inválida do servidor')
-      }
-      
-      // Extrair dados do pagamento e assinatura (pode estar em data.data.data ou data.data)
-      // Novo formato: innerData contém { assinatura, periodoGratis }
-      const pagamento = responseData.pagamento || innerData?.pagamento
-      const assinatura = responseData.assinatura || innerData?.assinatura
-      const periodoGratisData = responseData.periodoGratis || innerData?.periodoGratis
-      
-      // Armazenar dados do período grátis
-      if (periodoGratisData) {
-        setPeriodoGratis(periodoGratisData)
-      }
-      
-      // Verificar se temos assinatura (novo formato) ou pagamento (formato antigo)
-      if (!assinatura || !assinatura.id) {
-        // Se não tem assinatura, verificar se tem pagamento (formato antigo)
-        if (!pagamento || !pagamento.id) {
-          console.error('Dados da assinatura/pagamento não encontrados na resposta')
-          throw new Error('Dados da assinatura não encontrados')
-        }
-      }
-      
-      // ID do pedido/order para verificar status (Pagar.me: order id ex. or_28dN9w7CLU79kDjL)
-      const orderId = responseData.orderId ?? responseData.order?.id ?? innerData?.orderId ?? innerData?.order?.id
+      const statusCode = outerData?.statusCode || response.data?.statusCode || response.status
+
+      const pagamento = responseData?.pagamento || innerData?.pagamento
+      const assinatura = responseData?.assinatura || innerData?.assinatura
+      const periodoGratisData = responseData?.periodoGratis || innerData?.periodoGratis
+      if (periodoGratisData) setPeriodoGratis(periodoGratisData)
+
+      const orderId = responseData?.orderId ?? responseData?.order?.id ?? innerData?.orderId
       const paymentId = orderId || pagamento?.id || assinatura?.id
       const paymentStatus = pagamento?.status || (assinatura?.status === 'ACTIVE' ? 'CONFIRMED' : null)
-      
-      // Cenário 1: statusCode 200/201 e assinatura ACTIVE - Assinatura criada com sucesso (período grátis)
-      if ((statusCode === 200 || statusCode === 201 || outerStatusCode === 201) && (assinatura?.status === 'ACTIVE' || paymentStatus === 'CONFIRMED')) {
-        setShowLoadingModal(false)
-        setIsPolling(false)
-        setIsSubmitting(false)
-        
-        // Evento GTM - Conversão (pagamento confirmado)
-        const totalValue = selectedPlan ? calculateTotal() : 0
-        const userId = assinatura?.userId || paymentId
-        trackConversion('purchase', totalValue, 'BRL')
-        trackEvent('purchase', {
-          transaction_id: userId,
-          value: totalValue,
-          currency: 'BRL',
-          items: selectedPlan ? [{
-            item_name: selectedPlan.name,
-            item_id: selectedPlan.id,
-            price: selectedPlan.price,
-            quantity: 1
-          }] : []
-        })
-        
-        // Mostrar animação de sucesso
-        setShowSuccessAnimation(true)
-        
-        // Redirecionar após a animação (3.5 segundos)
-        setTimeout(() => {
-          setShowSuccessAnimation(false)
-          navigate('/login')
-        }, 3500)
+
+      if (
+        (statusCode === 200 || statusCode === 201 || response.status === 201) &&
+        (assinatura?.status === 'ACTIVE' || paymentStatus === 'CONFIRMED')
+      ) {
+        finishSuccess(paymentId)
         return
       }
-      
-      // Cenário 2: statusCode 202 e status PENDING - Precisa fazer polling
+
       if (statusCode === 202 && paymentStatus === 'PENDING') {
         setShowLoadingModal(false)
         setIsPolling(true)
         setShowPollingModal(true)
         setPollingAttempt(0)
-        setPollingStatus('Aguardando confirmação do pagamento...')
         await pollPaymentStatus(paymentId)
         return
       }
-      
-      // Caso não se encaixe nos cenários esperados
-      console.error('Status inesperado no checkout')
-      throw new Error(`Status inesperado: ${statusCode} - ${paymentStatus}`)
-      
+
+      throw new Error('Resposta inesperada do pagamento. Tente novamente.')
     } catch (error) {
-      console.error('Erro ao criar assinatura:', error)
-      
-      // Extrair mensagem de erro de forma amigável
-      let errorMessage = 'Erro ao processar pagamento. Tente novamente.'
-      
-      if (error.response?.data) {
-        // Erro da API com estrutura { statusCode, message, ... }
-        const apiError = error.response.data
-        errorMessage = apiError.message || errorMessage
-        
-        // Limpar mensagens duplicadas ou muito técnicas
-        errorMessage = errorMessage
-          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
-          .replace(/Erro ao tokenizar cartão:\s*/gi, '')
-          .replace(/Tokenização\s+falhou:\s*/gi, '')
-          .trim()
-      } else if (error.message) {
-        // Erro lançado manualmente
-        errorMessage = error.message
-      }
-      
-      // Garantir que a mensagem não esteja vazia
-      if (!errorMessage || errorMessage.trim() === '') {
-        errorMessage = 'Erro ao processar pagamento. Verifique os dados do cartão e tente novamente.'
-      }
-      
-      showAlert(errorMessage, 'error')
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao finalizar. Verifique os dados e tente novamente.'
+      showAlert(String(msg).replace(/Erro ao tokenizar cartão:\s*/gi, '').trim(), 'error')
       setIsSubmitting(false)
       setShowLoadingModal(false)
       setShowPollingModal(false)
     }
   }
 
-  const pollPaymentStatus = async (paymentId) => {
-    const maxAttempts = 3 // Máximo de 3 tentativas
-    const interval = 8000 // 8 segundos entre tentativas
-    let attempts = 0
-
-    const poll = async () => {
-      attempts++
-      setPollingAttempt(attempts)
-      setPollingStatus(`Verificando pagamento... (Tentativa ${attempts}/${maxAttempts})`)
-
-      try {
-        // Usar o ID do pagamento na rota
-        const response = await api.get(`/assinaturas/check-payment-status/${paymentId}`)
-        
-        // A resposta pode vir em diferentes formatos:
-        // { statusCode, message, data: { pagamento: { status } } }
-        // ou { status } diretamente
-        const responseData = response.data?.data || response.data
-        const pagamento = responseData?.pagamento || responseData
-        const status = pagamento?.status || responseData?.status || response.data?.status
-
-        if (status === 'CONFIRMED') {
-          setPollingStatus('Pagamento confirmado!')
-          setIsPolling(false)
-          setIsSubmitting(false)
-          
-          // Evento GTM - Conversão (pagamento confirmado)
-          const totalValue = selectedPlan ? calculateTotal() : 0
-          trackConversion('purchase', totalValue, 'BRL')
-          trackEvent('purchase', {
-            transaction_id: paymentId,
-            value: totalValue,
-            currency: 'BRL',
-            items: selectedPlan ? [{
-              item_name: selectedPlan.name,
-              item_id: selectedPlan.id,
-              price: selectedPlan.price,
-              quantity: 1
-            }] : []
-          })
-          
-          // Mostrar animação de sucesso
-          setShowSuccessAnimation(true)
-          
-          // Redirecionar após a animação (3.5 segundos)
-          setTimeout(() => {
-            setShowSuccessAnimation(false)
-            navigate('/login')
-          }, 3500)
-          return
-        }
-
-        if (attempts >= maxAttempts) {
-          setPollingStatus('Não foi possível confirmar o pagamento automaticamente.')
-          setIsPolling(false)
-          setIsSubmitting(false)
-          showAlert('Tempo de espera esgotado. Verifique o status do pagamento mais tarde.', 'error')
-          
-          setTimeout(() => {
-            setShowPollingModal(false)
-            // Mantém o usuário na mesma página
-          }, 2000)
-          return
-        }
-
-        // Continuar polling após intervalo
-        setTimeout(poll, interval)
-      } catch (error) {
-        console.error('Erro ao verificar status do pagamento:', error)
-        
-        if (attempts >= maxAttempts) {
-          setPollingStatus('Erro ao verificar pagamento. Tente novamente mais tarde.')
-          setIsPolling(false)
-          setIsSubmitting(false)
-          showAlert('Erro ao verificar status do pagamento. Verifique mais tarde.', 'error')
-          
-          setTimeout(() => {
-            setShowPollingModal(false)
-            // Mantém o usuário na mesma página
-          }, 2000)
-          return
-        }
-
-        // Continuar polling mesmo com erro
-        setTimeout(poll, interval)
-      }
+  const planPriceDisplay = (plan) => {
+    const price = parseFloat(plan.price) || 0
+    if (couponApplied && discount > 0) {
+      return Math.max(0, price - (price * discount) / 100)
     }
-
-    // Iniciar polling após 5 segundos (primeira tentativa)
-    setTimeout(poll, interval)
+    return price
   }
 
-  const steps = [
-    { number: 1, title: 'Escolha o Plano', icon: faCheckCircle },
-    { number: 2, title: 'Dados Pessoais', icon: faMapMarkerAlt },
-    { number: 3, title: 'Pagamento', icon: faCreditCard }
-  ]
-
   return (
-    <div className="checkout-page">
-      <div className="checkout-header">
+    <div className="checkout-page checkout-page--single">
+      <header className="checkout-header checkout-header--compact">
         <img src={nodoLogo} alt="NODON" className="checkout-logo" />
-        <h1>Complete o Cadastro</h1>
-      </div>
+        <h1>NODON</h1>
+        <p className="checkout-header-sub">Plano, cadastro e pagamento em uma única etapa</p>
+      </header>
 
-      <div className="checkout-container">
-        <div className="checkout-steps">
-          {steps.map((step, index) => (
-            <div key={step.number} className={`step-item ${currentStep >= step.number ? 'active' : ''} ${currentStep === step.number ? 'current' : ''}`}>
-              <div className="step-number">
-                {currentStep > step.number ? (
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                ) : (
-                  <span>{step.number}</span>
-                )}
+      <div className="checkout-container checkout-single-wrap">
+        <form className="checkout-single-form" onSubmit={handleSubmit}>
+          {/* Planos — largura total */}
+          <section className="checkout-plans-section" aria-label="Escolha do plano">
+            <div className="checkout-plans-section-head">
+              <div>
+                <h2>Escolha seu plano</h2>
+                <p className="checkout-plans-hint">
+                  Compare os benefícios e clique no card. Você pode alterar antes de finalizar.
+                </p>
               </div>
-              <div className="step-title">{step.title}</div>
-              {index < steps.length - 1 && <div className="step-connector"></div>}
+              {!loadingPlans && plans.length > 0 && (
+                <span className="checkout-plans-count">{plans.length} plano{plans.length !== 1 ? 's' : ''}</span>
+              )}
             </div>
-          ))}
-        </div>
 
-        <div className="checkout-content">
-          {/* Step 1: Seleção de Plano */}
-          {currentStep === 1 && (
-            <div className="checkout-step">
-              <h2>Escolha seu plano</h2>
-              
-              {/* Cupom Section no Step 1 */}
-              <div className="coupon-section-step1">
-                <form onSubmit={handleCouponSubmit} className="coupon-form">
-                  <div className="coupon-input-wrapper">
-                    <FontAwesomeIcon icon={faTag} className="coupon-icon" />
-                    <input
-                      type="text"
-                      placeholder="Código do cupom"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      disabled={couponApplied || isApplyingCoupon}
-                    />
+            {loadingPlans ? (
+              <div className="checkout-plans-grid checkout-plans-grid--loading">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="checkout-plan-card checkout-plan-card--skeleton" aria-hidden="true">
+                    <div className="skeleton-line skeleton-title" />
+                    <div className="skeleton-line skeleton-price" />
+                    <div className="skeleton-line" />
+                    <div className="skeleton-line" />
                   </div>
-                  <button type="submit" disabled={couponApplied || !couponCode || isApplyingCoupon}>
-                    {isApplyingCoupon ? 'Aplicando...' : couponApplied ? 'Aplicado' : 'Aplicar'}
-                  </button>
-                </form>
-                {couponApplied && appliedCoupon && (
-                  <div className="coupon-success">
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                    <span>
-                      Cupom {appliedCoupon.name} aplicado! 
-                      Desconto de {parseFloat(discount || 0).toFixed(1)}%
-                    </span>
-                    <button 
-                      className="coupon-remove"
-                      onClick={() => {
-                        setCouponApplied(false)
-                        setAppliedCoupon(null)
-                        setDiscount(0)
-                        setDiscountValue(0)
-                        setCouponCode('')
-                        showAlert('Cupom removido', 'success')
-                      }}
-                      title="Remover cupom"
-                    >
-                      <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                  </div>
-                )}
+                ))}
               </div>
+            ) : plans.length === 0 ? (
+              <div className="checkout-plans-empty">
+                <p>Nenhum plano disponível no momento.</p>
+              </div>
+            ) : (
+              <div className="checkout-plans-grid" role="radiogroup" aria-label="Planos disponíveis">
+                {plans.map((plan) => {
+                  const selected = selectedPlan?.id === plan.id
+                  const finalPrice = planPriceDisplay(plan)
+                  const expanded = expandedPlanFeatures[plan.id] === true
+                  const showOldPrice =
+                    (plan.oldPrice && !couponApplied) ||
+                    (couponApplied && plan.price !== finalPrice)
+                  const cicloInfo = getCicloFromPlano(plan)
 
-              {loadingPlans ? (
-                <div className="checkout-plans-loading">
-                  <div className="loading-spinner" />
-                  <p>Carregando planos...</p>
-                </div>
-              ) : (
-                <div className="plans-grid-checkout">
-                  {(() => {
-                    // Ordenar planos: se tiver plano selecionado, ele vem primeiro
-                    // Caso contrário, ordenar por preço (do menor para o maior)
-                    const sortedPlans = [...plans].sort((a, b) => {
-                      // Se há plano selecionado, ele sempre vem primeiro
-                      if (selectedPlan) {
-                        if (a.id === selectedPlan.id) return -1
-                        if (b.id === selectedPlan.id) return 1
-                      }
-                      // Caso contrário, ordenar por preço
-                      const priceA = parseFloat(a.price) || 0
-                      const priceB = parseFloat(b.price) || 0
-                      return priceA - priceB
-                    })
-                    
-                    // Se há plano na URL, mostrar apenas esse plano (a menos que o usuário clique para ver todos)
-                    const planParam = searchParams.get('plano')
-                    const plansToShow = planParam && !showAllPlans
-                      ? sortedPlans.filter(plan => plan.id === planParam || plan.name === planParam)
-                      : selectedPlan && !showAllPlans 
-                        ? sortedPlans.filter(plan => plan.id === selectedPlan.id)
-                        : sortedPlans
-                    
-                    return (
-                      <>
-                        {plansToShow.map(plan => {
-                  const planPrice = parseFloat(plan.price) || 0
-                  const discountPercent = parseFloat(discount) || 0
-                  // SEM arredondamento - manter precisão decimal completa
-                  const finalPrice = couponApplied && discountPercent > 0
-                    ? Math.max(0, planPrice - (planPrice * discountPercent / 100))
-                    : planPrice
-                  
                   return (
                     <div
                       key={plan.id}
-                      className={`plan-card ${selectedPlan?.id === plan.id ? 'selected' : ''} ${plan.featured ? 'featured' : ''}`}
-                      onClick={() => handlePlanSelect(plan)}
+                      role="radio"
+                      tabIndex={0}
+                      aria-checked={selected}
+                      className={`checkout-plan-card ${selected ? 'selected' : ''} ${plan.featured ? 'featured' : ''} ${expanded ? 'features-open' : ''}`}
+                      onClick={() => selectPlan(plan)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          selectPlan(plan)
+                        }
+                      }}
                     >
-                      {selectedPlan?.id === plan.id && (
-                        <div className="plan-selected-indicator">
-                          <FontAwesomeIcon icon={faCheckCircle} />
-                        </div>
-                      )}
-                      {plan.badge && <div className="plan-badge-new">{plan.badge}</div>}
-                      <div className="plan-header-card">
-                        <h3>{plan.name}</h3>
-                        <div className="plan-price">
-                          {plan.oldPrice && !couponApplied ? (
-                            <>
-                              <span className="price-old">De: R$ {parseFloat(plan.oldPrice || 0).toFixed(2)}/mês*</span>
-                              <span className="price-new">Por: R$ {parseFloat(plan.price || 0).toFixed(2)}/mês*</span>
-                            </>
-                          ) : couponApplied && plan.price !== finalPrice ? (
-                            <>
-                              <span className="price-old">De: R$ {parseFloat(plan.price || 0).toFixed(2)}/mês*</span>
-                              <span className="price-new">Por: R$ {parseFloat(finalPrice || 0).toFixed(2)}/mês*</span>
-                            </>
-                          ) : (
-                            <span className="price-single">R$ {parseFloat(finalPrice || 0).toFixed(2)}/mês*</span>
-                          )}
-                        </div>
-                        <div className="plan-feature-count">{plan.patients}</div>
-                        {!plan.name?.toLowerCase().includes('estudante') && (
-                          <div className="plan-free-trial-checkout">
-                            <FontAwesomeIcon icon={faGift} />
-                            <span>5 dias de teste grátis para você</span>
-                          </div>
+                      <span className="checkout-plan-radio" aria-hidden="true">
+                        <span className="checkout-plan-radio-dot" />
+                      </span>
+
+                      {plan.badge && <span className="checkout-plan-badge">{plan.badge}</span>}
+
+                      <div className="checkout-plan-card-header">
+                        <h3 className="checkout-plan-card-name">{plan.name}</h3>
+                        {selected && (
+                          <span className="checkout-plan-selected-pill">
+                            <FontAwesomeIcon icon={faCheckCircle} /> Selecionado
+                          </span>
                         )}
                       </div>
-                      <button 
-                        type="button"
-                        className="plan-details-btn" 
-                        onClick={(e) => handlePlanToggle(plan.id, e)}
-                      >
-                        <FontAwesomeIcon 
-                          icon={faChevronDown} 
-                          className={`plan-chevron ${expandedPlan === plan.id ? 'expanded' : ''}`}
-                        />
-                      </button>
-                      <div className={expandedPlan === plan.id ? 'plan-details expanded' : 'plan-details'}>
-                        <ul className="plan-features">
-                          {plan.features.map((feature, idx) => (
-                            <li key={idx}>
-                              <FontAwesomeIcon icon={faCheckCircle} />
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
+
+                      <div className="checkout-plan-card-price">
+                        {showOldPrice && (
+                          <span className="checkout-plan-price-old">
+                            {formatMoney(couponApplied && plan.price !== finalPrice ? plan.price : plan.oldPrice)}{cicloInfo.periodoCurto}
+                          </span>
+                        )}
+                        <span className="checkout-plan-price-current">
+                          {formatMoney(finalPrice)}
+                          <small>{cicloInfo.periodoCurto}</small>
+                        </span>
                       </div>
-                      <p className="plan-note">*Plano mensal . Cobrança recorrente com renovação automática.</p>
-                      
-                      {/* Botão "Continuar" dentro do card quando selecionado */}
-                      {selectedPlan?.id === plan.id && currentStep === 1 && (
-                        <button 
-                          className="btn-continue-in-card" 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleNext()
-                          }}
-                        >
-                          Continuar
-                          <FontAwesomeIcon icon={faChevronRight} />
-                        </button>
+
+                      {plan.tokenChat && (
+                        <p className="checkout-plan-tokens">
+                          {formatTokens(plan.tokenChat)} de tokens no chat
+                        </p>
                       )}
+
+                     
+
+                      {plan.features?.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            className="checkout-plan-features-toggle"
+                            onClick={(e) => togglePlanFeatures(plan.id, e)}
+                          >
+                            {expanded ? 'Ocultar recursos' : 'Ver recursos'}
+                            <FontAwesomeIcon icon={faChevronDown} className={expanded ? 'expanded' : ''} />
+                          </button>
+                          {expanded && (
+                            <ul className="checkout-plan-card-features">
+                              {plan.features.map((f, i) => (
+                                <li key={i}>
+                                  <FontAwesomeIcon icon={faCheckCircle} />
+                                  <span>{f}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      )}
+
+                      <span className="checkout-plan-card-cta">
+                        {selected ? 'Plano ativo neste pedido' : 'Selecionar este plano'}
+                      </span>
                     </div>
                   )
-                  })}
-                  
-                  {/* Botão "Ver mais planos" quando há plano selecionado e não está mostrando todos */}
-                  {selectedPlan && !showAllPlans && plans.length > 1 && (
-                    <div className="show-more-plans-container">
-                      <button 
-                        type="button"
-                        className="show-more-plans-btn"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setShowAllPlans(true)
-                        }}
-                      >
-                        <span>Ver mais planos</span>
-                        <FontAwesomeIcon icon={faChevronDown} />
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* Botão "Ocultar planos" quando está mostrando todos e há plano selecionado */}
-                  {selectedPlan && showAllPlans && plans.length > 1 && (
-                    <div className="show-more-plans-container">
-                      <button 
-                        type="button"
-                        className="show-more-plans-btn"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setShowAllPlans(false)
-                        }}
-                      >
-                        <span>Ocultar outros planos</span>
-                        <FontAwesomeIcon icon={faChevronUp} />
-                      </button>
-                    </div>
-                  )}
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Dados Pessoais e Endereço */}
-          {currentStep === 2 && (
-            <div className="checkout-step">
-              <h2>Dados Pessoais e Endereço</h2>
-              <form className="checkout-form">
-                <div className="form-section">
-                  <h3>Informações Pessoais</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Nome Completo *</label>
-                      <input
-                        type="text"
-                        name="nome"
-                        value={formData.nome}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>CPF *</label>
-                      <input
-                        type="text"
-                        name="cpf"
-                        value={formData.cpf}
-                        onChange={handleInputChange}
-                        maxLength="14"
-                        placeholder="000.000.000-00"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>E-mail *</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Telefone *</label>
-                      <input
-                        type="tel"
-                        name="telefone"
-                        value={formData.telefone}
-                        onChange={handleInputChange}
-                        placeholder="55 (00) 00000-0000"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Senha *</label>
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        placeholder="Mínimo 6 caracteres"
-                        minLength="6"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Confirmar Senha *</label>
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        placeholder="Digite a senha novamente"
-                        minLength="6"
-                        required
-                        style={{
-                          borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword 
-                            ? '#ef4444' 
-                            : undefined
-                        }}
-                      />
-                      {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                        <small style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-                          As senhas não coincidem
-                        </small>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-section">
-                  <h3>Endereço</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>CEP *</label>
-                      <input
-                        type="text"
-                        name="cep"
-                        value={formData.cep}
-                        onChange={handleCepChange}
-                        onBlur={handleCepChange}
-                        maxLength="9"
-                        placeholder="00000-000"
-                        required
-                      />
-                      <small className="cep-hint">Digite o CEP para preencher automaticamente</small>
-                    </div>
-                  </div>
-                  
-                  {showAddressFields && (
-                    <>
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label>Rua *</label>
-                          <input
-                            type="text"
-                            name="rua"
-                            value={formData.rua}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label>Número *</label>
-                          <input
-                            type="text"
-                            name="numero"
-                            value={formData.numero}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Complemento</label>
-                          <input
-                            type="text"
-                            name="complemento"
-                            value={formData.complemento}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label>Bairro *</label>
-                          <input
-                            type="text"
-                            name="bairro"
-                            value={formData.bairro}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Cidade *</label>
-                          <input
-                            type="text"
-                            name="cidade"
-                            value={formData.cidade}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Estado *</label>
-                          <select
-                            name="estado"
-                            value={formData.estado}
-                            onChange={handleInputChange}
-                            required
-                          >
-                            <option value="">Selecione</option>
-                            <option value="AC">AC</option>
-                            <option value="AL">AL</option>
-                            <option value="AP">AP</option>
-                            <option value="AM">AM</option>
-                            <option value="BA">BA</option>
-                            <option value="CE">CE</option>
-                            <option value="DF">DF</option>
-                            <option value="ES">ES</option>
-                            <option value="GO">GO</option>
-                            <option value="MA">MA</option>
-                            <option value="MT">MT</option>
-                            <option value="MS">MS</option>
-                            <option value="MG">MG</option>
-                            <option value="PA">PA</option>
-                            <option value="PB">PB</option>
-                            <option value="PR">PR</option>
-                            <option value="PE">PE</option>
-                            <option value="PI">PI</option>
-                            <option value="RJ">RJ</option>
-                            <option value="RN">RN</option>
-                            <option value="RS">RS</option>
-                            <option value="RO">RO</option>
-                            <option value="RR">RR</option>
-                            <option value="SC">SC</option>
-                            <option value="SP">SP</option>
-                            <option value="SE">SE</option>
-                            <option value="TO">TO</option>
-                          </select>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Step 3: Pagamento */}
-          {currentStep === 3 && (
-            <div className="checkout-step">
-              <h2>Pagamento</h2>
-              
-              <div className="payment-layout">
-                {/* Coluna Esquerda: Resumo do Pedido */}
-                {selectedPlan && (
-                  <div className="payment-column payment-summary-column">
-                    <div className="order-summary">
-                      <h3>Resumo do Pedido</h3>
-                      
-                      <div className="summary-title">
-                        <h4>NODON Sistema Inteligente de Odontologia</h4>
-                        <p className="summary-subtitle">Você está contratando:</p>
-                      </div>
-
-                      <div className="summary-plan-info">
-                        <div className="summary-plan-header">
-                          <h4>{selectedPlan.name}</h4>
-                          <span className="summary-plan-price">R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}/mês</span>
-                        </div>
-                        
-                        {!selectedPlan.name?.toLowerCase().includes('estudante') && (
-                          <div className="summary-free-trial">
-                            <FontAwesomeIcon icon={faGift} />
-                            <span>5 dias de teste grátis para você</span>
-                          </div>
-                        )}
-                        
-                        <div className="summary-plan-details">
-                          {selectedPlan.patients && (
-                            <div className="summary-detail-item">
-                              <FontAwesomeIcon icon={faUsers} />
-                              <span>{selectedPlan.patients}</span>
-                            </div>
-                          )}
-                          {selectedPlan.features && selectedPlan.features.length > 0 && (
-                            <div className="summary-plan-features">
-                              {selectedPlan.features.slice(0, 3).map((feature, idx) => (
-                                <div key={idx} className="summary-feature-item">
-                                  <FontAwesomeIcon icon={faCheckCircle} />
-                                  <span>{feature}</span>
-                                </div>
-                              ))}
-                              {selectedPlan.features.length > 3 && (
-                                <div className="summary-feature-more">
-                                  + {selectedPlan.features.length - 3} recursos adicionais
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="summary-financial">
-                        <div className="summary-item">
-                          <span>Plano: {selectedPlan.name}</span>
-                          <span>R$ {parseFloat(selectedPlan.price || 0).toFixed(2)}</span>
-                        </div>
-                        {couponApplied && appliedCoupon && (
-                          <div className="summary-item discount">
-                            <span>Desconto ({appliedCoupon.name})</span>
-                            <span>- {parseFloat(discount || 0).toFixed(1)}%</span>
-                          </div>
-                        )}
-                        <div className="summary-total">
-                          <span>Total</span>
-                          <span>R$ {parseFloat(calculateTotal()).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Coluna Direita: Dados do Cartão */}
-                <div className="payment-column payment-form-column">
-                  <div className="coupon-section">
-                    <form onSubmit={handleCouponSubmit} className="coupon-form">
-                      <input
-                        type="text"
-                        placeholder="Código do cupom"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        disabled={couponApplied || isApplyingCoupon}
-                      />
-                      <button type="submit" disabled={couponApplied || !couponCode || isApplyingCoupon}>
-                        {isApplyingCoupon ? 'Aplicando...' : couponApplied ? 'Aplicado' : 'Aplicar'}
-                      </button>
-                    </form>
-                    {couponApplied && appliedCoupon && (
-                      <div className="coupon-success">
-                        <FontAwesomeIcon icon={faCheckCircle} />
-                        <span>
-                          Cupom {appliedCoupon.name} aplicado! 
-                          Desconto de {parseFloat(discount || 0).toFixed(1)}%
-                        </span>
-                        <button 
-                          className="coupon-remove"
-                          onClick={() => {
-                            setCouponApplied(false)
-                            setAppliedCoupon(null)
-                            setDiscount(0)
-                            setDiscountValue(0)
-                            setCouponCode('')
-                            showAlert('Cupom removido', 'success')
-                          }}
-                          title="Remover cupom"
-                        >
-                          <FontAwesomeIcon icon={faTimes} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <form className="checkout-form" onSubmit={handleSubmit}>
-                    <div className="form-section card-data-section">
-                      <h3>
-                        <FontAwesomeIcon icon={faLock} /> Dados do Cartão
-                      </h3>
-                      <div className="form-group">
-                        <label>Número do Cartão *</label>
-                        <input
-                          type="text"
-                          name="numeroCartao"
-                          value={formData.numeroCartao}
-                          onChange={(e) => {
-                            const formatted = formatCardNumber(e.target.value)
-                            setFormData(prev => ({ ...prev, numeroCartao: formatted }))
-                          }}
-                          maxLength="19"
-                          placeholder="0000 0000 0000 0000"
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Nome no Cartão *</label>
-                        <input
-                          type="text"
-                          name="nomeCartao"
-                          value={formData.nomeCartao}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                      <div className="form-row card-fields-row">
-                        <div className="form-group">
-                          <label>Validade *</label>
-                          <input
-                            type="text"
-                            name="validade"
-                            value={formData.validade}
-                            onChange={(e) => {
-                              const formatted = formatExpiry(e.target.value)
-                              setFormData(prev => ({ ...prev, validade: formatted }))
-                            }}
-                            maxLength="5"
-                            placeholder="MM/AA"
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>CVV *</label>
-                          <input
-                            type="text"
-                            name="cvv"
-                            value={formData.cvv}
-                            onChange={handleInputChange}
-                            maxLength="4"
-                            placeholder="000"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-                </div>
+                })}
               </div>
-            </div>
-          )}
-
-          <div className="checkout-actions">
-            {currentStep > 1 && (
-              <button className="btn-back" onClick={() => setCurrentStep(prev => prev - 1)}>
-                <FontAwesomeIcon icon={faChevronLeft} />
-                Voltar
-              </button>
             )}
-            {/* Não mostrar botão Continuar no Step 1 se há plano selecionado e não está mostrando todos (já está acima do plano) */}
-            {!(currentStep === 1 && selectedPlan && !showAllPlans) && (
-              <>
-                {currentStep < 3 ? (
-                  <button 
-                    className="btn-next" 
-                    onClick={handleNext}
-                    disabled={(currentStep === 1 && !selectedPlan) || isCreatingCustomer}
-                  >
-                    {isCreatingCustomer && currentStep === 2 ? 'Cadastrando...' : 'Continuar'}
-                    <FontAwesomeIcon icon={faChevronRight} />
+
+            <div className="checkout-coupon-bar">
+              <div className="checkout-coupon-inline">
+                <FontAwesomeIcon icon={faTag} />
+                <input
+                  type="text"
+                  placeholder="Tem um cupom? Digite aqui"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  disabled={couponApplied || isApplyingCoupon}
+                />
+                {couponApplied ? (
+                  <button type="button" className="btn-coupon-remove" onClick={removeCoupon}>
+                    Remover
                   </button>
                 ) : (
-                  <button 
-                    className="btn-submit" 
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || isPolling}
-                  >
-                    <FontAwesomeIcon icon={faLock} />
-                    {isPolling ? 'Verificando pagamento...' : isSubmitting ? 'Processando...' : 'Finalizar'}
+                  <button type="button" className="btn-coupon-apply" onClick={handleCouponSubmit} disabled={isApplyingCoupon}>
+                    {isApplyingCoupon ? 'Aplicando...' : 'Aplicar cupom'}
                   </button>
                 )}
-              </>
-            )}
+              </div>
+              {couponApplied && appliedCoupon && (
+                <p className="checkout-coupon-ok">
+                  <FontAwesomeIcon icon={faCheckCircle} /> Cupom <strong>{appliedCoupon.name}</strong> — {discount}% de desconto em todos os planos
+                </p>
+              )}
+            </div>
+          </section>
+
+          <div className="checkout-single-grid checkout-single-grid--form">
+            {/* Dados + cartão */}
+            <section className="checkout-panel checkout-panel--form">
+              <h2>Seus dados e pagamento</h2>
+              <div className="checkout-fields-grid">
+                <label className="checkout-field full">
+                  <span>Nome completo *</span>
+                  <input name="nome" value={formData.nome} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field">
+                  <span>E-mail *</span>
+                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field">
+                  <span>Telefone *</span>
+                  <input name="telefone" value={formData.telefone} onChange={handleInputChange} placeholder="55 (11) 98765-4321" required />
+                </label>
+                <label className="checkout-field">
+                  <span>CPF *</span>
+                  <input name="cpf" value={formData.cpf} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field">
+                  <span>Senha *</span>
+                  <input type="password" name="password" value={formData.password} onChange={handleInputChange} minLength={6} required />
+                </label>
+                <label className="checkout-field">
+                  <span>Confirmar senha *</span>
+                  <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} required />
+                </label>
+              </div>
+
+              <h3 className="checkout-subtitle">Endereço</h3>
+              <div className="checkout-fields-grid">
+                <label className="checkout-field">
+                  <span>CEP *</span>
+                  <input name="cep" value={formData.cep} onChange={handleCepChange} onBlur={handleCepChange} required />
+                </label>
+                <label className="checkout-field wide">
+                  <span>Rua *</span>
+                  <input name="rua" value={formData.rua} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field narrow">
+                  <span>Nº *</span>
+                  <input name="numero" value={formData.numero} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field">
+                  <span>Complemento</span>
+                  <input name="complemento" value={formData.complemento} onChange={handleInputChange} />
+                </label>
+                <label className="checkout-field">
+                  <span>Bairro *</span>
+                  <input name="bairro" value={formData.bairro} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field">
+                  <span>Cidade *</span>
+                  <input name="cidade" value={formData.cidade} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field narrow">
+                  <span>UF *</span>
+                  <select name="estado" value={formData.estado} onChange={handleInputChange} required>
+                    <option value="">—</option>
+                    {ESTADOS.map((uf) => (
+                      <option key={uf} value={uf}>{uf}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <h3 className="checkout-subtitle">
+                <FontAwesomeIcon icon={faLock} /> Pagamento
+              </h3>
+              <div className="checkout-fields-grid">
+                <label className="checkout-field full">
+                  <span>Número do cartão *</span>
+                  <input
+                    name="numeroCartao"
+                    value={formData.numeroCartao}
+                    onChange={(e) => setFormData((p) => ({ ...p, numeroCartao: formatCardNumber(e.target.value) }))}
+                    placeholder="0000 0000 0000 0000"
+                    maxLength={19}
+                    required
+                  />
+                </label>
+                <label className="checkout-field full">
+                  <span>Nome no cartão *</span>
+                  <input name="nomeCartao" value={formData.nomeCartao} onChange={handleInputChange} required />
+                </label>
+                <label className="checkout-field">
+                  <span>Validade *</span>
+                  <input
+                    name="validade"
+                    value={formData.validade}
+                    onChange={(e) => setFormData((p) => ({ ...p, validade: formatExpiry(e.target.value) }))}
+                    placeholder="MM/AA"
+                    maxLength={5}
+                    required
+                  />
+                </label>
+                <label className="checkout-field">
+                  <span>CVV *</span>
+                  <input name="cvv" value={formData.cvv} onChange={handleInputChange} maxLength={4} required />
+                </label>
+              </div>
+            </section>
+
+            {/* Resumo */}
+            <aside className="checkout-panel checkout-panel--summary">
+              <h2>Resumo</h2>
+              {selectedPlan ? (
+                <>
+                  <p className="summary-plan-name">{selectedPlan.name}</p>
+                  <div className="summary-line">
+                    <span>Subtotal</span>
+                    <span>{formatMoney(selectedPlan.price)}</span>
+                  </div>
+                  {couponApplied && (
+                    <div className="summary-line discount">
+                      <span>Desconto</span>
+                      <span>− {formatMoney(discountValue)}</span>
+                    </div>
+                  )}
+                  <div className="summary-total-line">
+                    <span>{getCicloFromPlano(selectedPlan).resumoTotal}</span>
+                    <strong>{formatMoney(total)}</strong>
+                  </div>
+                  <p className="summary-note">{getCicloFromPlano(selectedPlan).notaRecorrente}</p>
+                </>
+              ) : (
+                <p className="summary-empty">Selecione um plano</p>
+              )}
+
+              <button
+                type="submit"
+                className="btn-checkout-submit"
+                disabled={isSubmitting || isPolling || !selectedPlan}
+              >
+                <FontAwesomeIcon icon={faLock} />
+                {isPolling ? 'Verificando...' : isSubmitting ? 'Processando...' : 'Finalizar assinatura'}
+              </button>
+
+              <p className="checkout-secure">
+                <FontAwesomeIcon icon={faShieldAlt} /> Pagamento seguro via Pagar.me
+              </p>
+            </aside>
           </div>
-        </div>
+        </form>
       </div>
 
-      {/* Custom Alert */}
       {customAlert.show && (
         <div className={`custom-alert ${customAlert.type}`}>
           <div className="alert-content">
-            <div className="alert-icon">
-              {customAlert.type === 'success' ? (
-                <FontAwesomeIcon icon={faCheck} />
-              ) : (
-                <FontAwesomeIcon icon={faExclamationTriangle} />
-              )}
-            </div>
-            <div className="alert-message">{customAlert.message}</div>
-            <button 
-              className="alert-close"
-              onClick={() => setCustomAlert({ show: false, message: '', type: 'error' })}
-            >
+            <FontAwesomeIcon icon={customAlert.type === 'success' ? faCheck : faExclamationTriangle} />
+            <span>{customAlert.message}</span>
+            <button type="button" onClick={() => setCustomAlert({ show: false, message: '', type: 'error' })}>
               <FontAwesomeIcon icon={faTimes} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Loading Modal - Criando Assinatura */}
-      {showLoadingModal && typeof document !== 'undefined' && document.body && createPortal(
-        <div 
-          className="polling-modal-overlay" 
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 999999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(10, 14, 39, 0.95)',
-            backdropFilter: 'blur(20px)'
-          }}
-        >
-          <div className="polling-modal" style={{ position: 'relative', zIndex: 1000000 }}>
+      {showLoadingModal && typeof document !== 'undefined' && createPortal(
+        <div className="polling-modal-overlay">
+          <div className="polling-modal">
             <div className="polling-modal-content">
-              {/* Loading Animation */}
               <div className="polling-loader-container">
-                <div className="spinner">
-                  <div className="spinner-ring"></div>
-                  <div className="spinner-ring"></div>
-                  <div className="spinner-ring"></div>
-                </div>
-                <div className="spinner-center">
-                  <FontAwesomeIcon icon={faLock} />
-                </div>
+                <div className="spinner"><div className="spinner-ring" /><div className="spinner-ring" /><div className="spinner-ring" /></div>
+                <div className="spinner-center"><FontAwesomeIcon icon={faLock} /></div>
               </div>
-
-              {/* Title */}
-              <h2 className="polling-title">
-                <FontAwesomeIcon icon={faCheckCircle} />
-                Processando Pagamento
-              </h2>
-
-              {/* Status Text */}
+              <h2 className="polling-title">Processando</h2>
               <p className="polling-status">{loadingMessage}</p>
             </div>
           </div>
@@ -1832,134 +914,41 @@ const Checkout = () => {
         document.body
       )}
 
-      {/* Success Animation Modal */}
-      {showSuccessAnimation && typeof document !== 'undefined' && document.body && createPortal(
-        <div 
-          className="success-animation-overlay" 
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 999999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(10, 14, 39, 0.98)',
-            backdropFilter: 'blur(20px)',
-            animation: 'fadeIn 0.3s ease'
-          }}
-        >
+      {showSuccessAnimation && typeof document !== 'undefined' && createPortal(
+        <div className="success-animation-overlay">
           <div className="success-animation-modal">
-            <div className="success-logo-container">
-              <div className="success-logo-circle">
-                <img src={nodoLogo} alt="NODON" className="success-logo" />
-              </div>
-            </div>
-            <h2 className="success-title">Pagamento Confirmado!</h2>
-            <p className="success-message">Sua assinatura foi ativada com sucesso</p>
-            {periodoGratis && periodoGratis.ativo && !selectedPlan?.name?.toLowerCase().includes('estudante') && (
-              <div className="success-free-trial">
-                <FontAwesomeIcon icon={faGift} />
-                <div className="free-trial-content">
-                  <strong>Período grátis de {periodoGratis.diasRestantes} dias ativado!</strong>
-                  {periodoGratis.primeiraCobranca && (
-                    <p>A primeira cobrança será processada em {new Date(periodoGratis.primeiraCobranca).toLocaleDateString('pt-BR')}</p>
-                  )}
-                  {periodoGratis.mensagem && (
-                    <p className="free-trial-message">{periodoGratis.mensagem}</p>
-                  )}
-                </div>
-              </div>
+            <img src={nodoLogo} alt="NODON" className="success-logo" />
+            <h2 className="success-title">Pagamento confirmado!</h2>
+            <p className="success-message">Sua assinatura foi ativada.</p>
+            {periodoGratis?.ativo && (
+              <p className="success-free-trial">
+                Período grátis de {periodoGratis.diasRestantes} dias ativado.
+              </p>
             )}
-            <div className="success-loading">
-              <span>Redirecionando para o login...</span>
-            </div>
+            <p className="success-loading">Redirecionando para o login...</p>
           </div>
         </div>,
         document.body
       )}
 
-      {/* Polling Modal - Verificando Pagamento */}
-      {showPollingModal && typeof document !== 'undefined' && document.body && createPortal(
-        <div 
-          className="polling-modal-overlay" 
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 999999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(10, 14, 39, 0.95)',
-            backdropFilter: 'blur(20px)'
-          }}
-        >
-          <div className="polling-modal" style={{ position: 'relative', zIndex: 1000000 }}>
+      {showPollingModal && typeof document !== 'undefined' && createPortal(
+        <div className="polling-modal-overlay">
+          <div className="polling-modal">
             <div className="polling-modal-content">
-              {/* Loading Animation */}
-              <div className="polling-loader-container">
-                <div className="spinner">
-                  <div className="spinner-ring"></div>
-                  <div className="spinner-ring"></div>
-                  <div className="spinner-ring"></div>
-                </div>
-                <div className="spinner-center">
-                  <FontAwesomeIcon icon={faLock} />
-                </div>
-              </div>
-
-              {/* Title */}
-              <h2 className="polling-title">
-                <FontAwesomeIcon icon={faCheckCircle} />
-                Verificando Pagamento
-              </h2>
-
-              {/* Status Text */}
+              <h2 className="polling-title">Verificando pagamento</h2>
               <p className="polling-status">{pollingStatus}</p>
-
-              {/* Progress Section */}
-              <div className="polling-progress-container">
-                <div className="polling-progress-bar-wrapper">
-                  <div 
-                    className="polling-progress-bar-fill" 
-                    style={{ width: `${(pollingAttempt / 3) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="polling-progress-info">
-                  <span className="polling-attempt-text">Tentativa {pollingAttempt} de 3</span>
-                </div>
-              </div>
-
-              {/* Attempt Indicators */}
-              <div className="polling-indicators">
-                <div className={`indicator ${pollingAttempt >= 1 ? 'active' : ''}`}>
-                  <span className="indicator-number">1</span>
-                </div>
-                <div className="indicator-line"></div>
-                <div className={`indicator ${pollingAttempt >= 2 ? 'active' : ''}`}>
-                  <span className="indicator-number">2</span>
-                </div>
-                <div className="indicator-line"></div>
-                <div className={`indicator ${pollingAttempt >= 3 ? 'active' : ''}`}>
-                  <span className="indicator-number">3</span>
-                </div>
+              <div className="polling-progress-bar-wrapper">
+                <div className="polling-progress-bar-fill" style={{ width: `${(pollingAttempt / 3) * 100}%` }} />
               </div>
             </div>
           </div>
         </div>,
         document.body
       )}
+
       <FloatingWhatsApp />
     </div>
   )
 }
 
 export default Checkout
-

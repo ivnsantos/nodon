@@ -15,14 +15,24 @@ import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
 import estudanteImg from '../img/especializacao-em-odontologia-1.jpg'
 import xl20Img from '../img/xl20.jpeg'
 import julia20Img from '../img/JULIA20.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
 import milafazodontoEstudanteImg from '../img/MILAFAZODONTO_ESTU.jpeg'
 import muniz20Img from '../img/muniz20.jpeg'
+import { getCicloFromPlano } from '../utils/planoCiclo'
+import {
+  filterPlanosSaude,
+  isPlanoMaster,
+  isPlanoStarter,
+  resolvePlanoBadge,
+  resolvePlanoFeatured,
+  sortPlanosPorPreco
+} from '../utils/planosSaude'
 import './LPEstudante.css'
+import '../styles/LPEliteTheme.css'
 
 const LPEstudante = () => {
   const navigate = useNavigate()
@@ -76,87 +86,65 @@ const LPEstudante = () => {
       const response = await api.get('/planos')
       const planosBackend = response.data?.data || response.data || []
       
-      // IDs dos planos específicos para estudantes
-      const planosIdsPermitidos = [
-        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
-        '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
+      const planosIniciais = filterPlanosSaude(planosBackend)
+
+      const chatFeatures = [
+        'Chat especializado em odontologia 24/7',
+        'IA treinada especificamente para odontologia',
+        'Tire dúvidas sobre diagnósticos e tratamentos',
+        'Suporte para técnicas odontológicas',
+        'Acesso mobile completo',
+        'Sem fidelidade - cancele quando quiser'
       ]
-      
-      const planosIniciais = planosBackend.filter(plano => {
-        return planosIdsPermitidos.includes(plano.id) && plano.ativo !== false
-      })
 
-      const planosMapeados = planosIniciais.map((plano) => {
-        let features = []
-        let featured = false
-        let badge = null
+      const planosMapeados = sortPlanosPorPreco(
+        planosIniciais.map((plano) => {
+          let features = []
 
-        // Captura valores com diferentes possíveis nomes de propriedades e converte para número
-        const valorOriginalRaw = plano.valorOriginal || plano.valor_original || plano.valor || 0
-        const valorPromocionalRaw = plano.valorPromocional || plano.valor_promocional || plano.valorPromo || plano.valor_promo || null
-        
-        // Converte strings para números
-        const valorOriginal = typeof valorOriginalRaw === 'string' ? parseFloat(valorOriginalRaw) : (valorOriginalRaw || 0)
-        const valorPromocional = valorPromocionalRaw ? (typeof valorPromocionalRaw === 'string' ? parseFloat(valorPromocionalRaw) : valorPromocionalRaw) : null
+          const valorOriginalRaw = plano.valorOriginal || plano.valor_original || plano.valor || 0
+          const valorPromocionalRaw =
+            plano.valorPromocional || plano.valor_promocional || plano.valorPromo || plano.valor_promo || null
 
-        // Identifica o plano pelo ID
-        const isPlanoEstudante = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7'
-        const isPlanoEstudantePRO = plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed'
-        const isPlanoInicial = plano.nome?.toLowerCase().includes('inicial')
+          const valorOriginal =
+            typeof valorOriginalRaw === 'string' ? parseFloat(valorOriginalRaw) : valorOriginalRaw || 0
+          const valorPromocional = valorPromocionalRaw
+            ? typeof valorPromocionalRaw === 'string'
+              ? parseFloat(valorPromocionalRaw)
+              : valorPromocionalRaw
+            : null
 
-        if (isPlanoEstudante) {
-          // Plano Estudante - Ideal para Estudantes
-          badge = 'Ideal para Estudantes'
-          features = [
-            'Chat especializado em odontologia 24/7',
-            'IA treinada especificamente para odontologia',
-            'Tire dúvidas sobre diagnósticos e tratamentos',
-            'Suporte para técnicas odontológicas',
-            'Acesso mobile completo',
-            'Sem fidelidade - cancele quando quiser'
-          ]
-        } else if (isPlanoEstudantePRO) {
-          // Plano Estudante PRO - Mais Vendido + Ideal para Estudantes
-          featured = true
-          badge = 'Mais Vendido • Ideal para Estudantes'
-          features = [
-            'Chat especializado em odontologia 24/7',
-            'IA treinada especificamente para odontologia',
-            'Tire dúvidas sobre diagnósticos e tratamentos',
-            'Suporte para técnicas odontológicas',
-            'Acesso mobile completo',
-            'Sem fidelidade - cancele quando quiser'
-          ]
-        } else if (isPlanoInicial) {
-          // Plano Inicial - Ideal para Recém-Formados
-          badge = 'Ideal para Recém-Formados'
-          features = [
-            'Análise de radiografias com IA',
-            'Até 12 análises por mês',
-            '🚀 1 MILHÃO de tokens no chat IA',
-            'Relatórios detalhados e didáticos',
-            'Precificação de tratamentos',
-            'Feedbacks e avaliações',
-            'Gráficos customizados para melhor entendimento',
-            'Suporte por email',
-            'Armazenamento ilimitado na nuvem',
-            'Acesso mobile completo',
-            'Sem fidelidade - cancele quando quiser'
-          ]
-        }
+          if (isPlanoStarter(plano) || isPlanoMaster(plano)) {
+            features = [...chatFeatures]
+          } else if (plano.nome?.toLowerCase().includes('inicial')) {
+            features = [
+              'Análise de radiografias com IA',
+              'Até 12 análises por mês',
+              '🚀 1 MILHÃO de tokens no chat IA',
+              'Relatórios detalhados e didáticos',
+              'Precificação de tratamentos',
+              'Feedbacks e avaliações',
+              'Gráficos customizados para melhor entendimento',
+              'Suporte por email',
+              'Armazenamento ilimitado na nuvem',
+              'Acesso mobile completo',
+              'Sem fidelidade - cancele quando quiser'
+            ]
+          }
 
-        return {
-          id: plano.id,
-          nome: plano.nome,
-          valorOriginal: valorOriginal, // Já convertido para número acima
-          valorPromocional: valorPromocional, // Já convertido para número acima (ou null)
-          limiteAnalises: plano.limiteAnalises || plano.limite_analises,
-          tokenChat: plano.tokenChat || plano.token_chat || plano.tokensChat || null,
-          features,
-          featured,
-          badge
-        }
-      })
+          return {
+            id: plano.id,
+            nome: plano.nome,
+            valorOriginal,
+            valorPromocional,
+            ciclo: plano.ciclo ?? plano.cicloCobranca ?? plano.ciclo_cobranca ?? 1,
+            limiteAnalises: plano.limiteAnalises || plano.limite_analises,
+            tokenChat: plano.tokenChat || plano.token_chat || plano.tokensChat || null,
+            features,
+            featured: resolvePlanoFeatured(plano),
+            badge: resolvePlanoBadge(plano)
+          }
+        })
+      )
 
       setPlanos(planosMapeados)
     } catch (error) {
@@ -212,6 +200,20 @@ const LPEstudante = () => {
     })
     const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
     navigate(`/checkout?plano=${encodeURIComponent(planoNome)}&planoId=${planoId}&origem=estudante${cupomParam}`)
+  }
+
+  const handleGoToCheckout = () => {
+    trackButtonClick('continuar_checkout', 'lp_estudante_cta')
+    trackEvent('generate_lead', { form_type: 'lp_estudante_checkout' })
+    const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
+    const plano = planos.find((p) => p.featured) || planos[0]
+    if (plano?.id && plano?.nome) {
+      navigate(
+        `/checkout?plano=${encodeURIComponent(plano.nome)}&planoId=${plano.id}&origem=estudante${cupomParam}`
+      )
+      return
+    }
+    navigate(`/checkout?origem=estudante${cupomParam}`)
   }
 
   const scrollToSection = (id) => {
@@ -284,7 +286,7 @@ const LPEstudante = () => {
       <div className="lp-loading-overlay">
         <div className="lp-loading-container">
           <div className="lp-loading-logo">
-            <img src={nodoLogo} alt="NODON" />
+            <img src={NODON_LOGO_LIGHT_BG} alt="NODON" />
           </div>
           <div className="lp-loading-spinner-modern">
             <div className="spinner-ring"></div>
@@ -298,7 +300,7 @@ const LPEstudante = () => {
   }
 
   return (
-    <div className="lp-estudante">
+    <div className="lp-estudante lp-elite">
       {/* Tag de Cupom Ativo */}
       {(() => {
         console.log('🔍 DEBUG CUPOM:', { cupomCode, cupomValido, validandoCupom });
@@ -344,7 +346,7 @@ const LPEstudante = () => {
         <div className="lp-container">
           <div className="header-content">
             <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <img src={nodoLogo} alt="NODON" />
+              <img src={NODON_LOGO_LIGHT_BG} alt="NODON" />
             </div>
             <nav className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
               <div className="nav-links">
@@ -375,7 +377,7 @@ const LPEstudante = () => {
               <h1 className="hero-title">
                 NODON
                 <br />
-                 <span className="gradient-text">seu </span> melhor assistente nos estudos.
+                 <span className="gradient-text">seu </span> melhor assistente
               </h1>
               <p className="hero-description">
                 A NODON não é apenas uma ferramenta. É seu <strong>assistente pessoal de estudos</strong> que vai te ajudar a fazer trabalhos, artigos e estudos com IA especializada em odontologia.
@@ -795,23 +797,17 @@ const LPEstudante = () => {
                   }
                 }
                 
-                const isPlanoPRO = plano.nome && (plano.nome.toLowerCase().includes('pro') || plano.id === '1503826a-ee30-4fa9-9955-c77d11fe44ed')
-                console.log('🔍 Verificando plano:', plano.nome, 'ID:', plano.id, 'É PRO?', isPlanoPRO, 'Tem PRO no nome?', plano.nome?.toLowerCase().includes('pro'))
-                
+                const cicloInfo = getCicloFromPlano(plano)
+
                 return (
                   <div key={plano.id} className={`plan-item ${plano.featured ? 'featured' : ''}`}>
-                    {isPlanoPRO ? (
-                      <div className="plan-badges-container">
-                        <div className="plan-badge-ideal">
-                          ⭐ Ideal
-                        </div>
-                        <div className="plan-badge-popular">
-                          🔥 Mais Vendido
-                        </div>
-                      </div>
-                    ) : plano.badge ? (
-                      <div className="plan-badge">{plano.badge}</div>
-                    ) : null}
+                    {plano.badge && (
+                      /mais\s*vendido/i.test(plano.badge) ? (
+                        <div className="plan-badge-popular">🔥 {plano.badge}</div>
+                      ) : (
+                        <div className="plan-badge">{plano.badge}</div>
+                      )
+                    )}
                     <div className="plan-header">
                       <h3 className="plan-name">
                         {plano.nome.includes('PRO') ? (
@@ -842,7 +838,7 @@ const LPEstudante = () => {
                         {/* Preço final */}
                         <div className="price-main">
                           <span className="price-value">{formatarValor(valorExibir)}</span>
-                          <span className="price-period">/mês</span>
+                          <span className="price-period">{cicloInfo.periodoCurto}</span>
                         </div>
                         <div className="price-info-text">o valor nao aumenta nos proximos meses.</div>
                       </div>
@@ -857,7 +853,7 @@ const LPEstudante = () => {
                       {!plano.nome?.toLowerCase().includes('estudante') && (
                         <div className="plan-free-trial">
                           <FontAwesomeIcon icon={faGift} />
-                          <span>5 dias de teste grátis para você</span>
+                          <span>  para você</span>
                         </div>
                       )}
                     </div>
@@ -902,54 +898,10 @@ const LPEstudante = () => {
               </div>
             </div>
             <div className="cta-right">
-              <form className="form-modern" onSubmit={(e) => {
-                e.preventDefault()
-                const formData = new FormData(e.target)
-                const nome = formData.get('nome')
-                const email = formData.get('email')
-                const telefone = formData.get('telefone')
-                const plano = formData.get('plano')
-                
-                // Evento GTM - Submissão de formulário
-                trackFormSubmission('lp_estudante_form', {
-                  plano: plano || 'nenhum',
-                  origem: 'estudante'
-                })
-                trackEvent('generate_lead', {
-                  form_type: 'lp_estudante',
-                  plano: plano || 'nenhum'
-                })
-                
-                const cupomParam = cupomCode ? `&cupom=${encodeURIComponent(cupomCode)}` : ''
-                
-                if (plano) {
-                  navigate(`/checkout?plano=${encodeURIComponent(plano)}&nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante${cupomParam}`)
-                } else {
-                  navigate(`/checkout?nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&telefone=${encodeURIComponent(telefone)}&origem=estudante${cupomParam}`)
-                }
-              }}>
-                <div className="form-field">
-                  <input type="text" name="nome" required placeholder="Nome completo" />
-                </div>
-                <div className="form-field">
-                  <input type="email" name="email" required placeholder="E-mail" />
-                </div>
-                <div className="form-field">
-                  <input type="tel" name="telefone" required placeholder="Telefone" />
-                </div>
-                <div className="form-field">
-                  <select name="plano">
-                    <option value="">Selecione um plano</option>
-                    {planos.map(plano => (
-                      <option key={plano.id} value={plano.nome}>{plano.nome}</option>
-                    ))}
-                  </select>
-                </div>
-                <button type="submit" className="btn-form-submit">
-                  Continuar para Checkout
-                  <FontAwesomeIcon icon={faArrowRight} />
-                </button>
-              </form>
+              <button type="button" className="btn-form-submit" onClick={handleGoToCheckout}>
+                Continuar para Checkout
+                <FontAwesomeIcon icon={faArrowRight} />
+              </button>
             </div>
           </div>
         </div>
@@ -960,7 +912,7 @@ const LPEstudante = () => {
         <div className="lp-container">
           <div className="footer-top">
             <div className="footer-logo">
-              <img src={nodoLogo} alt="NODON" />
+              <img src={NODON_LOGO_DARK_BG} alt="NODON" />
             </div>
             <div className="footer-nav">
               <a href="#planos" onClick={(e) => { e.preventDefault(); scrollToSection('planos') }}>Planos</a>

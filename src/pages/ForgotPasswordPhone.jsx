@@ -15,7 +15,7 @@ import {
   faClock
 } from '@fortawesome/free-solid-svg-icons'
 import api from '../utils/api'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import './Auth.css'
 
 const ForgotPasswordPhone = () => {

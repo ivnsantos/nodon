@@ -699,7 +699,7 @@
 
 .lp-estudante .item-content p {
   font-size: 0.9375rem;
-  color: #9ca3af;
+  color: #000000;
   line-height: 1.6;
   margin: 0;
 }
@@ -812,14 +812,14 @@
 
 .lp-estudante .stat-label {
   font-size: 0.9375rem;
-  color: #ffffff;
+  color: #000000;
   margin-bottom: 0.75rem;
   font-weight: 700;
 }
 
 .lp-estudante .stat-card p {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(0, 0, 0, 0.75);
   line-height: 1.5;
   margin: 0;
 }
@@ -924,7 +924,7 @@
 
 .lp-estudante .transformation-card p {
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.8) !important;
   line-height: 1.7;
   margin-bottom: 1.5rem;
 }
@@ -953,20 +953,14 @@
 
 /* Urgência e CTA Final */
 .lp-estudante .why-nodon-urgency {
-  margin: 6rem 0 0;
-  padding: 5rem 0;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
-  border-radius: 2rem;
-  position: relative;
-  z-index: 1;
-  border: 2px solid rgba(14, 165, 233, 0.3);
+  
 }
 
 .lp-estudante .urgency-content {
-  text-align: center;
+  /* text-align: center;
   max-width: 900px;
   margin: 0 auto;
-}
+} */
 
 .lp-estudante .urgency-badge {
   display: inline-flex;
@@ -976,7 +970,7 @@
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%);
   border: 1px solid rgba(239, 68, 68, 0.4);
   border-radius: 50px;
-  color: #fca5a5;
+  color: #ea0000a5;
   font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1210,9 +1204,9 @@
 
 .lp-estudante .plans-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 3rem;
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   position: relative;
   z-index: 1;

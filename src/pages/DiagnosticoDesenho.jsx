@@ -24,7 +24,7 @@ import limaImage from '../img/lima.png'
 import pinoImage from '../img/pino.png'
 import xImage from '../img/x.png'
 import dentesOKImage from '../img/dentesOK.PNG'
-import nodoLogo from '../img/nodo.png'
+import nodoLogo from '../img/nodon.png'
 // jsPDF será importado dinamicamente
 import './DiagnosticoDesenho.css'
 

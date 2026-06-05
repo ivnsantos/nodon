@@ -16,7 +16,7 @@ import { faInstagram, faYoutube, faWhatsapp } from '@fortawesome/free-brands-svg
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import api from '../utils/api'
 import { trackButtonClick, trackFormSubmission, trackEvent } from '../utils/gtag'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
 import dentistaImg from '../img/especializacao-em-odontologia-1.jpg'
 import xldentistaImg from '../img/xldentista.jpeg'
 import draisadentistaImg from '../img/DRAISADENTISTA.JPEG'
@@ -29,7 +29,10 @@ import preci from '../img/preci.jpeg'
 import videoExplicativo from '../video/explicatico.mp4'
 import headerVideo from '../video/header.mp4'
 import didaticaVideo from '../video/didatica.mp4'
+import { getCicloFromPlano } from '../utils/planoCiclo'
+import { isPlanoChatExcluirDentista, resolvePlanoBadge, resolvePlanoFeatured } from '../utils/planosSaude'
 import './LPDentista.css'
+import '../styles/LPEliteTheme.css'
 
 // Componente individual para cada card de plano - gerencia seu próprio estado
 const PricingCard = ({ 
@@ -72,6 +75,8 @@ const PricingCard = ({
     }
   }
 
+  const cicloInfo = getCicloFromPlano(plano)
+
   // ID único para o card
   const planId = plano.id || `plan-${index}`
 
@@ -112,7 +117,7 @@ const PricingCard = ({
           )}
           <div className="price-main">
             <span className="price-value">{formatarValor(valorExibir)}</span>
-            <span className="price-period">/mês</span>
+            <span className="price-period">{cicloInfo.periodoCurto}</span>
           </div>
         </div>
         {plano.limiteAnalises && (
@@ -124,7 +129,7 @@ const PricingCard = ({
         {!plano.nome?.toLowerCase().includes('estudante') && (
           <div className="plan-free-trial">
             <FontAwesomeIcon icon={faGift} />
-            <span>5 dias de teste grátis para você</span>
+            <span>  para você</span>
           </div>
         )}
       </div>
@@ -237,10 +242,9 @@ const LPDentista = () => {
       
       // Filtra todos os planos ativos, exceto os planos excluídos
       // Exclui o Plano Estudante da landing page de dentista
-      const planosIniciais = planosBackend.filter(plano => {
-        const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
-        return plano.ativo && !planosExcluidos.includes(plano.id) && !isPlanoChat
-      })
+      const planosIniciais = planosBackend.filter(
+        (plano) => plano.ativo && !planosExcluidos.includes(plano.id) && !isPlanoChatExcluirDentista(plano)
+      )
 
       // Função auxiliar para formatar tokens
       const formatarTokensAux = (tokens) => {
@@ -271,8 +275,6 @@ const LPDentista = () => {
         const isPlanoChat = plano.id === '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7' || plano.nome?.toLowerCase().includes('estudante') || plano.nome?.toLowerCase().includes('chat')
 
         if (isPlanoChat) {
-          // Plano Estudante - Apenas Chat
-          badge = 'Ideal para Estudantes'
           features = [
             'Chat especializado em odontologia 24/7',
             'IA treinada especificamente para odontologia',
@@ -326,11 +328,12 @@ const LPDentista = () => {
           nome: plano.nome,
           valorOriginal: valorOriginal,
           valorPromocional: valorPromocional,
+          ciclo: plano.ciclo ?? plano.cicloCobranca ?? plano.ciclo_cobranca ?? 1,
           limiteAnalises: plano.limiteAnalises || plano.limite_analises,
           tokenChat: plano.tokenChat || plano.token_chat || plano.tokensChat || null,
           features,
-          featured,
-          badge
+          featured: resolvePlanoFeatured(plano) || featured,
+          badge: resolvePlanoBadge(plano) || badge
         }
       })
 
@@ -509,7 +512,7 @@ const LPDentista = () => {
       <div className="lp-loading-overlay">
         <div className="lp-loading-container">
           <div className="lp-loading-logo">
-            <img src={nodoLogo} alt="NODON" />
+            <img src={NODON_LOGO_LIGHT_BG} alt="NODON" />
           </div>
           <div className="lp-loading-spinner-modern">
             <div className="spinner-ring"></div>
@@ -523,7 +526,7 @@ const LPDentista = () => {
   }
 
   return (
-    <div className="lp-dentista">
+    <div className="lp-dentista lp-elite">
       {/* Tag de Cupom Ativo */}
       {cupomCode && (
         <div className={`cupom-banner ${cupomValido ? 'valid' : validandoCupom ? 'validating' : 'invalid'}`}>
@@ -572,7 +575,7 @@ const LPDentista = () => {
           <div className="header-content">
             <div className="logo-wrapper">
               <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                <img src={nodoLogo} alt="NODON" />
+                <img src={NODON_LOGO_LIGHT_BG} alt="NODON" />
               </div>
             </div>
             <nav className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
@@ -1428,7 +1431,7 @@ const LPDentista = () => {
         <div className="lp-container">
           <div className="footer-top">
             <div className="footer-logo">
-              <img src={nodoLogo} alt="NODON" />
+              <img src={NODON_LOGO_DARK_BG} alt="NODON" />
             </div>
             <div className="footer-nav">
               <a href="#sobre" onClick={(e) => { e.preventDefault(); scrollToSection('sobre') }}>Sobre</a>

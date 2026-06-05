@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCalendarAlt, faClock, faUserMd, faSpinner, faCheckCircle, faTimes, faUser, faIdCard, faEnvelope, faPhone, faMapMarkerAlt, faInfoCircle, faChevronLeft
 } from '@fortawesome/free-solid-svg-icons'
-import nodoLogo from '../img/nodo.png'
+import nodoLogo from '../img/nodon.png'
 import api from '../utils/api'
 import './AgendamentoPublico.css'
 

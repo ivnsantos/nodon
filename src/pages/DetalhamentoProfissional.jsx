@@ -9,7 +9,7 @@ import {
 import useAlert from '../hooks/useAlert'
 import AlertModal from '../components/AlertModal'
 import exameImage from '../img/exame.jpg'
-import nodoLogo from '../img/nodo.png'
+import nodoLogo from '../img/nodon.png'
 import './DetalhamentoProfissional.css'
 
 // Importar todos os SVGs dos dentes

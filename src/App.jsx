@@ -72,7 +72,12 @@ function App() {
           <AuthProvider>
             <ChatHeaderProvider>
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={
+                  <PublicRoute>
+                    <ChatHome />
+                  </PublicRoute>
+                } />
+                <Route path="/gestao" element={<Home />} />
                 <Route path="/login" element={
                   <PublicRoute>
                     <Login />

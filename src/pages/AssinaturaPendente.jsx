@@ -7,7 +7,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../context/useAuth'
 import api from '../utils/api'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
 import './AssinaturaPendente.css'
 

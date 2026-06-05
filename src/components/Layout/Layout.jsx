@@ -10,7 +10,7 @@ import {
 import { useAuth } from '../../context/useAuth'
 import { useChatHeader } from '../../context/ChatHeaderContext'
 import ChatHeader from '../ChatHeader'
-import nodoLogo from '../../img/nodo.png'
+import { NODON_LOGO_DARK_BG as nodoLogo } from '../../utils/nodonLogos'
 import './Layout.css'
 
 const Layout = () => {

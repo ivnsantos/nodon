@@ -38,13 +38,16 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
 import api from '../utils/api'
-import nodoLogo from '../img/nodo.png'
+import { NODON_LOGO_LIGHT_BG, NODON_LOGO_DARK_BG } from '../utils/nodonLogos'
 import octttttImg from '../img/octtttt_8.jpg'
 import chatMilaVideo from '../video/cht-mila.mp4'
 import chatExplicaVideo from '../video/chat-explica.mp4'
 import chatNodonVideo from '../video/chat-nodon.MP4?url'
+import { getCicloFromPlano } from '../utils/planoCiclo'
+import { filterPlanosSaude, resolvePlanoFeatured } from '../utils/planosSaude'
 import './LPEstudantePRO.css'
 import './LPDentistaPRO_plans.css'
+import '../styles/LPEliteTheme.css'
 
 const LPEstudantePROSaude = () => {
   const navigate = useNavigate()
@@ -72,14 +75,8 @@ const LPEstudantePROSaude = () => {
       const todosPlanos = response.data.data || response.data
       console.log('Todos os planos:', todosPlanos)
       
-      // IDs dos planos específicos para estudantes
-      const planosIdsPermitidos = [
-        '3aa6ec3e-be03-41f4-a0e6-46b52e4f1da7', // Plano Estudante
-        '1503826a-ee30-4fa9-9955-c77d11fe44ed'  // Plano Estudante PRO
-      ]
-      
-      const planosEstudante = todosPlanos.filter(p => planosIdsPermitidos.includes(p.id) && p.ativo !== false)
-      const estudante = planosEstudante[0] // Pegar o primeiro plano como principal
+      const planosEstudante = filterPlanosSaude(todosPlanos)
+      const estudante = planosEstudante.find((p) => resolvePlanoFeatured(p)) || planosEstudante[0]
       
       console.log('Planos estudante encontrados:', planosEstudante)
       setPlanos(planosEstudante)
@@ -179,13 +176,15 @@ const LPEstudantePROSaude = () => {
     return valorComDesconto.toFixed(2)
   }
 
+  const cicloPlano = getCicloFromPlano(planoEstudante)
+
   return (
-    <div className="lp-estudante-pro">
+    <div className="lp-estudante-pro lp-elite">
       {/* HEADER */}
       <header className="lp-est-pro-header">
         <div className="lp-est-pro-container">
           <div className="lp-est-pro-header-content">
-            <img src={nodoLogo} alt="NODON Logo" className="lp-est-pro-logo" />
+            <img src={NODON_LOGO_LIGHT_BG} alt="NODON Logo" className="lp-est-pro-logo" />
           </div>
         </div>
       </header>
@@ -617,7 +616,7 @@ const LPEstudantePROSaude = () => {
                     <div className="preco-principal">
                       <span className="cifrao">R$</span>
                       <span className="valor-grande">{calcularValorComDesconto(planoEstudante.valorPromocional || '49.89')}</span>
-                      <span className="por-mes">/mês</span>
+                      <span className="por-mes">{cicloPlano.periodoCurto}</span>
                     </div>
                     <div className="economia-badge">
                       <FontAwesomeIcon icon={faGift} />
@@ -633,7 +632,7 @@ const LPEstudantePROSaude = () => {
                     <div className="preco-principal">
                       <span className="cifrao">R$</span>
                       <span className="valor-grande">{planoEstudante.valorPromocional || '49,89'}</span>
-                      <span className="por-mes">/mês</span>
+                      <span className="por-mes">{cicloPlano.periodoCurto}</span>
                     </div>
                     <div className="cupom-info">
                       <FontAwesomeIcon icon={faGift} />
