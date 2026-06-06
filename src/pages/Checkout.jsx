@@ -15,6 +15,7 @@ import {
   faGift
 } from '@fortawesome/free-solid-svg-icons'
 import FloatingWhatsApp from '../components/FloatingWhatsApp'
+import PlanosSaudeCarousel from '../components/PlanoSaudeCard/PlanosSaudeCarousel'
 import axios from 'axios'
 import { NODON_LOGO_DARK_BG as nodoLogo } from '../utils/nodonLogos'
 import api from '../utils/api'
@@ -619,7 +620,12 @@ const Checkout = () => {
               </div>
             ) : (
               <>
-              <div className="checkout-plans-grid" role="radiogroup" aria-label="Planos disponíveis">
+              <PlanosSaudeCarousel
+                className="planos-saude-carousel--checkout"
+                trackClassName="checkout-plans-grid"
+                trackRole="radiogroup"
+                trackAriaLabel="Planos disponíveis"
+              >
                 {plans.map((plan) => {
                   const selected = selectedPlan?.id === plan.id
                   const finalPrice = planPriceDisplay(plan)
@@ -711,10 +717,7 @@ const Checkout = () => {
                     </div>
                   )
                 })}
-              </div>
-              {plans.length > 1 && (
-                <p className="checkout-plans-scroll-hint">Deslize para ver os planos →</p>
-              )}
+              </PlanosSaudeCarousel>
               <p className="checkout-plans-continue-hint">Cadastro e pagamento abaixo ↓</p>
               </>
             )}

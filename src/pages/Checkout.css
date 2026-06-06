@@ -2713,9 +2713,19 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .checkout-page--single .checkout-plans-continue-hint {
     display: block;
+  }
+}
+
+@media (max-width: 1024px) {
+  .checkout-page--single .checkout-plans-section {
+    overflow-x: clip;
+  }
+
+  .checkout-page--single .checkout-plans-continue-hint {
+    display: none;
   }
 }
 
@@ -3275,10 +3285,6 @@
   .checkout-panel--summary {
     position: static;
   }
-
-  .checkout-plans-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ——— Checkout single: mobile / tablet ——— */
@@ -3332,12 +3338,12 @@
   .checkout-plans-section-head {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
   }
 
   .checkout-plans-section-head h2 {
-    font-size: 1.05rem;
+    font-size: 0.9375rem;
   }
 
   .checkout-plans-hint {
@@ -3349,45 +3355,10 @@
     padding: 0.25rem 0.6rem;
   }
 
-  .checkout-plans-scroll-hint {
-    display: block;
-    margin: 0.35rem 0 0;
-    padding: 0 0.75rem;
-    font-size: 0.6875rem;
-    color: rgba(255, 255, 255, 0.45);
-    text-align: center;
-  }
-
-  .checkout-plans-grid {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: 0.65rem;
-    padding: 0.65rem 0.75rem 0.35rem;
-    overflow-x: auto;
-    overflow-y: visible;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: 0.75rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
-  }
-
-  .checkout-plans-grid::-webkit-scrollbar {
-    display: none;
-  }
-
   .checkout-plan-card {
-    flex: 0 0 calc(100% - 1.5rem);
-    width: calc(100% - 1.5rem);
-    min-width: calc(100% - 1.5rem);
-    max-width: calc(100% - 1.5rem);
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    padding: 0.75rem 0.65rem 0.65rem;
-    padding-top: 0.875rem;
-    border-radius: 0.875rem;
+    padding: 0.55rem 0.55rem 0.5rem;
+    padding-top: 0.65rem;
+    border-radius: 0.75rem;
     border-width: 1.5px;
   }
 
@@ -3400,50 +3371,50 @@
   }
 
   .checkout-plan-radio {
-    top: 0.75rem;
+    top: 0.55rem;
     left: auto;
-    right: 0.65rem;
-    width: 18px;
-    height: 18px;
+    right: 0.55rem;
+    width: 16px;
+    height: 16px;
   }
 
   .checkout-plan-radio-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
   }
 
   .checkout-plan-badge {
-    top: -8px;
-    right: 0.65rem;
-    font-size: 0.5625rem;
-    padding: 0.2rem 0.5rem;
-    max-width: calc(100% - 2.5rem);
+    top: -7px;
+    right: 0.55rem;
+    font-size: 0.5rem;
+    padding: 0.15rem 0.4rem;
+    max-width: calc(100% - 2rem);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .checkout-plan-card-header {
-    margin: 0 1.75rem 0.35rem 0;
+    margin: 0 1.4rem 0.15rem 0;
     min-height: auto;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.15rem;
+    gap: 0.1rem;
   }
 
   .checkout-plan-card-name {
-    font-size: 0.9375rem;
-    line-height: 1.25;
+    font-size: 0.8125rem;
+    line-height: 1.2;
     padding-right: 0;
   }
 
   .checkout-plan-card-tagline {
     margin: 0;
     padding: 0;
-    font-size: 0.6875rem;
-    line-height: 1.35;
+    font-size: 0.625rem;
+    line-height: 1.3;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -3455,21 +3426,21 @@
   }
 
   .checkout-plan-card-price {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
     padding-left: 0;
-    gap: 0.1rem;
+    gap: 0;
   }
 
   .checkout-plan-price-old {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
   }
 
   .checkout-plan-price-current {
-    font-size: 1.35rem;
+    font-size: 1.125rem;
   }
 
   .checkout-plan-price-current small {
-    font-size: 0.8125rem;
+    font-size: 0.6875rem;
   }
 
   .checkout-plan-tokens,
@@ -3488,11 +3459,11 @@
 
   .checkout-plan-features-toggle {
     width: 100%;
-    margin: 0.35rem 0 0.25rem;
-    padding: 0.4rem;
-    min-height: 34px;
-    font-size: 0.6875rem;
-    border-radius: 6px;
+    margin: 0.2rem 0 0;
+    padding: 0.28rem 0.35rem;
+    min-height: 28px;
+    font-size: 0.625rem;
+    border-radius: 5px;
   }
 
   .checkout-plan-card-features {
@@ -3510,12 +3481,11 @@
   }
 
   .checkout-plan-card-cta {
-    padding-top: 0.45rem;
-    font-size: 0.6875rem;
+    display: none;
   }
 
   .checkout-plan-card--skeleton {
-    min-height: 180px;
+    min-height: 140px;
   }
 
   .checkout-coupon-bar {
@@ -3650,10 +3620,6 @@
   }
 }
 
-.checkout-plans-scroll-hint {
-  display: none;
-}
-
 @media (max-width: 480px) {
   .checkout-page--single .checkout-container {
     padding: 0 0 1.5rem;
@@ -3663,25 +3629,41 @@
     padding: 0 0.65rem;
   }
 
+  .checkout-page--single .checkout-header {
+    margin-bottom: 0.85rem;
+  }
+
+  .checkout-page--single .checkout-logo {
+    width: 60px;
+    margin-bottom: 0.5rem;
+  }
+
   .checkout-page--single .checkout-panel {
     padding: 1.15rem 2.65rem;
   }
 
   .checkout-page--single .checkout-header h1 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
 
   .checkout-plans-section-head h2 {
-    font-size: 1rem;
+    font-size: 0.875rem;
   }
 
   .checkout-plan-card {
-    padding: 0.65rem 0.6rem 0.6rem;
-    padding-top: 0.8rem;
+    padding: 0.5rem 0.5rem 0.45rem;
+    padding-top: 0.6rem;
   }
 
   .checkout-plan-price-current {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
+  }
+
+  .planos-saude-carousel--checkout .planos-saude-carousel__track > .checkout-plan-card {
+    flex: 0 0 82%;
+    width: 82%;
+    min-width: 82%;
+    max-width: 82%;
   }
 }
 

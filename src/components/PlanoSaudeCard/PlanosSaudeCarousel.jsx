@@ -1,7 +1,14 @@
 import { useRef, useState, useEffect, Children } from 'react'
 import './PlanosSaudeCarousel.css'
 
-const PlanosSaudeCarousel = ({ children, className = '' }) => {
+const PlanosSaudeCarousel = ({
+  children,
+  className = '',
+  trackClassName = 'chat-home-plans-grid',
+  trackRole = 'list',
+  trackAriaLabel = 'Planos disponíveis',
+  hintText = 'Deslize para ver os planos →'
+}) => {
   const trackRef = useRef(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const items = Children.toArray(children).filter(Boolean)
@@ -56,16 +63,16 @@ const PlanosSaudeCarousel = ({ children, className = '' }) => {
     <div className={`planos-saude-carousel ${className}`.trim()}>
       <div
         ref={trackRef}
-        className="chat-home-plans-grid planos-saude-carousel__track"
-        role="list"
-        aria-label="Planos disponíveis"
+        className={`${trackClassName} planos-saude-carousel__track`.trim()}
+        role={trackRole}
+        aria-label={trackAriaLabel}
       >
         {items}
       </div>
 
       {count > 1 && (
         <div className="planos-saude-carousel__footer">
-          <p className="planos-saude-carousel__hint">Deslize para ver os planos →</p>
+          <p className="planos-saude-carousel__hint">{hintText}</p>
           <div className="planos-saude-carousel__dots" role="tablist" aria-label="Navegação entre planos">
             {items.map((_, index) => (
               <button
