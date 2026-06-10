@@ -723,6 +723,18 @@
     -webkit-transform: translateZ(0);
   }
 
+  .mobile-header .chat-ai-avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .mobile-header .nodo-chat-logo {
+    width: 31px;
+    height: 38px;
+  }
+
   .mobile-menu-toggle {
     display: flex;
     width: 46px;

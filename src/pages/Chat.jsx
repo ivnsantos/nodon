@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
-  faComments, faRobot, faPaperPlane, faUser, faMagic, faShieldAlt,
+  faComments, faRobot, faPaperPlane, faUser, faShieldAlt,
   faHistory, faBars, faTimes, faPlus, faExclamationTriangle, faLock, faStop,
   faMicrophone, faImage, faTrash, faArrowUp, faSpinner
 } from '@fortawesome/free-solid-svg-icons'
@@ -1248,7 +1248,7 @@ const Chat = () => {
           {messages.length === 0 ? (
             <div className="chat-welcome-modern">
               <div className="welcome-icon-modern">
-                <FontAwesomeIcon icon={faMagic} />
+                <img src={nodoLogo} alt="NODON" className="welcome-icon-logo" />
               </div>
               <h3>Olá! Como posso ajudar você hoje?</h3>
               <p>A NODON é uma IA especializada em saúde. Tire dúvidas, faça trabalhos acadêmicos e revise conteúdos com uma IA treinada para a área da saúde.</p>
